@@ -23,4 +23,5 @@ urlpatterns = [
     path('accounts/', include('allauth.urls')),  # django-allauth auth URLs
     path("api/", api.urls),
     path("", include("cms.urls")),
+    path("__reload__/", include("django_browser_reload.urls")),
 ]
