@@ -43,9 +43,42 @@ class MediaAsset(models.Model):
 
 class Playlist(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    STATUS_CHOICES = [
+        ('DRAFT', 'Draft'),
+        ('ACTIVE', 'Active'),
+        ('SCHEDULED', 'Scheduled'),
+        ('ARCHIVED', 'Archived'),
+    ]
+
+    SCHEDULE_TYPES = [
+        ('ALWAYS', 'Always On'),
+        ('SCHEDULED', 'Scheduled'),
+    ]
+
+    TRANSITION_EFFECTS = [
+        ('NONE', 'None'),
+        ('FADE', 'Fade'),
+        ('SLIDE', 'Slide'),
+    ]
+
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='playlists')
+    
+    # Settings
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='DRAFT')
+    schedule_type = models.CharField(max_length=10, choices=SCHEDULE_TYPES, default='ALWAYS')
+    
+    # Schedule details (only used if schedule_type is SCHEDULED)
+    start_date = models.DateField(blank=True, null=True)
+    end_date = models.DateField(blank=True, null=True)
+    start_time = models.TimeField(blank=True, null=True)
+    end_time = models.TimeField(blank=True, null=True)
+    
+    # Playback settings
+    transition_effect = models.CharField(max_length=10, choices=TRANSITION_EFFECTS, default='FADE')
+    is_loop = models.BooleanField(default=True)
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

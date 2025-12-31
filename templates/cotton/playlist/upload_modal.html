@@ -1,0 +1,48 @@
+<div id="uploadMediaModal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+    <!-- ... (Same overlay structure) ... -->
+    <div class="flex items-center justify-center min-h-screen px-4">
+        <div class="fixed inset-0 bg-black/60 transition-opacity"
+            onclick="document.getElementById('uploadMediaModal').classList.add('hidden')"></div>
+        <div class="relative bg-white rounded-2xl shadow-xl max-w-lg w-full p-8 text-center">
+            <button onclick="document.getElementById('uploadMediaModal').classList.add('hidden')"
+                class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><svg class="w-5 h-5" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg></button>
+
+            <h3 class="text-lg font-bold text-slate-900 mb-6">Upload New Media</h3>
+
+            <div
+                class="border-2 border-dashed border-slate-200 rounded-xl p-8 mb-6 hover:border-green-500 transition-colors bg-slate-50 group cursor-pointer">
+                <div
+                    class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400 group-hover:text-green-500 group-hover:scale-110 transition-all">
+                    <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                </div>
+                <p class="text-slate-900 font-medium mb-1">Drag and drop files here</p>
+                <p class="text-sm text-slate-500 mb-4">or browse to upload</p>
+                <button
+                    class="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 shadow-sm">Browse
+                    files</button>
+            </div>
+
+            <p class="text-xs text-slate-400">Supported formats: MP4, JPG, PNG, GIF</p>
+
+            <div class="mt-6 flex gap-3 justify-end">
+                <button onclick="document.getElementById('uploadMediaModal').classList.add('hidden')"
+                    class="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
+                <form action="{% url 'upload_media' %}" method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="media_type" value="IMAGE">
+                    <input type="hidden" name="file_url"
+                        value="https://images.unsplash.com/photo-1556742031-c6961e8560b0?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80">
+                    <button type="submit"
+                        class="px-6 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg shadow-sm">Upload
+                        (Demo)</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

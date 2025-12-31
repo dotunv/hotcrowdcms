@@ -1,254 +1,102 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="space-y-6">
-    <!-- Page Header -->
-    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+<div class="h-[calc(100vh-6rem)] flex flex-col">
+    <!-- Top Bar -->
+    <form id="playlistForm" method="post" action=""
+        class="flex-none flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+        {% csrf_token %}
+        <input type="hidden" name="save_settings" value="true">
+
         <div>
-            <h1 class="text-2xl font-bold text-slate-900">Playlist Builder</h1>
-            <p class="text-slate-500 text-sm mt-1">Drag and drop to arrange your media</p>
+            <div class="flex items-center gap-2 text-sm text-slate-500 mb-1">
+                <a href="{% url 'playlists_list' %}" class="hover:text-slate-700">Playlists</a>
+                <span>/</span>
+                <span>Editor</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <input type="text" name="name" value="{{ playlist.name }}"
+                    class="text-2xl font-bold text-slate-900 bg-transparent border-none focus:ring-0 p-0 w-auto placeholder-slate-400"
+                    placeholder="Untitled Playlist">
+
+                <span
+                    class="px-2 py-0.5 rounded text-xs font-bold bg-yellow-100 text-yellow-700 uppercase tracking-wide">
+                    {{ playlist.get_status_display }}
+                </span>
+
+                <button type="button" class="text-slate-400 hover:text-slate-600">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                </button>
+            </div>
         </div>
-        <div class="flex gap-3">
-            <!-- Playlist Selector -->
-            <select onchange="window.location.href='{% url 'playlist_builder' %}?playlist=' + this.value"
-                class="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none">
-                {% for p in playlists %}
-                <option value="{{ p.id }}" {% if p.id == playlist.id %}selected{% endif %}>{{ p.name }}</option>
-                {% endfor %}
-            </select>
-            <!-- Create Playlist -->
-            <button onclick="document.getElementById('createPlaylistModal').classList.remove('hidden')"
-                class="inline-flex items-center px-3 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
-                <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+
+        <div class="flex items-center gap-3">
+            <span class="text-xs text-slate-500 hidden sm:inline-block">Last saved {{ playlist.updated_at|timesince }}
+                ago</span>
+            <button type="button" onclick="openPreviewModal()"
+                class="px-4 py-2 bg-white border border-slate-200 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 transition-colors">
+                Preview
+            </button>
+            <button type="submit"
+                class="px-4 py-2 bg-green-700 text-white text-sm font-medium rounded-lg hover:bg-green-800 transition-colors shadow-sm flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
                 </svg>
-                New Playlist
+                Save Playlist
             </button>
         </div>
-    </div>
 
-    <div class="flex h-[calc(100vh-200px)] gap-6">
-        <!-- Media Library (Left) -->
-        <div class="w-1/3 flex flex-col bg-white shadow-sm rounded-xl border border-slate-100 overflow-hidden">
-            <div class="px-4 py-3 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-                <h3 class="text-sm font-semibold text-slate-900">Media Library</h3>
-                <form action="{% url 'sync_instagram' %}" method="post" class="flex gap-2">
-                    {% csrf_token %}
-                    <input type="text" name="hashtag" placeholder="#tag"
-                        class="text-xs border border-slate-200 rounded-lg px-2 py-1.5 w-20 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none">
-                    <button type="submit"
-                        class="text-xs text-white bg-gradient-to-r from-pink-500 to-purple-500 px-2 py-1.5 rounded-lg hover:from-pink-600 hover:to-purple-600 font-medium">Sync</button>
-                </form>
-            </div>
-            <div class="flex-1 overflow-y-auto p-3 space-y-2" id="media-library">
-                {% for item in media_items %}
-                <div
-                    class="group relative bg-slate-50 p-2 rounded-lg border border-slate-100 hover:border-primary/50 hover:shadow-sm transition-all flex items-center gap-3">
-                    <!-- Thumbnail -->
-                    <div class="h-12 w-16 bg-slate-200 rounded-lg overflow-hidden flex-shrink-0">
-                        {% if item.media_type == 'IMAGE' %}
-                        <img src="{{ item.file_url }}" class="h-full w-full object-cover">
-                        {% else %}
-                        <div class="h-full w-full flex items-center justify-center bg-slate-700 text-white">
-                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                            </svg>
+        <!-- Main Content Area (3 Columns) -->
+        <div class="flex-1 flex gap-6 min-h-0 overflow-hidden mt-4">
+
+            <!-- Left: Media Library -->
+            <c-playlist.media_library :media_items="media_items" :playlist="playlist" />
+
+            <!-- Center: Sequence -->
+            <c-playlist.sequence_editor :playlist="playlist" />
+
+            <!-- Right: Settings & Preview -->
+            <div class="w-80 flex flex-col gap-6 flex-shrink-0">
+                <!-- Mini Preview -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="text-sm font-bold text-slate-900">Live Preview</h3>
+                        <div class="flex gap-1 text-slate-400">
+                            <!-- ... (Mini preview controls, kept inline for now or could be a small component) ... -->
+                            <!-- Leaving simplified here for brevity, assuming main preview is in modal -->
                         </div>
-                        {% endif %}
                     </div>
-                    <!-- Info -->
-                    <div class="flex-1 min-w-0">
-                        <p class="text-sm font-medium text-slate-900 truncate">{{ item.media_type }}</p>
-                        <p class="text-xs text-slate-500">{{ item.duration }}s • {{ item.source }}</p>
+                    <!-- Simplified placeholder for mini preview since main logic is in modal/JS -->
+                    <div class="aspect-video bg-black rounded-lg overflow-hidden relative group">
+                        <div class="w-full h-full bg-slate-800 grid place-items-center text-white text-xs">Preview</div>
                     </div>
-                    <!-- Add Button -->
-                    <form action="{% url 'add_to_playlist' item.id %}" method="post">
-                        {% csrf_token %}
-                        <input type="hidden" name="playlist_id" value="{{ playlist.id }}">
-                        <button type="submit"
-                            class="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-all"
-                            title="Add to playlist">
-                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M12 4v16m8-8H4" />
-                            </svg>
-                        </button>
-                    </form>
                 </div>
-                {% empty %}
-                <div class="text-center text-slate-400 py-8">
-                    <svg class="w-10 h-10 mx-auto mb-2 text-slate-300" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z">
-                        </path>
-                    </svg>
-                    <p class="text-sm">No media yet</p>
-                    <a href="{% url 'media_library' %}" class="text-xs text-primary hover:text-green-700">Upload
-                        media</a>
-                </div>
-                {% endfor %}
+
+                <!-- Settings -->
+                <c-playlist.settings_panel :playlist="playlist" />
             </div>
         </div>
-
-        <!-- Playlist Sequence (Right) -->
-        <div class="w-2/3 flex flex-col bg-white shadow-sm rounded-xl border border-slate-100 overflow-hidden">
-            <div class="px-4 py-3 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-                <div>
-                    <h3 class="text-sm font-semibold text-slate-900">{{ playlist.name }}</h3>
-                    <p class="text-xs text-slate-500">{{ playlist.items.count }} items • Drag to reorder</p>
-                </div>
-                <div class="flex gap-2">
-                    <button id="saveBtn" onclick="savePlaylistOrder()"
-                        class="px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg shadow-sm hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        disabled>
-                        <span id="saveBtnText">Save Changes</span>
-                    </button>
-                    <form action="{% url 'delete_playlist' playlist.id %}" method="post"
-                        onsubmit="return confirm('Delete this playlist?')" class="inline">
-                        {% csrf_token %}
-                        <button type="submit"
-                            class="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Delete playlist">
-                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
-                                </path>
-                            </svg>
-                        </button>
-                    </form>
-                </div>
-            </div>
-
-            <div class="flex-1 overflow-y-auto p-4 bg-slate-50/50">
-                <!-- Sortable List -->
-                <div id="playlist-items" class="space-y-2 min-h-[200px]">
-                    {% for item in playlist.items.all %}
-                    <div class="playlist-item bg-white p-3 rounded-lg shadow-sm border border-slate-100 flex items-center justify-between cursor-move hover:shadow-md hover:border-primary/30 transition-all"
-                        data-id="{{ item.id }}">
-                        <div class="flex items-center gap-3">
-                            <div class="text-slate-300 cursor-move">
-                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M4 8h16M4 16h16"></path>
-                                </svg>
-                            </div>
-                            <span class="px-2 py-0.5 text-xs font-medium rounded bg-slate-100 text-slate-600">{{
-                                forloop.counter }}</span>
-                            <div class="h-10 w-16 bg-slate-100 rounded-lg overflow-hidden">
-                                {% if item.media.media_type == 'IMAGE' %}
-                                <img src="{{ item.media.file_url }}" class="h-full w-full object-cover">
-                                {% else %}
-                                <div
-                                    class="h-full w-full flex items-center justify-center bg-slate-700 text-white text-xs">
-                                    VIDEO</div>
-                                {% endif %}
-                            </div>
-                            <div>
-                                <p class="text-sm font-medium text-slate-900">{{ item.media.media_type }}</p>
-                                <p class="text-xs text-slate-500">{{ item.media.duration }}s</p>
-                            </div>
-                        </div>
-                        <form action="{% url 'remove_from_playlist' item.id %}" method="post" class="inline">
-                            {% csrf_token %}
-                            <button type="submit"
-                                class="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                                title="Remove">
-                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M6 18L18 6M6 6l12 12"></path>
-                                </svg>
-                            </button>
-                        </form>
-                    </div>
-                    {% empty %}
-                    <div id="empty-state"
-                        class="text-center text-slate-400 py-16 border-2 border-dashed border-slate-200 rounded-xl">
-                        <svg class="w-12 h-12 mx-auto mb-3 text-slate-300" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10">
-                            </path>
-                        </svg>
-                        <p class="text-sm font-medium text-slate-600">Playlist is empty</p>
-                        <p class="text-xs text-slate-400 mt-1">Click + on media items to add them here</p>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-    </div>
+    </form>
 </div>
 
-<!-- Create Playlist Modal -->
-<div id="createPlaylistModal" class="hidden fixed inset-0 z-50 overflow-y-auto">
-    <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20">
-        <div class="fixed inset-0 bg-black/50 transition-opacity"
-            onclick="document.getElementById('createPlaylistModal').classList.add('hidden')"></div>
+<!-- Modals -->
+<c-playlist.upload_modal />
+<c-playlist.preview_modal :playlist="playlist" />
+<c-playlist.success_modal :playlist="playlist" />
 
-        <div class="relative bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
-            <div class="flex justify-between items-center mb-6">
-                <h3 class="text-lg font-semibold text-slate-900">Create Playlist</h3>
-                <button onclick="document.getElementById('createPlaylistModal').classList.add('hidden')"
-                    class="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
-                        </path>
-                    </svg>
-                </button>
-            </div>
-
-            <form action="{% url 'create_playlist' %}" method="post" class="space-y-4">
-                {% csrf_token %}
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Playlist Name</label>
-                    <input type="text" name="name" required placeholder="My Awesome Playlist"
-                        class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Description (optional)</label>
-                    <textarea name="description" rows="2" placeholder="A short description..."
-                        class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none resize-none"></textarea>
-                </div>
-
-                <button type="submit"
-                    class="w-full py-3 bg-primary text-white font-medium rounded-lg hover:bg-green-600 transition-colors">
-                    Create Playlist
-                </button>
-            </form>
-        </div>
-    </div>
-</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    let hasChanges = false;
-    const saveBtn = document.getElementById('saveBtn');
-    const saveBtnText = document.getElementById('saveBtnText');
-
-    // Initialize Sortable
-    const sortable = new Sortable(document.getElementById('playlist-items'), {
-        animation: 150,
-        ghostClass: 'opacity-50',
-        dragClass: 'shadow-lg',
-        handle: '.cursor-move',
-        filter: '#empty-state',
-        onEnd: function () {
-            hasChanges = true;
-            saveBtn.disabled = false;
-            saveBtn.classList.remove('opacity-50');
-        }
-    });
-
-    function savePlaylistOrder() {
-        const items = document.querySelectorAll('.playlist-item');
+    // Sortable JS Init
+    // (Logic moved to component or kept here if needed for global context)
+    function saveOrder() {
+        const items = document.querySelectorAll('.sequence-item');
         const itemIds = Array.from(items).map(item => item.dataset.id);
-
-        saveBtnText.textContent = 'Saving...';
-        saveBtn.disabled = true;
 
         const formData = new FormData();
         formData.append('playlist_id', '{{ playlist.id }}');
@@ -256,44 +104,26 @@
 
         fetch('{% url "reorder_playlist" %}', {
             method: 'POST',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
             body: formData
-        })
-            .then(response => {
-                if (response.ok) {
-                    saveBtnText.textContent = 'Saved!';
-                    hasChanges = false;
-                    setTimeout(() => {
-                        saveBtnText.textContent = 'Save Changes';
-                        saveBtn.disabled = true;
-                        saveBtn.classList.add('opacity-50');
-                    }, 2000);
-                } else {
-                    saveBtnText.textContent = 'Error';
-                    setTimeout(() => {
-                        saveBtnText.textContent = 'Save Changes';
-                        saveBtn.disabled = false;
-                    }, 2000);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                saveBtnText.textContent = 'Error';
-                setTimeout(() => {
-                    saveBtnText.textContent = 'Save Changes';
-                    saveBtn.disabled = false;
-                }, 2000);
-            });
+        });
     }
 
-    // Warn before leaving if unsaved changes
-    window.addEventListener('beforeunload', function (e) {
-        if (hasChanges) {
-            e.preventDefault();
-            e.returnValue = '';
-        }
-    });
+    function openPreviewModal() {
+        document.getElementById('previewModal').classList.remove('hidden');
+    }
+
+    function closePreviewModal() {
+        document.getElementById('previewModal').classList.add('hidden');
+    }
+
+    function closeSavedModal() {
+        const modal = document.getElementById('savedModal');
+        if (modal) modal.remove(); // Or add hidden
+        // Remove query param to prevent showing on refresh?
+        const url = new URL(window.location);
+        url.searchParams.delete('saved');
+        window.history.replaceState({}, '', url);
+    }
 </script>
 {% endblock %}

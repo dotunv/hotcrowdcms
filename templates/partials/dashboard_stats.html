@@ -1,0 +1,10 @@
+<div id="dashboard-stats" class="grid grid-cols-1 md:grid-cols-3 gap-6 fade-in">
+    <c-ui.stat_card label="Active Screens" value="{{ online_screens }}/{{ total_screens }}" icon="monitor" color="green"
+        extra='<span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">+1 New</span> <span class="text-xs text-gray-500 ml-2">added this week</span>' />
+
+    <c-ui.stat_card label="Estimated Impressions" value="{{ impressions|default:'12.5K' }}" icon="visibility"
+        color="orange" trend="{{ trend|default:'12%' }}" trend_up="{{ trend_up|default:'true' }}" />
+
+    <c-ui.stat_card label="Instagram Sync" value="Active" icon="center_focus_weak" color="pink"
+        extra='<div class="flex items-center gap-2 mt-1"><div class="flex -space-x-2"><img class="w-6 h-6 rounded-full border-2 border-white" src="https://ui-avatars.com/api/?name=User+1" alt=""><img class="w-6 h-6 rounded-full border-2 border-white" src="https://ui-avatars.com/api/?name=User+2" alt=""></div><span class="text-xs text-gray-500">Last synced 2m ago</span></div>' />
+</div>

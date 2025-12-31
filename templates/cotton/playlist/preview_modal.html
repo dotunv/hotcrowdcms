@@ -1,0 +1,73 @@
+<c-vars playlist />
+
+<div id="previewModal" class="hidden fixed inset-0 z-[60] overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen px-4 bg-black/80 backdrop-blur-sm">
+        <div
+            class="w-full max-w-4xl bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border border-slate-700 flex flex-col relative">
+
+            <!-- Header -->
+            <div
+                class="px-6 py-4 flex justify-between items-center bg-slate-800/50 backdrop-blur border-b border-slate-700 absolute top-0 w-full z-10">
+                <h3 class="text-white font-semibold">Full Playlist Preview</h3>
+                <button onclick="closePreviewModal()"
+                    class="flex items-center gap-1 text-slate-400 hover:text-white bg-white/10 px-3 py-1.5 rounded-full text-xs font-medium transition-colors">
+                    Close <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Video Player Area -->
+            <div class="aspect-video bg-black relative flex items-center justify-center group">
+                <img src="https://images.unsplash.com/photo-1629198688000-71f23e745b6e?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"
+                    class="w-full h-full object-contain opacity-80" alt="Preview Content">
+
+                <!-- Live Badge -->
+                <div
+                    class="absolute top-20 left-6 bg-red-600 text-white text-xs font-bold px-2 py-0.5 rounded shadow-lg">
+                    LIVE</div>
+
+                <!-- Controls Overlay -->
+                <div
+                    class="absolute bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform translate-y-2 group-hover:translate-y-0">
+                    <button
+                        class="p-4 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl text-white transition-all"><svg
+                            class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                            <path
+                                d="M8.445 14.832A1 1 0 0010 14v-2.798l5.445 3.63A1 1 0 0017 14V6a1 1 0 00-1.555-.832L10 8.798V6a1 1 0 00-1.555-.832l-6 4a1 1 0 000 1.664l6 4z" />
+                        </svg></button>
+                    <button
+                        class="p-5 bg-white text-slate-900 rounded-2xl shadow-xl hover:scale-105 transition-transform"><svg
+                            class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd"
+                                d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z"
+                                clip-rule="evenodd" />
+                            <path fill-rule="evenodd"
+                                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                                clip-rule="evenodd" />
+                        </svg> <!-- Pause Icon roughly --><svg class="w-8 h-8 hidden" fill="currentColor"
+                            viewBox="0 0 20 20">
+                            <path fill-rule="evenodd"
+                                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z"
+                                clip-rule="evenodd" />
+                        </svg></button>
+                    <button
+                        class="p-4 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl text-white transition-all"><svg
+                            class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                            <path
+                                d="M4.555 5.168A1 1 0 003 6v8a1 1 0 001.555.832L10 11.202V14a1 1 0 001.555.832l6-4a1 1 0 000-1.664l-6-4A1 1 0 0010 4v2.798L4.555 5.168z" />
+                        </svg></button>
+                </div>
+            </div>
+
+            <!-- Timeline (Visual Only) -->
+            <div class="h-16 bg-slate-900 border-t border-slate-700 flex items-center px-4 gap-2 overflow-hidden">
+                <div class="w-24 h-12 bg-green-900/40 rounded border border-green-500/30 flex-shrink-0"></div>
+                <div class="w-16 h-12 bg-slate-800 rounded border border-slate-700 flex-shrink-0"></div>
+                <div class="w-32 h-12 bg-slate-800 rounded border border-slate-700 flex-shrink-0"></div>
+            </div>
+
+        </div>
+    </div>
+</div>

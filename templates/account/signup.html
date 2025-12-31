@@ -1,151 +1,181 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en" class="h-full bg-slate-50">
+{% load i18n account socialaccount %}
+<c-layouts.auth>
+    <div
+        class="w-full max-w-md bg-white dark:bg-surface-dark rounded-2xl shadow-card p-6 md:p-10 border border-border-light dark:border-border-dark relative overflow-hidden mx-auto">
+        <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-primary to-accent"></div>
+        <div class="mb-8 text-center">
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Create Account</h1>
+            <p class="text-muted-light dark:text-muted-dark text-sm">Join HotCrowd to power your digital signage.</p>
+        </div>
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign Up - HotCrowd CMS</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
-                    colors: {
-                        primary: '#22c55e',
-                    }
-                }
-            }
-        }
-    </script>
-</head>
+        <form class="signup space-y-5" method="POST" action="{% url 'account_signup' %}">
+            {% csrf_token %}
+            {% if form.errors %}
+            <div class="p-3 rounded-lg bg-red-50 text-red-600 text-sm">
+                {% for field in form %}
+                {% for error in field.errors %}
+                <p>{{ field.label }}: {{ error }}</p>
+                {% endfor %}
+                {% endfor %}
+                {% for error in form.non_field_errors %}
+                <p>{{ error }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
 
-<body class="h-full font-sans">
-    <div class="min-h-full flex">
-        <!-- Left side - Branding -->
-        <div
-            class="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary via-green-500 to-emerald-600 p-12 flex-col justify-between">
+            <!-- Username -->
             <div>
-                <div class="flex items-center gap-3">
-                    <img src="{% static 'logo.png' %}" alt="HotCrowd" class="h-10 w-10">
-                    <span class="text-2xl font-bold text-white">HotCrowd</span>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
+                    for="{{ form.username.id_for_label }}">Username</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span class="material-symbols-outlined text-gray-400 text-[20px]">person</span>
+                    </div>
+                    <input
+                        class="block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-shadow sm:text-sm"
+                        id="{{ form.username.id_for_label }}" name="{{ form.username.name }}" type="text"
+                        placeholder="johndoe" required value="{{ form.username.value|default:'' }}">
                 </div>
             </div>
+
+            <!-- Email -->
             <div>
-                <h1 class="text-4xl font-bold text-white mb-4">Start Your<br>Digital Journey</h1>
-                <p class="text-white/80 text-lg max-w-md">Join thousands of businesses using HotCrowd to power their
-                    digital signage and engage customers.</p>
-                <div class="mt-8 flex gap-8">
-                    <div>
-                        <p class="text-3xl font-bold text-white">10K+</p>
-                        <p class="text-white/60 text-sm">Active Screens</p>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
+                    for="{{ form.email.id_for_label }}">Email address</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span class="material-symbols-outlined text-gray-400 text-[20px]">mail</span>
                     </div>
-                    <div>
-                        <p class="text-3xl font-bold text-white">50M+</p>
-                        <p class="text-white/60 text-sm">Media Synced</p>
+                    <input
+                        class="block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-shadow sm:text-sm"
+                        id="{{ form.email.id_for_label }}" name="{{ form.email.name }}" type="email"
+                        placeholder="you@company.com" required value="{{ form.email.value|default:'' }}">
+                </div>
+                {% if form.email.help_text %}
+                <p class="mt-1 text-xs text-muted-light dark:text-muted-dark">{{ form.email.help_text|safe }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Password -->
+            <div x-data="{ show: false }">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
+                    for="{{ form.password1.id_for_label }}">Password</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span class="material-symbols-outlined text-gray-400 text-[20px]">lock</span>
                     </div>
-                    <div>
-                        <p class="text-3xl font-bold text-white">99.9%</p>
-                        <p class="text-white/60 text-sm">Uptime</p>
+                    <input
+                        class="block w-full pl-10 pr-10 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-shadow sm:text-sm"
+                        id="{{ form.password1.id_for_label }}" name="{{ form.password1.name }}"
+                        :type="show ? 'text' : 'password'" placeholder="••••••••" required>
+                    <button type="button" @click="show = !show"
+                        class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors focus:outline-none">
+                        <span class="material-symbols-outlined text-[20px]"
+                            x-text="show ? 'visibility' : 'visibility_off'"></span>
+                    </button>
+                </div>
+                {% if form.password1.help_text %}
+                <div
+                    class="mt-2 text-xs text-muted-light dark:text-muted-dark space-y-1 [&>ul]:list-disc [&>ul]:pl-4 [&>ul>li]:marker:text-primary">
+                    {{ form.password1.help_text|safe }}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Confirm Password -->
+            <div x-data="{ show: false }">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
+                    for="{{ form.password2.id_for_label }}">Confirm Password</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span class="material-symbols-outlined text-gray-400 text-[20px]">lock_reset</span>
                     </div>
+                    <input
+                        class="block w-full pl-10 pr-10 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-shadow sm:text-sm"
+                        id="{{ form.password2.id_for_label }}" name="{{ form.password2.name }}"
+                        :type="show ? 'text' : 'password'" placeholder="••••••••" required>
+                    <button type="button" @click="show = !show"
+                        class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors focus:outline-none">
+                        <span class="material-symbols-outlined text-[20px]"
+                            x-text="show ? 'visibility' : 'visibility_off'"></span>
+                    </button>
                 </div>
             </div>
-            <div class="flex gap-6 text-white/60 text-sm">
-                <span>© 2024 HotCrowd</span>
-                <a href="#" class="hover:text-white">Privacy</a>
-                <a href="#" class="hover:text-white">Terms</a>
+
+            {% if redirect_field_value %}
+            <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
+            {% endif %}
+
+            <button
+                class="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-primary hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all transform hover:-translate-y-0.5 active:translate-y-0"
+                type="submit">
+                Create Account
+            </button>
+        </form>
+
+        <div class="mt-8">
+            <div class="relative">
+                <div class="absolute inset-0 flex items-center">
+                    <div class="w-full border-t border-gray-200 dark:border-gray-700"></div>
+                </div>
+                <div class="relative flex justify-center text-sm">
+                    <span class="px-2 bg-white dark:bg-surface-dark text-muted-light dark:text-muted-dark">Or continue
+                        with</span>
+                </div>
+            </div>
+
+            <div class="mt-6 grid grid-cols-2 gap-3">
+                <!-- Social Providers -->
+                {% get_providers as socialaccount_providers %}
+                {% if socialaccount_providers %}
+                {% for provider in socialaccount_providers %}
+                <a title="{{provider.name}}"
+                    class="w-full inline-flex justify-center items-center py-2.5 px-4 border border-gray-200 dark:border-gray-600 rounded-xl shadow-sm bg-white dark:bg-surface-dark text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    href="{% provider_login_url provider.id process='login' scope=scope auth_params=auth_params %}">
+                    {{provider.name}}
+                </a>
+                {% endfor %}
+                {% else %}
+                <button
+                    class="w-full inline-flex justify-center items-center py-2.5 px-4 border border-gray-200 dark:border-gray-600 rounded-xl shadow-sm bg-white dark:bg-surface-dark text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    type="button">
+                    <svg aria-hidden="true" class="h-5 w-5 mr-2" viewBox="0 0 24 24">
+                        <path
+                            d="M12.0003 20.45c-4.6667 0-8.4503-3.7836-8.4503-8.4503C3.55 7.333 7.3336 3.55 12.0003 3.55c4.6667 0 8.4497 3.783 8.4497 8.4497 0 4.6667-3.783 8.4503-8.4497 8.4503z"
+                            fill="#fff" stroke="#000" stroke-width="0"></path>
+                        <path
+                            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                            fill="#4285F4"></path>
+                        <path
+                            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                            fill="#34A853"></path>
+                        <path
+                            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                            fill="#FBBC05"></path>
+                        <path
+                            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                            fill="#EA4335"></path>
+                    </svg>
+                    Google
+                </button>
+                <button
+                    class="w-full inline-flex justify-center items-center py-2.5 px-4 border border-gray-200 dark:border-gray-600 rounded-xl shadow-sm bg-white dark:bg-surface-dark text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    type="button">
+                    <svg class="h-5 w-5 mr-2 text-[#1877F2]" fill="currentColor" viewBox="0 0 24 24">
+                        <path
+                            d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.791-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z">
+                        </path>
+                    </svg>
+                    Facebook
+                </button>
+                {% endif %}
             </div>
         </div>
 
-        <!-- Right side - Signup Form -->
-        <div class="flex-1 flex items-center justify-center p-8">
-            <div class="w-full max-w-md">
-                <!-- Mobile Logo -->
-                <div class="lg:hidden flex items-center justify-center gap-3 mb-8">
-                    <img src="{% static 'logo.png' %}" alt="HotCrowd" class="h-10 w-10">
-                    <span class="text-2xl font-bold text-slate-900">Hot<span class="text-primary">Crowd</span></span>
-                </div>
-
-                <div class="bg-white rounded-2xl shadow-xl border border-slate-100 p-8">
-                    <div class="text-center mb-8">
-                        <h2 class="text-2xl font-bold text-slate-900">Create account</h2>
-                        <p class="text-slate-500 mt-2">Get started with HotCrowd</p>
-                    </div>
-
-                    {% if form.errors %}
-                    <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                        <ul class="text-sm text-red-600 space-y-1">
-                            {% for field in form %}
-                            {% for error in field.errors %}
-                            <li>{{ field.label }}: {{ error }}</li>
-                            {% endfor %}
-                            {% endfor %}
-                            {% for error in form.non_field_errors %}
-                            <li>{{ error }}</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                    {% endif %}
-
-                    <form method="post" action="{% url 'account_signup' %}" class="space-y-5">
-                        {% csrf_token %}
-
-                        <div>
-                            <label for="id_username"
-                                class="block text-sm font-medium text-slate-700 mb-2">Username</label>
-                            <input type="text" name="username" id="id_username" required autofocus
-                                class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-                                placeholder="johndoe">
-                        </div>
-
-                        <div>
-                            <label for="id_email" class="block text-sm font-medium text-slate-700 mb-2">Email
-                                Address</label>
-                            <input type="email" name="email" id="id_email" required
-                                class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-                                placeholder="you@example.com">
-                        </div>
-
-                        <div>
-                            <label for="id_password1"
-                                class="block text-sm font-medium text-slate-700 mb-2">Password</label>
-                            <input type="password" name="password1" id="id_password1" required
-                                class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-                                placeholder="••••••••">
-                        </div>
-
-                        <div>
-                            <label for="id_password2" class="block text-sm font-medium text-slate-700 mb-2">Confirm
-                                Password</label>
-                            <input type="password" name="password2" id="id_password2" required
-                                class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-                                placeholder="••••••••">
-                        </div>
-
-                        {% if redirect_field_value %}
-                        <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">
-                        {% endif %}
-
-                        <button type="submit"
-                            class="w-full py-3 px-4 bg-primary text-white font-semibold rounded-xl hover:bg-green-600 focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all">
-                            Create Account
-                        </button>
-                    </form>
-
-                    <div class="mt-6 text-center">
-                        <p class="text-slate-500">Already have an account? <a href="{% url 'account_login' %}"
-                                class="text-primary hover:text-green-700 font-medium">Sign in</a></p>
-                    </div>
-                </div>
-            </div>
+        <div class="mt-6 text-center">
+            <p class="text-sm text-muted-light dark:text-muted-dark">Already have an account? <a
+                    class="text-primary font-bold hover:text-secondary transition-colors"
+                    href="{% url 'account_login' %}">Sign In</a></p>
         </div>
     </div>
-</body>
-
-</html>
+</c-layouts.auth>

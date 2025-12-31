@@ -1,0 +1,41 @@
+<c-vars playlist />
+
+<div id="savedModal" class="fixed inset-0 z-50 overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen px-4">
+        <div class="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity" onclick="closeSavedModal()"></div>
+        <div
+            class="relative bg-white rounded-2xl shadow-2xl max-w-sm w-full p-8 text-center transform transition-all scale-100">
+            <button onclick="closeSavedModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+
+            <div
+                class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 text-green-600">
+                <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+            </div>
+
+            <h3 class="text-xl font-bold text-slate-900 mb-2">Playlist Saved Successfully!</h3>
+            <p class="text-sm text-slate-500 mb-6">The playlist '{{ playlist.name }}' has been saved and is ready to
+                use.</p>
+
+            <div class="space-y-3">
+                <button onclick="closeSavedModal()"
+                    class="w-full py-3 bg-green-800 text-white font-semibold rounded-xl hover:bg-green-900 transition-colors shadow-lg shadow-green-900/20">
+                    Publish to Screens Now
+                </button>
+                <a href="{% url 'playlists_list' %}"
+                    class="block w-full py-3 bg-white border border-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 transition-colors">
+                    View Playlist
+                </a>
+                <button onclick="closeSavedModal()"
+                    class="w-full py-3 bg-white border border-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 transition-colors">
+                    Continue Editing
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

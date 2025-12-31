@@ -12,6 +12,7 @@ def dashboard(request):
     Shows list of screens and their status.
     """
     screens = Screen.objects.filter(owner=request.user).order_by('-created_at')
+    all_screens = Screen.objects.filter(owner=request.user) # Used for assigning playlists
     playlists = Playlist.objects.filter(owner=request.user)
     media_assets = MediaAsset.objects.filter(owner=request.user)
     
@@ -21,6 +22,18 @@ def dashboard(request):
     total_playlists = playlists.count()
     total_media = media_assets.count()
     
+    # Mock data changes based on filter
+    filter_range = request.GET.get('range', '7D')
+    impressions = "12.5K"
+    trend = "12%"
+    
+    if filter_range == '30D':
+        impressions = "45.2K"
+        trend = "8%"
+    elif filter_range == 'All':
+        impressions = "128K"
+        trend = "24%"
+
     context = {
         'screens': screens,
         'total_screens': total_screens,
@@ -29,7 +42,15 @@ def dashboard(request):
         'total_playlists': total_playlists,
         'total_media': total_media,
         'playlists': playlists,
+        'impressions': impressions,
+        'trend': trend,
+        'trend_up': 'true',
+        'current_range': filter_range,
     }
+    
+    if request.htmx:
+        return render(request, 'partials/dashboard_stats.html', context)
+        
     return render(request, 'dashboard.html', context)
 
 
@@ -86,18 +107,110 @@ def playlist_builder(request):
     if playlist_id:
         playlist = get_object_or_404(Playlist, id=playlist_id, owner=request.user)
     else:
-        playlist = playlists.first()
+        # Default to the most recently updated playlist or create a dummy one if none exist
+        playlist = playlists.order_by('-updated_at').first()
     
     # Create a default playlist if none exists
     if not playlist:
         playlist = Playlist.objects.create(name="Default Playlist", owner=request.user)
+
+    # Handle Settings Save
+    if request.method == "POST" and 'save_settings' in request.POST:
+        playlist.name = request.POST.get('name', playlist.name)
+        playlist.status = request.POST.get('status', playlist.status)
+        playlist.schedule_type = request.POST.get('schedule_type', playlist.schedule_type)
+        
+        # Date/Time handling (simplistic for now)
+        start_date = request.POST.get('start_date')
+        if start_date: playlist.start_date = start_date
+        
+        end_date = request.POST.get('end_date')
+        if end_date: playlist.end_date = end_date
+        
+        start_time = request.POST.get('start_time')
+        if start_time: playlist.start_time = start_time
+        
+        end_time = request.POST.get('end_time')
+        if end_time: playlist.end_time = end_time
+
+        playlist.transition_effect = request.POST.get('transition_effect', playlist.transition_effect)
+        playlist.is_loop = request.POST.get('is_loop') == 'on'
+        
+        playlist.save()
+        
+        # Handle Screen Assignments
+        assigned_screen_ids = request.POST.getlist('assigned_screens')
+        
+        # 1. Clear playlist from screens that are NOT in the list but currently have this playlist
+        Screen.objects.filter(owner=request.user, assigned_playlist=playlist).exclude(id__in=assigned_screen_ids).update(assigned_playlist=None)
+        
+        # 2. Set playlist for screens in the list
+        if assigned_screen_ids:
+            Screen.objects.filter(owner=request.user, id__in=assigned_screen_ids).update(assigned_playlist=playlist)
+
+        return redirect(f'{request.path}?playlist={playlist.id}&saved=true')
     
+    # Search Media
+    search_query = request.GET.get('media_search')
+    if search_query:
+        media_items = media_items.filter(name__icontains=search_query) 
+    
+    # Get all user screens for the settings panel
+    all_screens = Screen.objects.filter(owner=request.user)
+
     context = {
         'media_items': media_items,
         'playlist': playlist,
         'playlists': playlists,
+        'all_screens': all_screens,
+        'saved': request.GET.get('saved') == 'true'
     }
+
+    if request.htmx:
+        target = request.headers.get('HX-Target')
+        if target == 'media-grid':
+            return render(request, 'components/playlist/media_library.html', context)
+
     return render(request, 'playlist_builder.html', context)
+
+
+@login_required
+def playlist_list(request):
+    """
+    List view for all playlists with filtering and sorting.
+    """
+    playlists = Playlist.objects.filter(owner=request.user)
+    
+    # Search
+    search_query = request.GET.get('search')
+    if search_query:
+        playlists = playlists.filter(name__icontains=search_query)
+
+    # Filtering
+    status_filter = request.GET.get('status')
+    if status_filter and status_filter != 'All':
+        playlists = playlists.filter(status=status_filter)
+
+    # Sorting
+    sort_by = request.GET.get('sort', '-updated_at')
+    if sort_by == 'Oldest':
+        playlists = playlists.order_by('updated_at')
+    elif sort_by == 'Name':
+        playlists = playlists.order_by('name')
+    else: # Recent
+        playlists = playlists.order_by('-updated_at')
+
+    # Annotate with item count and duration (could assume DB query or just python loop in template, 
+    # but for duration we might need calculation if not stored on Playlist)
+    # For now, we will do it in template or logic here. 
+    # Let's pre-calculate to match design '12m 30s Loop'.
+    
+    return render(request, 'playlists.html', {
+        'playlists': playlists,
+        'search_query': search_query,
+        'status_filter': status_filter,
+        'sort_by': sort_by
+    })
 
 
 @login_required
@@ -156,8 +269,11 @@ def reorder_playlist(request):
                     continue
         
         # Return updated playlist items partial
+        # Return updated playlist items
         context = {'playlist': playlist}
-        return render(request, 'partials/playlist_items.html', context)
+        # If we had a partial for items list, we'd use it. 
+        # Using sequence_editor component creates full re-render of sequence column.
+        return render(request, 'components/playlist/sequence_editor.html', context)
 
     return HttpResponse(status=204)
 
@@ -190,6 +306,11 @@ def add_to_playlist(request, media_id):
                 position=count
             )
         
+        
+        if request.htmx:
+            context = {'playlist': playlist}
+            return render(request, 'components/playlist/sequence_editor.html', context)
+        
     return redirect('playlist_builder')
 
 
@@ -202,7 +323,30 @@ def remove_from_playlist(request, item_id):
         item = get_object_or_404(PlaylistItem, id=item_id, playlist__owner=request.user)
         item.delete()
         
+    if request.htmx:
+        # Get playlist to render updated sequence
+        playlist = item.playlist
+        context = {'playlist': playlist}
+        return render(request, 'components/playlist/sequence_editor.html', context)
+        
     return redirect('playlist_builder')
+
+
+@login_required
+def update_playlist_item(request, item_id):
+    """
+    Update individual item (e.g. duration).
+    """
+    if request.method == "POST":
+        item = get_object_or_404(PlaylistItem, id=item_id, playlist__owner=request.user)
+        # HTMX sends name="duration_<id>" value="<val>" typically, or if we used hx-vals, just duration
+        # Our input name is "duration_{{ item.id }}"
+        duration = request.POST.get(f'duration_{item.id}')
+        if duration:
+            item.custom_duration = int(duration)
+            item.save()
+            
+    return HttpResponse(status=204)
 
 
 @login_required

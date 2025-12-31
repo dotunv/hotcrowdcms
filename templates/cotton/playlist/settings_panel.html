@@ -1,0 +1,140 @@
+<c-vars playlist />
+
+<div class="bg-white rounded-xl shadow-sm border border-slate-100 p-5 w-80 flex-shrink-0 space-y-6 overflow-y-auto">
+
+    <!-- Header -->
+    <div>
+        <h3 class="font-bold text-slate-900">Settings</h3>
+        <p class="text-xs text-slate-500 mt-1">Configure playlist behavior</p>
+    </div>
+
+    <form method="post" action="{% url 'playlist_builder' %}?playlist={{ playlist.id }}" class="space-y-6">
+        {% csrf_token %}
+        <input type="hidden" name="save_settings" value="true">
+
+        <!-- Name Input -->
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Playlist Name</label>
+            <input type="text" name="name" value="{{ playlist.name }}"
+                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none">
+        </div>
+
+        <!-- Schedule Mode -->
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Schedule</label>
+            <select name="schedule_type"
+                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none cursor-pointer">
+                <option value="ALWAYS" {% if playlist.schedule_type=='ALWAYS' %}selected{% endif %}>Always On</option>
+                <option value="SCHEDULED" {% if playlist.schedule_type=='SCHEDULED' %}selected{% endif %}>Specific
+                    Date/Time
+                </option>
+                <option value="RECURRING" {% if playlist.schedule_type=='RECURRING' %}selected{% endif %}>Recurring
+                    (Weekly)
+                </option>
+            </select>
+        </div>
+
+        <!-- Date Range (Show if not ALWAYS) -->
+        <div class="space-y-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">Start Date</label>
+                    <input type="date" name="start_date" value="{{ playlist.start_date|date:'Y-m-d' }}"
+                        class="w-full px-2 py-1.5 bg-white border border-slate-200 rounded text-xs focus:border-primary outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">End Date</label>
+                    <input type="date" name="end_date" value="{{ playlist.end_date|date:'Y-m-d' }}"
+                        class="w-full px-2 py-1.5 bg-white border border-slate-200 rounded text-xs focus:border-primary outline-none">
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">Start Time</label>
+                    <input type="time" name="start_time" value="{{ playlist.start_time|time:'H:i' }}"
+                        class="w-full px-2 py-1.5 bg-white border border-slate-200 rounded text-xs focus:border-primary outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">End Time</label>
+                    <input type="time" name="end_time" value="{{ playlist.end_time|time:'H:i' }}"
+                        class="w-full px-2 py-1.5 bg-white border border-slate-200 rounded text-xs focus:border-primary outline-none">
+                </div>
+            </div>
+        </div>
+
+        <!-- Transition Effect -->
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Transition Effect</label>
+            <div class="grid grid-cols-2 gap-2">
+                <label
+                    class="cursor-pointer border border-slate-200 rounded-lg p-3 hover:border-primary hover:bg-slate-50 transition-all {% if playlist.transition_effect == 'FADE' %}border-primary bg-primary/5{% endif %}">
+                    <input type="radio" name="transition_effect" value="FADE" class="sr-only" {% if
+                        playlist.transition_effect=='FADE' %}checked{% endif %}>
+                    <div class="text-sm font-medium text-slate-900">Fade</div>
+                    <div class="text-xs text-slate-500">Smooth crossfind</div>
+                </label>
+                <label
+                    class="cursor-pointer border border-slate-200 rounded-lg p-3 hover:border-primary hover:bg-slate-50 transition-all {% if playlist.transition_effect == 'SLIDE' %}border-primary bg-primary/5{% endif %}">
+                    <input type="radio" name="transition_effect" value="SLIDE" class="sr-only" {% if
+                        playlist.transition_effect=='SLIDE' %}checked{% endif %}>
+                    <div class="text-sm font-medium text-slate-900">Slide</div>
+                    <div class="text-xs text-slate-500">Horizontal move</div>
+                </label>
+            </div>
+        </div>
+
+        <!-- Options -->
+        <div class="space-y-3">
+            <label
+                class="flex items-center gap-3 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50">
+                <input type="checkbox" name="is_loop"
+                    class="w-4 h-4 text-primary rounded border-slate-300 focus:ring-primary" {% if playlist.is_loop
+                    %}checked{% endif %}>
+                <div>
+                    <span class="block text-sm font-medium text-slate-900">Loop Playlist</span>
+                    <span class="block text-xs text-slate-500">Repeat when finished</span>
+                </div>
+            </label>
+        </div>
+
+        <!-- Assigned Screens -->
+        <div>
+            <div class="flex justify-between items-center mb-2">
+                <label class="block text-sm font-medium text-slate-700">Assigned Screens</label>
+                <a href="{% url 'screens' %}" class="text-xs text-primary font-medium hover:underline">Manage</a>
+            </div>
+            <div class="bg-slate-50 rounded-lg border border-slate-200 p-3 max-h-40 overflow-y-auto space-y-2">
+                {% for screen in all_screens %}
+                <label class="flex items-start gap-2 cursor-pointer hover:bg-slate-100 p-1 rounded transition-colors">
+                    <input type="checkbox" name="assigned_screens" value="{{ screen.id }}"
+                        class="mt-0.5 w-4 h-4 text-primary rounded border-slate-300 focus:ring-primary" {% if
+                        screen.assigned_playlist==playlist %}checked{% endif %}>
+                    <div class="flex-1 min-w-0">
+                        <span class="block text-sm font-medium text-slate-900 truncate">{{ screen.name }}</span>
+                        <span class="block text-[10px] text-slate-500 uppercase tracking-wide">
+                            {% if screen.is_online %}
+                            <span class="text-green-600">Online</span>
+                            {% else %}
+                            <span class="text-slate-400">Offline</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                </label>
+                {% empty %}
+                <p class="text-xs text-slate-500 italic text-center py-2">No screens found.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Save Button -->
+        <div class="pt-4 border-t border-slate-100">
+            <button type="submit"
+                class="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors">
+                <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Save Settings
+            </button>
+        </div>
+    </form>
+</div>
