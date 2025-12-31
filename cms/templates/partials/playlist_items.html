@@ -1,0 +1,43 @@
+{% for item in playlist.items.all %}
+<div class="playlist-item bg-white p-3 rounded-lg shadow-sm border border-slate-100 flex items-center justify-between cursor-move hover:shadow-md hover:border-primary/30 transition-all"
+    data-id="{{ item.id }}">
+    <div class="flex items-center gap-3">
+        <div class="text-slate-300 cursor-move">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path>
+            </svg>
+        </div>
+        <span class="px-2 py-0.5 text-xs font-medium rounded bg-slate-100 text-slate-600">{{ forloop.counter }}</span>
+        <div class="h-10 w-16 bg-slate-100 rounded-lg overflow-hidden">
+            {% if item.media.media_type == 'IMAGE' %}
+            <img src="{{ item.media.file_url }}" class="h-full w-full object-cover">
+            {% else %}
+            <div class="h-full w-full flex items-center justify-center bg-slate-700 text-white text-xs">VIDEO</div>
+            {% endif %}
+        </div>
+        <div>
+            <p class="text-sm font-medium text-slate-900">{{ item.media.media_type }}</p>
+            <p class="text-xs text-slate-500">{{ item.media.duration }}s</p>
+        </div>
+    </div>
+    <form action="{% url 'remove_from_playlist' item.id %}" method="post" class="inline">
+        {% csrf_token %}
+        <button type="submit" class="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+            title="Remove">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
+    </form>
+</div>
+{% empty %}
+<div id="empty-state" class="text-center text-slate-400 py-16 border-2 border-dashed border-slate-200 rounded-xl">
+    <svg class="w-12 h-12 mx-auto mb-3 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10">
+        </path>
+    </svg>
+    <p class="text-sm font-medium text-slate-600">Playlist is empty</p>
+    <p class="text-xs text-slate-400 mt-1">Click + on media items to add them here</p>
+</div>
+{% endfor %}

@@ -1,0 +1,214 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900">Media Library</h1>
+            <p class="text-slate-500 text-sm mt-1">Manage your images and videos</p>
+        </div>
+        <div class="flex gap-3">
+            <!-- Upload Modal Trigger -->
+            <button onclick="document.getElementById('uploadModal').classList.remove('hidden')"
+                class="inline-flex items-center px-4 py-2 bg-primary text-white font-medium rounded-lg hover:bg-green-600 transition-colors shadow-sm">
+                <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12">
+                    </path>
+                </svg>
+                Upload Media
+            </button>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="flex flex-wrap gap-3">
+        <a href="{% url 'media_library' %}"
+            class="px-4 py-2 rounded-lg text-sm font-medium transition-colors {% if not current_source and not current_type %}bg-primary text-white{% else %}bg-white text-slate-600 hover:bg-slate-100 border border-slate-200{% endif %}">
+            All
+        </a>
+        <a href="{% url 'media_library' %}?source=UPLOAD"
+            class="px-4 py-2 rounded-lg text-sm font-medium transition-colors {% if current_source == 'UPLOAD' %}bg-primary text-white{% else %}bg-white text-slate-600 hover:bg-slate-100 border border-slate-200{% endif %}">
+            Uploads
+        </a>
+        <a href="{% url 'media_library' %}?source=INSTAGRAM"
+            class="px-4 py-2 rounded-lg text-sm font-medium transition-colors {% if current_source == 'INSTAGRAM' %}bg-primary text-white{% else %}bg-white text-slate-600 hover:bg-slate-100 border border-slate-200{% endif %}">
+            Instagram
+        </a>
+        <span class="border-l border-slate-200 mx-2"></span>
+        <a href="{% url 'media_library' %}?type=IMAGE"
+            class="px-4 py-2 rounded-lg text-sm font-medium transition-colors {% if current_type == 'IMAGE' %}bg-blue-600 text-white{% else %}bg-white text-slate-600 hover:bg-slate-100 border border-slate-200{% endif %}">
+            Images
+        </a>
+        <a href="{% url 'media_library' %}?type=VIDEO"
+            class="px-4 py-2 rounded-lg text-sm font-medium transition-colors {% if current_type == 'VIDEO' %}bg-purple-600 text-white{% else %}bg-white text-slate-600 hover:bg-slate-100 border border-slate-200{% endif %}">
+            Videos
+        </a>
+    </div>
+
+    <!-- Stats Bar -->
+    <div class="bg-white rounded-xl border border-slate-100 shadow-sm p-4">
+        <div class="flex items-center justify-between">
+            <p class="text-slate-600"><span class="font-semibold text-slate-900">{{ total_media }}</span> media items
+            </p>
+            <form action="{% url 'sync_instagram' %}" method="post" class="flex gap-2">
+                {% csrf_token %}
+                <input type="text" name="hashtag" placeholder="#hashtag"
+                    class="text-sm border border-slate-200 rounded-lg px-3 py-2 w-32 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none">
+                <button type="submit"
+                    class="inline-flex items-center px-3 py-2 bg-gradient-to-r from-pink-500 to-purple-500 text-white text-sm font-medium rounded-lg hover:from-pink-600 hover:to-purple-600 transition-colors shadow-sm">
+                    <svg class="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                            d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+                    </svg>
+                    Sync IG
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Media Grid -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        {% for item in media_items %}
+        <div
+            class="group relative bg-white rounded-xl overflow-hidden shadow-sm border border-slate-100 hover:shadow-md hover:border-primary/50 transition-all">
+            <!-- Thumbnail -->
+            <div class="aspect-square bg-slate-100 relative">
+                {% if item.media_type == 'IMAGE' %}
+                <img src="{{ item.file_url }}" alt="Media" class="w-full h-full object-cover">
+                {% else %}
+                <div class="w-full h-full flex items-center justify-center bg-slate-800">
+                    <svg class="w-12 h-12 text-white/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                {% endif %}
+
+                <!-- Type Badge -->
+                <span
+                    class="absolute top-2 left-2 px-2 py-0.5 rounded text-xs font-medium {% if item.media_type == 'VIDEO' %}bg-purple-500{% else %}bg-blue-500{% endif %} text-white">
+                    {{ item.media_type }}
+                </span>
+
+                <!-- Source Badge -->
+                {% if item.source == 'INSTAGRAM' %}
+                <span class="absolute top-2 right-2 p-1 rounded bg-gradient-to-r from-pink-500 to-purple-500">
+                    <svg class="w-3 h-3 text-white" viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                            d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069z" />
+                    </svg>
+                </span>
+                {% endif %}
+
+                <!-- Hover Actions -->
+                <div
+                    class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                    <form action="{% url 'add_to_playlist' item.id %}" method="post">
+                        {% csrf_token %}
+                        <button type="submit"
+                            class="p-2 bg-white rounded-full text-primary hover:bg-primary hover:text-white transition-colors"
+                            title="Add to Playlist">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 4v16m8-8H4"></path>
+                            </svg>
+                        </button>
+                    </form>
+                    <form action="{% url 'delete_media' item.id %}" method="post"
+                        onsubmit="return confirm('Delete this media?')">
+                        {% csrf_token %}
+                        <button type="submit"
+                            class="p-2 bg-white rounded-full text-red-500 hover:bg-red-500 hover:text-white transition-colors"
+                            title="Delete">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                </path>
+                            </svg>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Info -->
+            <div class="p-3">
+                <p class="text-xs text-slate-500">{{ item.duration }}s • {{ item.source }}</p>
+                <p class="text-xs text-slate-400 truncate">{{ item.created_at|date:"M d, Y" }}</p>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-span-full text-center py-16">
+            <svg class="w-16 h-16 text-slate-300 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z">
+                </path>
+            </svg>
+            <h3 class="text-lg font-medium text-slate-900 mb-2">No media yet</h3>
+            <p class="text-slate-500 mb-4">Upload your first image or video, or sync from Instagram</p>
+            <button onclick="document.getElementById('uploadModal').classList.remove('hidden')"
+                class="inline-flex items-center px-4 py-2 bg-primary text-white font-medium rounded-lg hover:bg-green-600 transition-colors">
+                <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Upload Media
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Upload Modal -->
+<div id="uploadModal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20">
+        <div class="fixed inset-0 bg-black/50 transition-opacity"
+            onclick="document.getElementById('uploadModal').classList.add('hidden')"></div>
+
+        <div class="relative bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-semibold text-slate-900">Upload Media</h3>
+                <button onclick="document.getElementById('uploadModal').classList.add('hidden')"
+                    class="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+
+            <form action="{% url 'upload_media' %}" method="post" class="space-y-4">
+                {% csrf_token %}
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Media URL</label>
+                    <input type="url" name="file_url" required placeholder="https://example.com/image.jpg"
+                        class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none">
+                    <p class="text-xs text-slate-500 mt-1">Enter a direct URL to your image or video</p>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Type</label>
+                    <select name="media_type"
+                        class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none">
+                        <option value="IMAGE">Image</option>
+                        <option value="VIDEO">Video</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Duration (seconds)</label>
+                    <input type="number" name="duration" value="10" min="1" max="300"
+                        class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none">
+                </div>
+
+                <button type="submit"
+                    class="w-full py-3 bg-primary text-white font-medium rounded-lg hover:bg-green-600 transition-colors">
+                    Upload
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
