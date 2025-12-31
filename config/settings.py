@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'ninja',
     'allauth',
     'allauth.account',
+    'allauth.socialaccount',
     'django_cotton',
     'tailwind',
     'theme',

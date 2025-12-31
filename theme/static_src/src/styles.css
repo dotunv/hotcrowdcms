@@ -8,3 +8,30 @@
   * the scope of this path.
   */
 @source "../../../**/*.{html,py,js}";
+
+@theme {
+  --color-primary: #057A43;
+  --color-secondary: #045e33;
+  --color-accent: #b2f2bb;
+  --color-background-light: #F9F9F7;
+  --color-background-dark: #18181b;
+  --color-surface-light: #FFFFFF;
+  --color-surface-dark: #27272a;
+  --color-text-light: #1f2937;
+  --color-text-dark: #f3f4f6;
+  --color-muted-light: #6b7280;
+  --color-muted-dark: #9ca3af;
+  --color-border-light: #e5e7eb;
+  --color-border-dark: #3f3f46;
+
+  --font-display: "Plus Jakarta Sans", sans-serif;
+  --font-body: "Plus Jakarta Sans", sans-serif;
+
+  --radius: 0.75rem; 
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+
+  --shadow-soft: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+  --shadow-card: 0 10px 40px -5px rgba(0, 0, 0, 0.08);
+}
+

@@ -34,6 +34,26 @@ def dashboard(request):
 
 
 @login_required
+def screens(request):
+    """
+    Shows list of screens and their status (Device Management).
+    """
+    screens_list = Screen.objects.filter(owner=request.user).order_by('-created_at')
+    
+    # Calculate stats
+    total_screens = screens_list.count()
+    online_screens = sum(1 for s in screens_list if s.is_online)
+    
+    context = {
+        'screens': screens_list,
+        'total_screens': total_screens,
+        'online_screens': online_screens,
+        'offline_screens': total_screens - online_screens,
+    }
+    return render(request, 'screens.html', context)
+
+
+@login_required
 def setup_screen(request):
     """
     Form to manually add a screen via pairing code entered by Store Owner.

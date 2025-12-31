@@ -1,224 +1,184 @@
 {% extends 'base.html' %}
+{% load static %}
 
-{% block content %}
-<div class="space-y-6">
-    <!-- Page Header -->
-    <div class="flex justify-between items-center">
-        <div>
-            <h1 class="text-2xl font-bold text-slate-900">Dashboard</h1>
-            <p class="text-slate-500 text-sm mt-1">Manage your screens and monitor performance</p>
-        </div>
-        <a href="{% url 'setup_screen' %}"
-            class="inline-flex items-center px-4 py-2 bg-primary text-white font-medium rounded-lg hover:bg-green-600 transition-colors shadow-sm">
-            <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-            </svg>
-            Add Screen
-        </a>
-    </div>
+{% block body %}
+<c-layouts.sidebar>
+    <div class="space-y-8">
+        <!-- Header -->
+        <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div>
+                <nav class="flex text-sm text-gray-500 mb-1">
+                    <span class="hover:text-gray-900 cursor-pointer">Dashboard</span>
+                    <span class="mx-2">/</span>
+                    <span class="text-gray-900 font-medium">Overview</span>
+                </nav>
+                <h1 class="text-3xl font-display font-bold text-gray-900 dark:text-white">Store Overview</h1>
+                <p class="text-muted-light dark:text-muted-dark mt-1">Manage your digital presence and screen network.
+                </p>
+            </div>
 
-    <!-- Stats Overview -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <!-- Card 1 - Total Screens -->
-        <div class="bg-white overflow-hidden shadow-sm rounded-xl border border-slate-100">
-            <div class="p-5">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0 p-3 bg-slate-100 rounded-lg">
-                        <svg class="h-6 w-6 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
-                            </path>
-                        </svg>
-                    </div>
-                    <div class="ml-5 w-0 flex-1">
-                        <dl>
-                            <dt class="text-sm font-medium text-slate-500 truncate">Total Screens</dt>
-                            <dd class="text-2xl font-bold text-slate-900">{{ total_screens }}</dd>
-                        </dl>
-                    </div>
+            <div class="flex items-center gap-3">
+                <div
+                    class="flex bg-white dark:bg-surface-dark rounded-lg p-1 border border-border-light dark:border-border-dark shadow-sm">
+                    <button class="px-3 py-1 text-xs font-bold text-gray-900 bg-gray-100 rounded">7D</button>
+                    <button class="px-3 py-1 text-xs font-medium text-gray-500 hover:text-gray-900">30D</button>
+                    <button class="px-3 py-1 text-xs font-medium text-gray-500 hover:text-gray-900">All</button>
                 </div>
+                <a href="{% url 'playlist_builder' %}"
+                    class="inline-flex items-center px-4 py-2 bg-primary text-white text-sm font-bold rounded-xl hover:bg-secondary transition-all shadow-sm hover:shadow-md">
+                    <span class="material-symbols-outlined text-lg mr-2">add</span>
+                    New Playlist
+                </a>
             </div>
         </div>
 
-        <!-- Card 2 - Online Screens -->
-        <div class="bg-white overflow-hidden shadow-sm rounded-xl border border-slate-100">
-            <div class="p-5">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0 p-3 bg-green-100 rounded-lg">
-                        <span class="flex h-3 w-3 relative">
-                            <span
-                                class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                            <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-                        </span>
-                    </div>
-                    <div class="ml-5 w-0 flex-1">
-                        <dl>
-                            <dt class="text-sm font-medium text-slate-500 truncate">Online</dt>
-                            <dd class="text-2xl font-bold text-green-600">{{ online_screens }}</dd>
-                        </dl>
-                    </div>
-                </div>
-            </div>
+        <!-- Stat Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <c-ui.stat_card label="Active Screens" value="{{ online_screens }}/{{ total_screens }}" icon="monitor"
+                color="green"
+                extra='<span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">+1 New</span> <span class="text-xs text-gray-500 ml-2">added this week</span>' />
+
+            <c-ui.stat_card label="Estimated Impressions" value="12.5K" icon="visibility" color="orange" trend="12%"
+                trend_up="true" />
+
+            <c-ui.stat_card label="Instagram Sync" value="Active" icon="center_focus_weak" color="pink"
+                extra='<div class="flex items-center gap-2 mt-1"><div class="flex -space-x-2"><img class="w-6 h-6 rounded-full border-2 border-white" src="https://ui-avatars.com/api/?name=User+1" alt=""><img class="w-6 h-6 rounded-full border-2 border-white" src="https://ui-avatars.com/api/?name=User+2" alt=""></div><span class="text-xs text-gray-500">Last synced 2m ago</span></div>' />
         </div>
 
-        <!-- Card 3 - Playlists -->
-        <div class="bg-white overflow-hidden shadow-sm rounded-xl border border-slate-100">
-            <div class="p-5">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0 p-3 bg-blue-100 rounded-lg">
-                        <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10">
-                            </path>
-                        </svg>
-                    </div>
-                    <div class="ml-5 w-0 flex-1">
-                        <dl>
-                            <dt class="text-sm font-medium text-slate-500 truncate">Playlists</dt>
-                            <dd class="text-2xl font-bold text-slate-900">{{ total_playlists }}</dd>
-                        </dl>
-                    </div>
+        <!-- Audience Engagement Chart Placeholder -->
+        <div
+            class="bg-white dark:bg-surface-dark p-6 rounded-2xl shadow-card border border-border-light dark:border-border-dark">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Audience Engagement</h3>
+                    <p class="text-sm text-gray-500">Daily interaction estimation based on foot traffic.</p>
+                </div>
+                <div class="flex items-center text-sm font-medium text-green-600">
+                    <span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                    Engagement
                 </div>
             </div>
-        </div>
 
-        <!-- Card 4 - Media Items -->
-        <div class="bg-white overflow-hidden shadow-sm rounded-xl border border-slate-100">
-            <div class="p-5">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0 p-3 bg-purple-100 rounded-lg">
-                        <svg class="h-6 w-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z">
-                            </path>
-                        </svg>
-                    </div>
-                    <div class="ml-5 w-0 flex-1">
-                        <dl>
-                            <dt class="text-sm font-medium text-slate-500 truncate">Media Items</dt>
-                            <dd class="text-2xl font-bold text-slate-900">{{ total_media }}</dd>
-                        </dl>
-                    </div>
+            <!-- CSS Chart Visual -->
+            <div class="relative h-64 w-full">
+                <!-- Grid Lines -->
+                <div class="absolute inset-0 flex flex-col justify-between text-xs text-gray-400">
+                    <div class="border-b border-gray-100 dark:border-gray-700 w-full h-0"></div>
+                    <div class="border-b border-gray-100 dark:border-gray-700 w-full h-0"></div>
+                    <div class="border-b border-gray-100 dark:border-gray-700 w-full h-0"></div>
+                    <div class="border-b border-gray-100 dark:border-gray-700 w-full h-0"></div>
+                    <div class="border-b border-gray-100 dark:border-gray-700 w-full h-0"></div>
                 </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Quick Actions -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <a href="{% url 'setup_screen' %}"
-            class="flex items-center p-4 bg-white rounded-xl border border-slate-100 shadow-sm hover:shadow-md hover:border-primary/50 transition-all group">
-            <div class="p-3 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
-                <svg class="w-6 h-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                <!-- Graph Curve (SVG) -->
+                <svg class="absolute inset-0 w-full h-full overflow-visible" preserveAspectRatio="none">
+                    <defs>
+                        <linearGradient id="gradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="#057A43" stop-opacity="0.2" />
+                            <stop offset="100%" stop-color="#057A43" stop-opacity="0" />
+                        </linearGradient>
+                    </defs>
+                    <path
+                        d="M0,180 C100,160 200,120 300,120 C400,120 500,60 600,40 C700,20 800,40 1000,100 L1000,256 L0,256 Z"
+                        fill="url(#gradient)" />
+                    <path d="M0,180 C100,160 200,120 300,120 C400,120 500,60 600,40 C700,20 800,40 1000,100" fill="none"
+                        stroke="#057A43" stroke-width="3" />
+
+                    <!-- Data Points -->
+                    <circle cx="300" cy="120" r="4" fill="#F9F9F7" stroke="#057A43" stroke-width="2" />
+                    <circle cx="600" cy="40" r="4" fill="#F9F9F7" stroke="#057A43" stroke-width="2" />
                 </svg>
             </div>
-            <div class="ml-4">
-                <p class="font-medium text-slate-900">Pair New Screen</p>
-                <p class="text-sm text-slate-500">Add a display device</p>
+            <div class="flex justify-between text-xs text-gray-400 mt-2 px-2">
+                <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
             </div>
-        </a>
-        <a href="{% url 'playlist_builder' %}"
-            class="flex items-center p-4 bg-white rounded-xl border border-slate-100 shadow-sm hover:shadow-md hover:border-primary/50 transition-all group">
-            <div class="p-3 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
-                <svg class="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10">
-                    </path>
-                </svg>
-            </div>
-            <div class="ml-4">
-                <p class="font-medium text-slate-900">Build Playlist</p>
-                <p class="text-sm text-slate-500">Arrange your media</p>
-            </div>
-        </a>
-        <a href="{% url 'media_library' %}"
-            class="flex items-center p-4 bg-white rounded-xl border border-slate-100 shadow-sm hover:shadow-md hover:border-primary/50 transition-all group">
-            <div class="p-3 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors">
-                <svg class="w-6 h-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12">
-                    </path>
-                </svg>
-            </div>
-            <div class="ml-4">
-                <p class="font-medium text-slate-900">Upload Media</p>
-                <p class="text-sm text-slate-500">Add images & videos</p>
-            </div>
-        </a>
-    </div>
-
-    <!-- Screens List -->
-    <div class="bg-white shadow-sm rounded-xl border border-slate-100">
-        <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
-            <h3 class="text-lg font-semibold text-slate-900">Registered Screens</h3>
-            <a href="{% url 'setup_screen' %}" class="text-sm text-primary hover:text-green-700 font-medium">+ Add
-                New</a>
         </div>
-        <div>
-            <ul role="list" class="divide-y divide-slate-100">
-                {% for screen in screens %}
-                <li class="px-6 py-4 hover:bg-slate-50 transition duration-150 ease-in-out">
-                    <div class="flex items-center justify-between">
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Screen Network Status -->
+            <div
+                class="bg-white dark:bg-surface-dark rounded-2xl shadow-soft border border-border-light dark:border-border-dark overflow-hidden">
+                <div class="p-6 border-b border-border-light dark:border-border-dark flex justify-between items-center">
+                    <div>
+                        <h3 class="font-bold text-gray-900 dark:text-white">Screen Network Status</h3>
+                        <p class="text-xs text-gray-500">Real-time device monitoring</p>
+                    </div>
+                    <a href="{% url 'setup_screen' %}"
+                        class="text-sm font-medium text-primary hover:text-secondary">View All</a>
+                </div>
+                <div class="divide-y divide-gray-100 dark:divide-gray-700">
+                    {% for screen in screens|slice:":3" %}
+                    <div
+                        class="p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                         <div class="flex items-center gap-4">
-                            <div class="p-2 bg-slate-100 rounded-lg">
-                                <svg class="w-5 h-5 text-slate-600" fill="none" viewBox="0 0 24 24"
-                                    stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
-                                    </path>
-                                </svg>
+                            <div
+                                class="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center text-green-600">
+                                <span class="material-symbols-outlined">monitor</span>
                             </div>
                             <div>
-                                <p class="text-sm font-medium text-slate-900">{{ screen.name }}</p>
-                                <p class="text-xs text-slate-500">Code: {{ screen.pairing_code }}</p>
+                                <h4 class="text-sm font-bold text-gray-900 dark:text-white">{{ screen.name }}</h4>
+                                <p class="text-xs text-gray-500">
+                                    {% if screen.assigned_playlist %}Playing: {{ screen.assigned_playlist.name }}{% else
+                                    %}No Content{% endif %}
+                                </p>
                             </div>
                         </div>
-                        <div class="flex items-center gap-4">
-                            <div class="text-right">
-                                <span
-                                    class="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full {% if screen.is_online %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
-                                    {% if screen.is_online %}Online{% else %}Offline{% endif %}
-                                </span>
-                                {% if screen.assigned_playlist %}
-                                <p class="text-xs text-slate-500 mt-1">{{ screen.assigned_playlist.name }}</p>
-                                {% else %}
-                                <p class="text-xs text-orange-500 mt-1">No playlist</p>
-                                {% endif %}
-                            </div>
-                            <a href="{% url 'assign_playlist' screen.id %}"
-                                class="p-2 text-slate-400 hover:text-primary hover:bg-slate-100 rounded-lg transition-colors"
-                                title="Assign Playlist">
-                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
-                                    </path>
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                </svg>
-                            </a>
+                        <div class="flex items-center gap-2">
+                            <span
+                                class="w-2 h-2 rounded-full {% if screen.is_online %}bg-green-500{% else %}bg-red-500{% endif %}"></span>
+                            <span class="text-xs font-medium text-gray-600">{% if screen.is_online %}Online{% else
+                                %}Offline{% endif %}</span>
                         </div>
                     </div>
-                    {% if screen.last_heartbeat %}
-                    <p class="text-xs text-slate-400 mt-2 pl-12">Last seen: {{ screen.last_heartbeat|timesince }} ago
-                    </p>
-                    {% endif %}
-                </li>
-                {% empty %}
-                <li class="px-6 py-12 text-center">
-                    <svg class="w-12 h-12 text-slate-300 mx-auto mb-4" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
-                        </path>
-                    </svg>
-                    <p class="text-slate-500 mb-2">No screens paired yet</p>
-                    <a href="{% url 'setup_screen' %}" class="text-primary hover:text-green-700 font-medium text-sm">+
-                        Add your first screen</a>
-                </li>
-                {% endfor %}
-            </ul>
+                    {% empty %}
+                    <div class="p-8 text-center text-gray-500 text-sm">No screens connected.</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Recent Media -->
+            <div
+                class="bg-white dark:bg-surface-dark rounded-2xl shadow-soft border border-border-light dark:border-border-dark overflow-hidden">
+                <div class="p-6 border-b border-border-light dark:border-border-dark flex justify-between items-center">
+                    <div>
+                        <h3 class="font-bold text-gray-900 dark:text-white">Recent Media & Content</h3>
+                        <p class="text-xs text-gray-500">Latest uploads from CMS & Social</p>
+                    </div>
+                    <button class="material-symbols-outlined text-gray-400">filter_list</button>
+                </div>
+                <div class="divide-y divide-gray-100 dark:divide-gray-700">
+                    <div
+                        class="p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                        <div class="flex items-center gap-4">
+                            <img class="w-10 h-10 rounded-lg object-cover"
+                                src="https://images.unsplash.com/photo-1556740758-90de374c12ad?auto=format&fit=crop&w=100&h=100"
+                                alt="">
+                            <div>
+                                <h4 class="text-sm font-bold text-gray-900 dark:text-white">Fall Collection Promo</h4>
+                                <p class="text-xs text-gray-500">Uploaded by Admin • MP4</p>
+                            </div>
+                        </div>
+                        <span class="px-2 py-1 rounded bg-green-100 text-green-700 text-xs font-bold">Active</span>
+                    </div>
+
+                    <div
+                        class="p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                        <div class="flex items-center gap-4">
+                            <div
+                                class="w-10 h-10 rounded-lg bg-pink-100 flex items-center justify-center text-pink-600">
+                                <span class="material-symbols-outlined">camera_alt</span>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-bold text-gray-900 dark:text-white">Instagram Auto-Sync #442
+                                </h4>
+                                <p class="text-xs text-gray-500">Source: @LuigisMarket • JPG</p>
+                            </div>
+                        </div>
+                        <span class="px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs font-bold">Synced</span>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-</div>
+</c-layouts.sidebar>
 {% endblock %}

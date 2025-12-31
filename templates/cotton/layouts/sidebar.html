@@ -1,0 +1,105 @@
+<div class="flex h-screen bg-background-light dark:bg-background-dark font-body">
+    <!-- Sidebar -->
+    <aside
+        class="w-64 bg-white dark:bg-surface-dark border-r border-border-light dark:border-border-dark flex-shrink-0 flex flex-col fixed inset-y-0 z-20">
+        <!-- Logo -->
+        <div class="h-16 flex items-center px-6 border-b border-border-light dark:border-border-dark">
+            <div class="flex items-center gap-2">
+                {% load static %}
+                <img src="{% static 'hotcrowd-logo.png' %}" alt="HotCrowd" class="h-8 w-auto dark:hidden">
+                <img src="{% static 'hotcrowd-logo-white.png' %}" alt="HotCrowd" class="h-8 w-auto hidden dark:block">
+            </div>
+        </div>
+
+        <!-- Store Selector -->
+        <div class="p-4">
+            <button
+                class="w-full flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-xl border border-border-light dark:border-border-dark hover:border-primary/50 transition-colors">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-bold text-xs border border-orange-200">
+                        LM
+                    </div>
+                    <span class="text-sm font-semibold text-gray-700 dark:text-gray-200">Luigi's Market</span>
+                </div>
+                <span class="material-symbols-outlined text-gray-400">unfold_more</span>
+            </button>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="flex-1 px-4 space-y-1 overflow-y-auto custom-scrollbar">
+            <p class="px-2 text-xs font-bold text-muted-light upercase tracking-wider mt-4 mb-2">MAIN</p>
+
+            <a href="{% url 'dashboard' %}"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium {% if request.resolver_match.url_name == 'dashboard' %}bg-primary/10 text-primary{% else %}text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white{% endif %} transition-colors">
+                <span
+                    class="material-symbols-outlined {% if request.resolver_match.url_name == 'dashboard' %}text-primary{% endif %}">dashboard</span>
+                Dashboard
+            </a>
+
+            <a href="{% url 'screens' %}"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium {% if request.resolver_match.url_name == 'screens' %}bg-primary/10 text-primary{% else %}text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white{% endif %} transition-colors">
+                <span
+                    class="material-symbols-outlined {% if request.resolver_match.url_name == 'screens' %}text-primary{% endif %}">monitor</span>
+                Screens & Devices
+            </a>
+
+            <a href="{% url 'playlist_builder' %}"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium {% if request.resolver_match.url_name == 'playlist_builder' %}bg-primary/10 text-primary{% else %}text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white{% endif %} transition-colors">
+                <span class="material-symbols-outlined">featured_play_list</span>
+                Playlists
+            </a>
+
+            <p class="px-2 text-xs font-bold text-muted-light upercase tracking-wider mt-6 mb-2">CONTENT</p>
+
+            <a href="{% url 'media_library' %}"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium {% if request.resolver_match.url_name == 'media_library' %}bg-primary/10 text-primary{% else %}text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white{% endif %} transition-colors">
+                <span class="material-symbols-outlined">cloud_upload</span>
+                Media Library
+            </a>
+            <a href="#"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white transition-colors">
+                <span class="material-symbols-outlined">rss_feed</span>
+                Instagram Sync
+            </a>
+            <a href="#"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white transition-colors">
+                <span class="material-symbols-outlined">storefront</span>
+                Store CMS
+            </a>
+
+            <p class="px-2 text-xs font-bold text-muted-light upercase tracking-wider mt-6 mb-2">SETTINGS</p>
+            <a href="#"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white transition-colors">
+                <span class="material-symbols-outlined">settings</span>
+                Configuration
+            </a>
+            <a href="#"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white transition-colors">
+                <span class="material-symbols-outlined">help</span>
+                Support
+            </a>
+        </nav>
+
+        <!-- User Profile (Bottom) -->
+        <div class="p-4 border-t border-border-light dark:border-border-dark">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                    <img src="https://ui-avatars.com/api/?name={{ user.username }}&background=random" alt="Avatar">
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-bold text-gray-900 dark:text-white truncate">{{ user.username }}</p>
+                    <p class="text-xs text-muted-light truncate">{{ user.email }}</p>
+                </div>
+                <a href="{% url 'account_logout' %}" class="text-gray-400 hover:text-red-500 transition-colors">
+                    <span class="material-symbols-outlined">logout</span>
+                </a>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Wrapper -->
+    <main class="flex-1 ml-64 overflow-y-auto bg-background-light dark:bg-background-dark p-8">
+        {{ slot }}
+    </main>
+</div>
