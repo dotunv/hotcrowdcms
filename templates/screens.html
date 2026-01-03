@@ -14,7 +14,7 @@
                 x-data="{ show: true }" x-show="show" x-transition>
                 <span
                     class="material-symbols-outlined {% if message.tags == 'success' %}text-green-600 dark:text-green-400{% elif message.tags == 'error' %}text-red-600 dark:text-red-400{% else %}text-blue-600 dark:text-blue-400{% endif %}">
-                    {% if message.tags == 'success' %}check_circle{% elif message.tags == 'error' %}error{% else %}info{% endif %}
+ {% if message.tags == 'success' %}check_circle{% elif message.tags == 'error' %}error{% else %}info{% endif %}
                 </span>
                 <p
                     class="flex-1 text-sm font-medium {% if message.tags == 'success' %}text-green-800 dark:text-green-200{% elif message.tags == 'error' %}text-red-800 dark:text-red-200{% else %}text-blue-800 dark:text-blue-200{% endif %}">
@@ -42,8 +42,7 @@
             </div>
 
             <div class="flex items-center gap-3">
-                <button
-                    onclick="window.location.reload()"
+                <button onclick="window.location.reload()"
                     class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 transition-colors shadow-sm">
                     <span class="material-symbols-outlined text-lg">refresh</span>
                     Refresh Status
@@ -139,7 +138,7 @@
                             <td class="px-6 py-4">
                                 <div
                                     class="w-8 h-8 rounded-full {{ screen.is_online|yesno:'bg-green-50 text-green-600,bg-red-50 text-red-600' }} flex items-center justify-center">
-                                    <span class="material-symbols-outlined text-lg">{{ screen.is_online|yesno:'check_circle,wifi_off' }}</span>
+ <span class="material-symbols-outlined text-lg">{{ screen.is_online|yesno:'check_circle,wifi_off' }}</span>
                                 </div>
                             </td>
                             <td class="px-6 py-4">
@@ -150,7 +149,7 @@
                                     </div>
                                     <div>
                                         <p class="text-sm font-bold text-gray-900 dark:text-white">{{ screen.name }}</p>
-                                        <p class="text-xs text-gray-500 font-mono">ID: SN-{{ screen.id|stringformat:"s"|slice:":6"|upper }}</p>
+ <p class="text-xs text-gray-500 font-mono">ID: SN-{{ screen.id|stringformat:"s"|slice:":6"|upper }}</p>
                                     </div>
                                 </div>
                             </td>
@@ -186,10 +185,10 @@
                             </td>
                             <td class="px-6 py-4">
                                 <div class="flex items-center justify-end gap-2">
-                                    <form id="deleteScreenForm{{ screen.id }}" action="{% url 'delete_screen' screen.id %}" method="POST" class="inline">
+                                    <form id="deleteScreenForm{{ screen.id }}"
+                                        action="{% url 'delete_screen' screen.id %}" method="POST" class="inline">
                                         {% csrf_token %}
-                                        <button
-                                            type="button"
+                                        <button type="button"
                                             onclick="confirmDelete(() => document.getElementById('deleteScreenForm{{ screen.id }}').submit(), '{{ screen.name|escapejs }}')"
                                             class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                                             title="Delete Screen">
@@ -247,29 +246,22 @@
         <div class="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" @click="showConnectModal = false"></div>
         <div class="relative bg-white dark:bg-surface-dark w-full max-w-md rounded-2xl shadow-xl p-6">
             <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Connect New Screen</h3>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Enter the 6-digit pairing code displayed on your TV application.</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Enter the 6-digit pairing code displayed on your TV
+                application.</p>
 
             <div class="mb-6">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Pairing Code</label>
-                <input
-                    type="text"
-                    x-model="pairingCode"
+                <input type="text" x-model="pairingCode"
                     class="w-full text-center text-3xl font-mono tracking-widest py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white uppercase outline-none"
-                    placeholder="XXX-XXX"
-                    required
-                    maxlength="7"
-                    @input="pairingCode = pairingCode.toUpperCase()"
+                    placeholder="XXX-XXX" required maxlength="7" @input="pairingCode = pairingCode.toUpperCase()"
                     @keydown.enter="if(pairingCode.length >= 6) { showConnectModal = false; showSuccessModal = true; }">
             </div>
             <div class="flex gap-3">
-                <button
-                    type="button"
-                    @click="showConnectModal = false; pairingCode = ''"
+                <button type="button" @click="showConnectModal = false; pairingCode = ''"
                     class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-700 dark:text-gray-300 font-bold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                     Cancel
                 </button>
-                <button
-                    type="button"
+                <button type="button"
                     @click="if(pairingCode.length >= 6) { showConnectModal = false; showSuccessModal = true; }"
                     :disabled="pairingCode.length < 6"
                     :class="pairingCode.length < 6 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-secondary'"
@@ -286,7 +278,8 @@
         <div class="absolute inset-0 bg-gray-900/50 backdrop-blur-sm"></div>
         <div class="relative bg-white dark:bg-surface-dark w-full max-w-md rounded-2xl shadow-xl overflow-hidden">
             <div class="p-8">
-                <div class="w-12 h-12 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mb-4 text-green-600 dark:text-green-400">
+                <div
+                    class="w-12 h-12 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mb-4 text-green-600 dark:text-green-400">
                     <span class="material-symbols-outlined text-2xl">check</span>
                 </div>
 
@@ -298,26 +291,22 @@
                     {% csrf_token %}
                     <input type="hidden" name="pairing_code" x-model="pairingCode">
                     <div>
-                        <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">Screen Name
+                        <label
+                            class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">Screen
+                            Name
                             *</label>
-                        <input
-                            type="text"
-                            name="name"
-                            x-model="screenName"
-                            required
+                        <input type="text" name="name" x-model="screenName" required
                             placeholder="e.g. Main Entrance Display"
                             class="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary outline-none">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">Location
+                        <label
+                            class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">Location
                             <span class="text-gray-400 font-normal normal-case">(Optional)</span></label>
                         <div class="relative">
                             <span
                                 class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">location_on</span>
-                            <input
-                                type="text"
-                                name="location"
-                                x-model="screenLocation"
+                            <input type="text" name="location" x-model="screenLocation"
                                 placeholder="e.g. Downtown Branch, NY"
                                 class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary outline-none">
                         </div>
@@ -326,14 +315,11 @@
             </div>
 
             <div class="bg-gray-50 dark:bg-gray-800/50 px-8 py-4 flex gap-4">
-                <button
-                    type="button"
-                    @click="showSuccessModal = false; showConnectModal = true"
+                <button type="button" @click="showSuccessModal = false; showConnectModal = true"
                     class="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-700 dark:text-gray-300 font-bold hover:bg-white dark:hover:bg-gray-700 transition-colors">
                     Back
                 </button>
-                <button
-                    type="button"
+                <button type="button"
                     @click="if(screenName.trim()) { document.getElementById('connectScreenForm').submit(); }"
                     :disabled="!screenName.trim()"
                     :class="!screenName.trim() ? 'opacity-50 cursor-not-allowed' : 'hover:bg-secondary'"
@@ -345,10 +331,10 @@
     </div>
 
     <!-- Delete Confirmation Modal -->
-    <c-modals.confirm_delete title="Delete Screen" message="Are you sure you want to delete" confirm_text="Delete Screen" />
+    <c-modals.confirm_delete title="Delete Screen" message="Are you sure you want to delete"
+        confirm_text="Delete Screen" />
 </c-layouts.sidebar>
 {% endblock %}
 
 {% block extra_head %}
-<script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 {% endblock %}

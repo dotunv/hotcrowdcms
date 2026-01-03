@@ -71,99 +71,54 @@ def heartbeat(request, payload: HeartbeatSchema):
         # but for now just return error or ignore
         return {"status": "error", "message": "Screen not found"}
 
-@api.post("/player/pair", response=PairResponseSchema)
-def pair_screen(request, payload: PairSchema):
-    """
-    Player App sends a pairing code (6 digits) entered by User in CMS.
-    Wait, usually pairing flow is:
-    1. Player shows Code.
-    2. User enters Code in CMS. CMS creates Screen record with that Code.
-    3. Player polls API /pair/check?code=... OR
-    
-    Alternative (as per prompt "Pairing Code system"):
-    Prompt says: "A 'Pairing Code' system to link physical screens."
-    
-    Let's implement:
-    1. Player generates a code? No, usually Server generates code.
-    
-    Let's go with: 
-    1. Player request /api/player/register -> gets a text Code (e.g. "ABC-123").
-    2. Player displays Code.
-    3. User inputs Code in Dashboard -> Links a Screen object to that connection.
-    
-    But simpler flow for MVP:
-    1. Player App generates a Code (or requests one).
-    2. User enters it in CMS.
-    
-    Let's stick to the prompt's implied simple flow. The user asked for "Screen Management: A Pairing Code system".
-    
-    Let's implement:
-    POST /player/code -> Returns a new unique code and expires_at.
-    GET /player/status/{code} -> Checks if claimed.
-    
-    But I already defined `PairingCode` model.
-    Let's add endpoints:
-    
-    POST /player/register_device (returns code)
-    GET /player/check_registration (params: code) -> returns {registered: bool, screen_id: ...}
-    
-    """
-    # Simply generate a code for the device
-    code_str = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
-    
-    # Store code
-    PairingCode.objects.create(
-        code=code_str,
-        expires_at=timezone.now() + timezone.timedelta(minutes=15)
-    )
-    
-    # Wait, the player needs to receive the code to display it.
-    # So actually:
-    # 1. Player calls POST /api/player/setup -> returns { "code": "ASDF" }
-    # 2. Player shows "ASDF".
-    # 3. Player polls GET /api/player/setup/status?code=ASDF
-    # 4. User enters "ASDF" in CMS "Add Screen". CMS finds PairingCode, Creates Screen, marks PairingCode as used, links Screen.
-    # 5. Poll returns { "screen_id": "uuid...", "api_key": "..." }
-    
-    pass
-
 @api.post("/player/setup")
 def setup_device(request):
     """
     Generates a pairing code for the Player to display.
+    Device calls this once on startup if not paired.
     """
-    code_str = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+    # Generate unique 6-char code
+    while True:
+        code_str = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+        if not PairingCode.objects.filter(code=code_str).exists():
+            break
+            
     PairingCode.objects.create(
         code=code_str,
         expires_at=timezone.now() + timezone.timedelta(minutes=15)
     )
     return {"code": code_str, "expires_in": 900}
 
+
 @api.get("/player/setup/status/{code}")
 def check_setup_status(request, code: str):
     """
     Checks if the code has been claimed by a User.
-    If claimed, returns the Screen ID/Config.
+    Device polls this every few seconds.
     """
+    # 1. Check if Code exists
     try:
         pairing = PairingCode.objects.get(code=code)
-        if timezone.now() > pairing.expires_at:
-             return 410, {"status": "expired"}
-             
-        # Check if Linked Screen exists (I need to update PairingCode model to link to Screen possibly, 
-        # or find a Screen with this pairing_code)
-        # In my model: Screen has `pairing_code`.
-        # So I search for Screen where pairing_code == code.
-        
-        try:
-            screen = Screen.objects.get(pairing_code=code)
-            return {
-                "status": "claimed",
-                "screen_id": screen.id,
-                "name": screen.name
-            }
-        except Screen.DoesNotExist:
-            return {"status": "waiting"}
-            
     except PairingCode.DoesNotExist:
+        # If code not found, it might be invalid or expired/deleted
         return 404, {"status": "invalid"}
+
+    # 2. Check Expiry
+    if timezone.now() > pairing.expires_at:
+        return 410, {"status": "expired"}
+
+    # 3. Check if a Screen has claimed this code
+    # When User inputs code in CMS, we create a Screen with that pairing_code
+    try:
+        screen = Screen.objects.get(pairing_code=code)
+        
+        # If found, pairing is complete!
+        return {
+            "status": "claimed",
+            "screen_id": str(screen.id),
+            "name": screen.name
+        }
+    except Screen.DoesNotExist:
+        # Still waiting for user input
+        return {"status": "waiting"}
+

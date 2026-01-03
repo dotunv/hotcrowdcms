@@ -2,13 +2,33 @@
 <!DOCTYPE html>
 <html lang="en" class="h-full bg-slate-50"
     x-data="{ darkMode: localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches) }"
-    x-init="$watch('darkMode', val => { localStorage.setItem('theme', val ? 'dark' : 'light'); })"
-    :class="{ 'dark': darkMode }">
+    x-init="$watch('darkMode', val => {
+        localStorage.setItem('theme', val ? 'dark' : 'light');
+        document.documentElement.classList.toggle('dark', val);
+    })"
+    :class="{ 'dark': darkMode }"
+    x-cloak>
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}HotCrowd CMS{% endblock %}</title>
+
+    <!-- Theme initialization script (must run before page render) -->
+    <script>
+        // Apply theme immediately to prevent flash
+        (function() {
+            const theme = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const shouldBeDark = theme === 'dark' || (!theme && prefersDark);
+
+            if (shouldBeDark) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        })();
+    </script>
 
     <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -32,6 +52,16 @@
     {% tailwind_css %}
 
     <style>
+        /* Prevent flash of unstyled content during theme load */
+        [x-cloak] {
+            display: none !important;
+        }
+
+        /* Smooth transitions for theme changes */
+        * {
+            transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+        }
+
         .glass-panel {
             background: rgba(255, 255, 255, 0.7);
             backdrop-filter: blur(10px);
@@ -41,6 +71,11 @@
         .nav-link.active {
             border-color: #22c55e;
             color: #0f172a;
+        }
+
+        /* Dark mode specific adjustments */
+        html.dark {
+            color-scheme: dark;
         }
     </style>
     {% block extra_head %}{% endblock %}

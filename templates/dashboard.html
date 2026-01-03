@@ -96,7 +96,7 @@
                         <h3 class="font-bold text-gray-900 dark:text-white">Screen Network Status</h3>
                         <p class="text-xs text-gray-500">Real-time device monitoring</p>
                     </div>
-                    <a href="{% url 'setup_screen' %}"
+                    <a href="{% url 'screens' %}"
                         class="text-sm font-medium text-primary hover:text-secondary">View All</a>
                 </div>
                 <div class="divide-y divide-gray-100 dark:divide-gray-700">
@@ -135,38 +135,45 @@
                         <h3 class="font-bold text-gray-900 dark:text-white">Recent Media & Content</h3>
                         <p class="text-xs text-gray-500">Latest uploads from CMS & Social</p>
                     </div>
-                    <button class="material-symbols-outlined text-gray-400">filter_list</button>
+                    <a href="{% url 'media_library' %}" class="text-sm font-medium text-primary hover:text-secondary">View All</a>
                 </div>
                 <div class="divide-y divide-gray-100 dark:divide-gray-700">
-                    <div
-                        class="p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                    {% for media in recent_media %}
+                    <div class="p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                         <div class="flex items-center gap-4">
-                            <img class="w-10 h-10 rounded-lg object-cover"
-                                src="https://images.unsplash.com/photo-1556740758-90de374c12ad?auto=format&fit=crop&w=100&h=100"
-                                alt="">
+                            {% if media.media_type == 'IMAGE' or media.media_type == 'VIDEO' %}
+                                {% if media.thumbnail_url %}
+                                <img class="w-10 h-10 rounded-lg object-cover" src="{{ media.thumbnail_url }}" alt="{{ media.name|default:'Media' }}">
+                                {% elif media.file_url %}
+                                <img class="w-10 h-10 rounded-lg object-cover" src="{{ media.file_url }}" alt="{{ media.name|default:'Media' }}">
+                                {% else %}
+                                <div class="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400">
+                                    <span class="material-symbols-outlined">{% if media.media_type == 'VIDEO' %}videocam{% else %}image{% endif %}</span>
+                                </div>
+                                {% endif %}
+                            {% else %}
+                            <div class="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400">
+                                <span class="material-symbols-outlined">description</span>
+                            </div>
+                            {% endif %}
                             <div>
-                                <h4 class="text-sm font-bold text-gray-900 dark:text-white">Fall Collection Promo</h4>
-                                <p class="text-xs text-gray-500">Uploaded by Admin • MP4</p>
+                                <h4 class="text-sm font-bold text-gray-900 dark:text-white">{{ media.name|default:"Untitled Media" }}</h4>
+                                <p class="text-xs text-gray-500">
+                                    {% if media.source == 'INSTAGRAM' %}Source: Instagram{% else %}Uploaded{% endif %} •
+                                    {{ media.media_type|title }}
+                                </p>
                             </div>
                         </div>
-                        <span class="px-2 py-1 rounded bg-green-100 text-green-700 text-xs font-bold">Active</span>
+                        <span class="px-2 py-1 rounded {% if media.source == 'INSTAGRAM' %}bg-pink-100 dark:bg-pink-900/20 text-pink-700 dark:text-pink-300{% else %}bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300{% endif %} text-xs font-bold">
+                            {% if media.source == 'INSTAGRAM' %}Synced{% else %}Upload{% endif %}
+                        </span>
                     </div>
-
-                    <div
-                        class="p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                        <div class="flex items-center gap-4">
-                            <div
-                                class="w-10 h-10 rounded-lg bg-pink-100 flex items-center justify-center text-pink-600">
-                                <span class="material-symbols-outlined">camera_alt</span>
-                            </div>
-                            <div>
-                                <h4 class="text-sm font-bold text-gray-900 dark:text-white">Instagram Auto-Sync #442
-                                </h4>
-                                <p class="text-xs text-gray-500">Source: @LuigisMarket • JPG</p>
-                            </div>
-                        </div>
-                        <span class="px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs font-bold">Synced</span>
+                    {% empty %}
+                    <div class="p-8 text-center text-gray-500 text-sm">
+                        <p>No media uploaded yet.</p>
+                        <a href="{% url 'media_library' %}" class="text-primary hover:text-secondary font-medium mt-2 inline-block">Upload your first media</a>
                     </div>
+                    {% endfor %}
                 </div>
             </div>
         </div>

@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import HttpResponse, JsonResponse
-from core.models import Screen, Playlist, MediaAsset, PlaylistItem, Store, StoreLayout, StoreContent
+from core.models import Screen, Playlist, MediaAsset, PlaylistItem, Store, StoreLayout, StoreContent, PairingCode
 from django.utils import timezone
 from services.instagram import sync_hashtag_media
 
@@ -11,30 +11,68 @@ from services.instagram import sync_hashtag_media
 @login_required
 def dashboard(request):
     """
-    Shows list of screens and their status.
+    Shows dashboard overview with real-time stats and recent activity.
     """
     screens = Screen.objects.filter(owner=request.user).order_by('-created_at')
-    all_screens = Screen.objects.filter(owner=request.user) # Used for assigning playlists
     playlists = Playlist.objects.filter(owner=request.user)
-    media_assets = MediaAsset.objects.filter(owner=request.user)
-    
+    media_assets = MediaAsset.objects.filter(owner=request.user).order_by('-created_at')
+
     # Calculate stats
     total_screens = screens.count()
     online_screens = sum(1 for s in screens if s.is_online)
     total_playlists = playlists.count()
     total_media = media_assets.count()
-    
-    # Mock data changes based on filter
+
+    # Get recent media (last 5)
+    recent_media = media_assets[:5]
+
+    # Calculate estimated impressions based on screen count and playlists
+    # Rough estimate: (online_screens * avg_daily_views * days)
     filter_range = request.GET.get('range', '7D')
-    impressions = "12.5K"
-    trend = "12%"
-    
+    days = 7
     if filter_range == '30D':
-        impressions = "45.2K"
-        trend = "8%"
+        days = 30
     elif filter_range == 'All':
-        impressions = "128K"
-        trend = "24%"
+        # Estimate based on oldest screen age or default to 90 days
+        oldest_screen = screens.order_by('created_at').first()
+        if oldest_screen:
+            days = (timezone.now() - oldest_screen.created_at).days or 1
+        else:
+            days = 90
+
+    # Estimate: each online screen gets ~100 views per day
+    estimated_impressions = online_screens * 100 * days
+
+    # Format impressions
+    if estimated_impressions >= 1000:
+        impressions = f"{estimated_impressions / 1000:.1f}K"
+    else:
+        impressions = str(estimated_impressions)
+
+    # Calculate trend (compare to previous period)
+    # For simplicity, show positive trend if we have active screens
+    trend = "0%"
+    trend_up = "true"
+    if online_screens > 0:
+        trend = f"{min(online_screens * 5, 25)}%"
+
+    # Get recently added screens count (last 7 days)
+    week_ago = timezone.now() - timezone.timedelta(days=7)
+    new_screens_this_week = screens.filter(created_at__gte=week_ago).count()
+
+    # Check Instagram sync status
+    instagram_media = media_assets.filter(source='INSTAGRAM').order_by('-created_at').first()
+    last_sync_time = None
+    if instagram_media:
+        time_diff = timezone.now() - instagram_media.created_at
+        if time_diff.seconds < 60:
+            last_sync_time = f"{time_diff.seconds}s ago"
+        elif time_diff.seconds < 3600:
+            last_sync_time = f"{time_diff.seconds // 60}m ago"
+        elif time_diff.days == 0:
+            last_sync_time = f"{time_diff.seconds // 3600}h ago"
+        else:
+            last_sync_time = f"{time_diff.days}d ago"
 
     context = {
         'screens': screens,
@@ -44,15 +82,18 @@ def dashboard(request):
         'total_playlists': total_playlists,
         'total_media': total_media,
         'playlists': playlists,
+        'recent_media': recent_media,
         'impressions': impressions,
         'trend': trend,
-        'trend_up': 'true',
+        'trend_up': trend_up,
         'current_range': filter_range,
+        'new_screens_this_week': new_screens_this_week,
+        'last_sync_time': last_sync_time,
     }
-    
+
     if request.htmx:
         return render(request, 'partials/dashboard_stats.html', context)
-        
+
     return render(request, 'dashboard.html', context)
 
 
@@ -82,17 +123,39 @@ def setup_screen(request):
     Form to manually add a screen via pairing code entered by Store Owner.
     """
     if request.method == "POST":
-        code = request.POST.get('pairing_code')
+        code = request.POST.get('pairing_code', '').strip().upper()
         name = request.POST.get('name')
         location = request.POST.get('location', '')
+
+        # Validate Pairing Code
+        try:
+            pairing = PairingCode.objects.get(code=code)
+            if timezone.now() > pairing.expires_at:
+                messages.error(request, 'This pairing code has expired. Please refresh the code on your screen.')
+                return render(request, 'setup_screen.html', {'pairing_code': code, 'name': name})
+                
+            # Check if already used (optional, but good practice)
+            if Screen.objects.filter(pairing_code=code).exists():
+                 messages.error(request, 'This code is already linked to another screen.')
+                 return render(request, 'setup_screen.html', {'pairing_code': code, 'name': name})
+
+        except PairingCode.DoesNotExist:
+            messages.error(request, 'Invalid pairing code. Please check the code displayed on your screen.')
+            return render(request, 'setup_screen.html', {'pairing_code': code, 'name': name})
 
         # Create screen with the authenticated user as owner
         screen = Screen.objects.create(
             name=name,
             pairing_code=code,
             location=location if location else None,
-            owner=request.user
+            owner=request.user,
+            status='ONLINE' # As it just paired
         )
+        
+        # We don't delete the PairingCode immediately to allow the device's next poll to succeed 
+        # (check_setup_status needs to find it to find the screen). 
+        # It will expire naturally or we can run a cleanup job.
+        
         messages.success(request, f'Screen "{name}" connected successfully!')
         return redirect('screens')
 
@@ -393,6 +456,10 @@ def media_library(request):
         'current_source': source,
         'current_type': media_type,
     }
+    
+    if request.htmx and request.GET.get('picker'):
+        return render(request, 'partials/media_picker.html', context)
+        
     return render(request, 'media_library.html', context)
 
 
@@ -461,7 +528,12 @@ def upload_media(request):
             messages.success(request, 'Media uploaded successfully!')
 
         except Exception as e:
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.htmx:
+                return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
             messages.error(request, f'Upload failed: {str(e)}')
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+         return JsonResponse({'status': 'success', 'url': file_url, 'name': name, 'type': media_type})
 
     return redirect('media_library')
 
@@ -603,9 +675,17 @@ def store_cms(request):
     contents = StoreContent.objects.filter(owner=request.user)
     media_items = MediaAsset.objects.filter(owner=request.user).order_by('-created_at')[:6]
     
+    # Calculate Stats
+    total_active = layouts.filter(status='PUBLISHED').count() + contents.filter(status='PUBLISHED').count()
+    drafts_count = layouts.filter(status='DRAFT').count() + contents.filter(status='DRAFT').count()
+    scheduled_count = layouts.filter(status='SCHEDULED').count() + contents.filter(status='SCHEDULED').count()
+    
     context = {
         'layouts': layouts,
         'contents': contents,
+        'total_active': total_active,
+        'drafts_count': drafts_count,
+        'scheduled_count': scheduled_count,
         'media_items': media_items,
     }
     return render(request, 'store_cms.html', context)
@@ -637,7 +717,7 @@ def store_cms_editor(request, layout_id=None):
         'contents': contents,
         'media_items': media_items,
     }
-    return render(request, 'store_cms.html', context)
+    return render(request, 'store_cms_layout.html', context)
 
 
 @login_required

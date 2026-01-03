@@ -1,0 +1,960 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}HotCrowd - Store CMS{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet" />
+<script>
+    tailwind.config = {
+        darkMode: "class",
+        theme: {
+            extend: {
+                colors: {
+                    primary: "#057A43",
+                    secondary: "#045e33",
+                    accent: "#b2f2bb",
+                    "background-light": "#F9F9F7",
+                    "background-dark": "#18181b",
+                    "surface-light": "#FFFFFF",
+                    "surface-dark": "#27272a",
+                    "text-light": "#1f2937",
+                    "text-dark": "#f3f4f6",
+                    "muted-light": "#6b7280",
+                    "muted-dark": "#9ca3af",
+                    "border-light": "#e5e7eb",
+                    "border-dark": "#3f3f46"
+                },
+                fontFamily: {
+                    display: ["'Plus Jakarta Sans'", "sans-serif"],
+                    body: ["'Plus Jakarta Sans'", "sans-serif"],
+                },
+            },
+        },
+    };
+</script>
+<style>
+    body {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        overscroll-behavior: none;
+    }
+
+    ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #d1d5db;
+        border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #9ca3af;
+    }
+
+    .dark ::-webkit-scrollbar-thumb {
+        background: #4b5563;
+    }
+
+    .dark ::-webkit-scrollbar-thumb:hover {
+        background: #6b7280;
+    }
+
+    .canvas-grid {
+        background-image:
+            linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+        background-size: 20px 20px;
+    }
+
+    .dark .canvas-grid {
+        background-image:
+            linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    }
+
+    .resizer {
+        width: 4px;
+        cursor: col-resize;
+        transition: background-color 0.2s;
+        z-index: 10;
+        position: relative;
+    }
+
+    .resizer::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: -2px;
+        right: -2px;
+    }
+
+    .resizer:hover,
+    .resizer.resizing {
+        background-color: #057A43;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<c-layouts.sidebar>
+    <div class="flex flex-col h-full overflow-hidden" x-data="storeCMS()">
+
+        <!-- Top Toolbar -->
+        <div
+            class="h-14 flex-shrink-0 bg-white dark:bg-surface-dark border-b border-border-light dark:border-border-dark flex items-center justify-between px-4 z-20">
+            <div class="flex items-center gap-4 flex-1 min-w-0">
+                <div class="flex items-center gap-2 text-sm whitespace-nowrap">
+                    <a href="{% url 'store_cms' %}" class="text-gray-500 hover:text-primary transition-colors">Store
+                        CMS</a>
+                    <span class="text-gray-400">&gt;</span>
+                    {% if layout %}
+                    <input type="text" value="{{ layout.name }}"
+                        class="font-semibold text-gray-900 dark:text-white bg-transparent border-none outline-none focus:ring-0 p-0 max-w-[150px]"
+                        @blur="saveLayoutName($el.value)">
+                    {% else %}
+                    <span class="font-semibold text-gray-900 dark:text-white">New Layout</span>
+                    {% endif %}
+
+                    <span x-show="hasUnsavedChanges"
+                        class="ml-2 px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 text-xs font-bold rounded">Unsaved
+                        Changes</span>
+                </div>
+
+                <div class="h-6 w-px bg-gray-200 dark:bg-gray-700 mx-2"></div>
+
+                <div class="relative max-w-md w-full hidden md:block">
+                    <span
+                        class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">search</span>
+                    <input type="text" placeholder="Search components..."
+                        class="w-full pl-9 pr-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-1 focus:ring-primary focus:border-primary">
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3 mx-4">
+                <div
+                    class="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5 border border-border-light dark:border-border-dark">
+                    <button class="p-1 px-2 rounded-md hover:bg-white dark:hover:bg-gray-700 shadow-sm transition-all"
+                        title="Desktop">
+                        <span class="material-symbols-outlined text-sm">desktop_windows</span>
+                    </button>
+                    <button
+                        class="p-1 px-2 rounded-md text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"
+                        title="Tablet">
+                        <span class="material-symbols-outlined text-sm">tablet</span>
+                    </button>
+                    <button
+                        class="p-1 px-2 rounded-md text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"
+                        title="Mobile">
+                        <span class="material-symbols-outlined text-sm">smartphone</span>
+                    </button>
+                </div>
+
+                <div class="h-6 w-px bg-gray-200 dark:bg-gray-700"></div>
+
+                <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                    <span>1920×1080</span>
+                </div>
+
+                <div class="h-6 w-px bg-gray-200 dark:bg-gray-700"></div>
+
+                <div
+                    class="flex items-center gap-1 bg-gray-50 dark:bg-gray-800 rounded-lg border border-border-light dark:border-border-dark px-1">
+                    <button @click="zoom = Math.max(10, zoom - 10)"
+                        class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700">
+                        <span class="material-symbols-outlined text-gray-500 text-sm">remove</span>
+                    </button>
+                    <span class="w-10 text-center text-xs font-semibold text-gray-700 dark:text-gray-300"
+                        x-text="zoom + '%'">45%</span>
+                    <button @click="zoom = Math.min(200, zoom + 10)"
+                        class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700">
+                        <span class="material-symbols-outlined text-gray-500 text-sm">add</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <div class="flex items-center mr-2">
+                    <button
+                        class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors"
+                        title="Undo">
+                        <span class="material-symbols-outlined">undo</span>
+                    </button>
+                    <button
+                        class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors"
+                        title="Redo">
+                        <span class="material-symbols-outlined">redo</span>
+                    </button>
+                </div>
+
+                <button @click="previewLayout()"
+                    class="px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-primary transition-colors">
+                    Preview
+                </button>
+                <button @click="saveLayout()"
+                    class="inline-flex items-center gap-2 px-4 py-1.5 bg-primary hover:bg-secondary text-white text-sm font-bold rounded-lg shadow-sm shadow-primary/30 transition-all">
+                    <span class="material-symbols-outlined text-lg">save</span>
+                    Save & Publish
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Workspace -->
+        <div class="flex-1 flex overflow-hidden relative" @mousemove.window="handleGlobalMouseMove($event)"
+            @mouseup.window="handleGlobalMouseUp()">
+
+            <!-- Left Sidebar -->
+            <div class="bg-white dark:bg-surface-dark border-r border-border-light dark:border-border-dark flex flex-col flex-shrink-0 z-10"
+                :style="`width: ${leftPanelWidth}px`">
+
+                <div class="p-4 border-b border-border-light dark:border-border-dark">
+                    <h3 class="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary">add_circle</span>
+                        Add Elements
+                    </h3>
+                </div>
+
+                <div class="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
+                    <div>
+                        <h3 class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+                            Basic Elements</h3>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button @click="addElement('heading')"
+                                class="flex flex-col items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-primary hover:bg-primary/5 transition-all group cursor-grab active:cursor-grabbing">
+                                <span
+                                    class="material-symbols-outlined text-2xl text-gray-600 dark:text-gray-400 group-hover:text-primary">title</span>
+                                <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Heading</span>
+                            </button>
+                            <button @click="addElement('paragraph')"
+                                class="flex flex-col items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-primary hover:bg-primary/5 transition-all group cursor-grab active:cursor-grabbing">
+                                <span
+                                    class="material-symbols-outlined text-2xl text-gray-600 dark:text-gray-400 group-hover:text-primary">format_align_left</span>
+                                <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Paragraph</span>
+                            </button>
+                            <button @click="addElement('image')"
+                                class="flex flex-col items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-primary hover:bg-primary/5 transition-all group cursor-grab active:cursor-grabbing">
+                                <span
+                                    class="material-symbols-outlined text-2xl text-gray-600 dark:text-gray-400 group-hover:text-primary">image</span>
+                                <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Image</span>
+                            </button>
+                            <button @click="addElement('video')"
+                                class="flex flex-col items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-primary hover:bg-primary/5 transition-all group cursor-grab active:cursor-grabbing">
+                                <span
+                                    class="material-symbols-outlined text-2xl text-gray-600 dark:text-gray-400 group-hover:text-primary">play_circle</span>
+                                <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Video</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+                            Widgets</h3>
+                        <div class="space-y-2">
+                            <button @click="addElement('weather')"
+                                class="w-full flex items-center gap-3 p-2.5 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-primary hover:bg-primary/5 transition-all group cursor-grab active:cursor-grabbing">
+                                <div
+                                    class="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                                    <span
+                                        class="material-symbols-outlined text-blue-600 dark:text-blue-400">sunny</span>
+                                </div>
+                                <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Weather Widget</span>
+                            </button>
+                            <button @click="addElement('clock')"
+                                class="w-full flex items-center gap-3 p-2.5 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-primary hover:bg-primary/5 transition-all group cursor-grab active:cursor-grabbing">
+                                <div
+                                    class="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                                    <span
+                                        class="material-symbols-outlined text-red-600 dark:text-red-400">schedule</span>
+                                </div>
+                                <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Clock & Date</span>
+                            </button>
+                            <button @click="addElement('qrcode')"
+                                class="w-full flex items-center gap-3 p-2.5 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-primary hover:bg-primary/5 transition-all group cursor-grab active:cursor-grabbing">
+                                <div
+                                    class="w-8 h-8 rounded-lg bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                                    <span
+                                        class="material-symbols-outlined text-gray-600 dark:text-gray-400">qr_code</span>
+                                </div>
+                                <span class="text-xs font-medium text-gray-700 dark:text-gray-300">QR Code</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Left Resizer -->
+            <div class="resizer bg-gray-200 dark:bg-gray-700 border-l border-white/50 dark:border-gray-600"
+                @mousedown="startPanelResize($event, 'left')" :class="{'resizing': resizingPanel === 'left'}"></div>
+
+            <!-- Canvas Area -->
+            <div class="flex-1 bg-gray-100 dark:bg-black/30 flex flex-col relative overflow-hidden h-full z-0">
+
+                <div class="flex-1 overflow-auto p-12 flex items-center justify-center canvas-grid relative custom-scrollbar"
+                    id="canvas-container" @click.self="selectedElement = null">
+
+                    <div class="bg-white dark:bg-surface-dark shadow-2xl relative transition-transform duration-75 origin-center group ring-1 ring-border-light dark:ring-border-dark"
+                        :style="{ width: '1920px', height: '1080px', transform: `scale(${zoom / 100})` }">
+
+                        <!-- Grid Overlay -->
+                        <div class="absolute inset-0 pointer-events-none opacity-20"
+                            style="background-image: linear-gradient(#000 1px, transparent 1px), linear-gradient(90deg, #000 1px, transparent 1px); background-size: 100px 100px;">
+                        </div>
+
+                        <!-- Elements -->
+                        <template x-for="element in elements" :key="element.id">
+                            <div class="absolute group/element cursor-move select-none" :style="{ 
+                                     left: element.x + 'px', 
+                                     top: element.y + 'px',
+                                     width: element.width + 'px',
+                                     height: element.height + 'px',
+                                     zIndex: selectedElement === element.id ? 50 : element.zIndex,
+                                     opacity: element.opacity / 100
+                                 }" @mousedown.stop="startDrag($event, element.id)"
+                                @click.stop="selectElement(element.id)">
+
+                                <!-- Selection Border & Resize Handles -->
+                                <div class="absolute -inset-0.5 border-2 transition-opacity z-20 pointer-events-none"
+                                    :class="selectedElement === element.id ? 'border-primary opacity-100' : 'border-transparent opacity-0 group-hover/element:opacity-50 group-hover/element:border-primary/50'">
+
+                                    <template x-if="selectedElement === element.id">
+                                        <div class="pointer-events-auto">
+                                            <!-- Top Left -->
+                                            <div class="absolute -top-1.5 -left-1.5 w-3 h-3 bg-white border border-primary rounded-full cursor-nw-resize hover:bg-primary z-30"
+                                                @mousedown.stop="startElementResize($event, 'nw')"></div>
+                                            <!-- Top Right -->
+                                            <div class="absolute -top-1.5 -right-1.5 w-3 h-3 bg-white border border-primary rounded-full cursor-ne-resize hover:bg-primary z-30"
+                                                @mousedown.stop="startElementResize($event, 'ne')"></div>
+                                            <!-- Bottom Left -->
+                                            <div class="absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-white border border-primary rounded-full cursor-sw-resize hover:bg-primary z-30"
+                                                @mousedown.stop="startElementResize($event, 'sw')"></div>
+                                            <!-- Bottom Right -->
+                                            <div class="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-white border border-primary rounded-full cursor-se-resize hover:bg-primary z-30"
+                                                @mousedown.stop="startElementResize($event, 'se')"></div>
+                                        </div>
+                                    </template>
+                                </div>
+
+                                <!-- Element Content -->
+                                <div class="w-full h-full overflow-hidden rounded relative transition-colors"
+                                    :style="`background-color: ${element.backgroundColor}; box-shadow: ${getShadowStyle(element.shadow)}`"
+                                    :class="{'ring-1 ring-gray-200 dark:ring-gray-700': selectedElement !== element.id && !element.backgroundColor}">
+
+                                    <!-- Heading -->
+                                    <div x-show="element.type === 'heading'"
+                                        class="w-full h-full flex items-center justify-center p-4">
+                                        <h2 class="text-4xl font-bold text-gray-900 dark:text-white text-center break-words leading-tight"
+                                            x-text="element.content || 'Heading Text'"></h2>
+                                    </div>
+
+                                    <!-- Paragraph -->
+                                    <div x-show="element.type === 'paragraph'" class="w-full h-full p-4">
+                                        <p class="text-lg text-gray-700 dark:text-gray-300 leading-normal"
+                                            x-text="element.content || 'Lorem ipsum dolor sit amet.'"></p>
+                                    </div>
+
+                                    <!-- Image -->
+                                    <div x-show="element.type === 'image'"
+                                        class="w-full h-full flex items-center justify-center overflow-hidden transition-colors"
+                                        :class="{'bg-gray-200 dark:bg-gray-700': !element.content, 'ring-2 ring-primary ring-inset': draggingOver === element.id}"
+                                        @drop.prevent="handleImageDrop($event, element.id); draggingOver = null"
+                                        @dragover.prevent="draggingOver = element.id"
+                                        @dragleave.prevent="draggingOver = null">
+
+                                        <template x-if="element.content">
+                                            <img :src="element.content"
+                                                class="w-full h-full object-cover pointer-events-none">
+                                        </template>
+                                        <template x-if="!element.content">
+                                            <div class="flex flex-col items-center text-gray-400 pointer-events-none">
+                                                <span
+                                                    class="material-icons-outlined text-4xl mb-2">add_photo_alternate</span>
+                                                <span class="text-sm font-medium">Drop Image Here</span>
+                                            </div>
+                                        </template>
+                                    </div>
+
+                                    <!-- Video -->
+                                    <div x-show="element.type === 'video'"
+                                        class="w-full h-full bg-black flex items-center justify-center text-white">
+                                        <span class="material-symbols-outlined text-5xl opacity-50">play_circle</span>
+                                    </div>
+
+                                    <!-- Weather -->
+                                    <div x-show="element.type === 'weather'"
+                                        class="w-full h-full bg-blue-500 text-white p-4 flex flex-col justify-between">
+                                        <div class="flex justify-between items-start">
+                                            <span class="text-xl font-bold">Paris</span>
+                                            <span class="material-symbols-outlined text-3xl">partly_cloudy_day</span>
+                                        </div>
+                                        <div class="text-4xl font-bold">24°C</div>
+                                    </div>
+
+                                    <!-- Placeholders -->
+                                    <div x-show="['clock', 'qrcode', 'instagram'].includes(element.type)"
+                                        class="w-full h-full flex items-center justify-center"
+                                        :class="{'bg-gray-100 dark:bg-gray-800': !element.backgroundColor}">
+                                        <span class="material-symbols-outlined text-3xl text-gray-400"
+                                            x-text="element.type === 'clock' ? 'schedule' : element.type === 'qrcode' ? 'qr_code' : 'photo_camera'"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+
+                        <div x-show="elements.length === 0"
+                            class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <div class="text-center opacity-30">
+                                <span class="material-symbols-outlined text-6xl text-gray-400">drag_click</span>
+                                <p class="text-2xl font-bold text-gray-400 mt-2">Start Designing</p>
+                                <p class="text-gray-400">Drag elements from the sidebar</p>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Resizer -->
+            <div class="resizer bg-gray-200 dark:bg-gray-700 border-l border-white/50 dark:border-gray-600"
+                @mousedown="startPanelResize($event, 'right')" :class="{'resizing': resizingPanel === 'right'}"></div>
+
+            <!-- Right Sidebar: Properties -->
+            <div class="bg-white dark:bg-surface-dark border-l border-border-light dark:border-border-dark flex flex-col flex-shrink-0 max-h-full overflow-hidden z-10"
+                :style="`width: ${rightPanelWidth}px`">
+
+                <div
+                    class="h-12 flex items-center justify-between px-4 border-b border-border-light dark:border-border-dark flex-shrink-0">
+                    <h2 class="font-semibold text-gray-900 dark:text-white">Properties</h2>
+                    <span x-show="selectedElement"
+                        class="px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-bold uppercase rounded tracking-wide">Selected</span>
+                </div>
+
+                <div class="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
+
+                    <div x-show="!selectedElement" class="text-center py-10 text-gray-400">
+                        <span class="material-symbols-outlined text-4xl mb-2">touch_app</span>
+                        <p class="text-sm">Select an element to edit properties</p>
+                    </div>
+
+                    <div x-show="selectedElement">
+                        <!-- Transform Section -->
+                        <div>
+                            <div class="flex items-center justify-between mb-3">
+                                <h3 class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    Transform</h3>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label
+                                        class="text-[10px] text-gray-500 dark:text-gray-400 mb-1 block uppercase">Width</label>
+                                    <div class="relative">
+                                        <input type="number" x-model="getSelected().width"
+                                            class="w-full pl-2 pr-6 py-1.5 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-md text-sm">
+                                        <span class="absolute right-2 top-1.5 text-xs text-gray-400">px</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label
+                                        class="text-[10px] text-gray-500 dark:text-gray-400 mb-1 block uppercase">Height</label>
+                                    <div class="relative">
+                                        <input type="number" x-model="getSelected().height"
+                                            class="w-full pl-2 pr-6 py-1.5 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-md text-sm">
+                                        <span class="absolute right-2 top-1.5 text-xs text-gray-400">px</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] text-gray-500 dark:text-gray-400 mb-1 block uppercase">X
+                                        Pos</label>
+                                    <input type="number" x-model="getSelected().x"
+                                        class="w-full px-2 py-1.5 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-md text-sm">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] text-gray-500 dark:text-gray-400 mb-1 block uppercase">Y
+                                        Pos</label>
+                                    <input type="number" x-model="getSelected().y"
+                                        class="w-full px-2 py-1.5 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-md text-sm">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Content Section -->
+                        <div class="mt-6 pt-6 border-t border-border-light dark:border-border-dark">
+                            <h3
+                                class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+                                Content</h3>
+
+                            <template x-if="getSelected().type === 'heading' || getSelected().type === 'paragraph'">
+                                <div class="space-y-3">
+                                    <div>
+                                        <label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Text
+                                            Content</label>
+                                        <textarea x-model="getSelected().content" rows="3"
+                                            class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-lg text-sm"></textarea>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <template x-if="getSelected().type === 'image'">
+                                <div class="space-y-3">
+                                    <button @click="openMediaPicker()"
+                                        class="w-full py-2.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors">
+                                        <span class="material-icons-outlined text-lg">collections</span>
+                                        Choose from Library
+                                    </button>
+                                    <div class="relative">
+                                        <input type="text" x-model="getSelected().content"
+                                            placeholder="Or paste Image URL"
+                                            class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-lg text-sm pl-9">
+                                        <span
+                                            class="material-icons-outlined absolute left-3 top-2.5 text-gray-400 text-sm">link</span>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+
+                        <!-- Appearance Section -->
+                        <div class="mt-6 pt-6 border-t border-border-light dark:border-border-dark">
+                            <h3
+                                class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+                                Appearance</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label
+                                        class="text-xs text-gray-500 dark:text-gray-400 mb-2 block">Background</label>
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-8 h-8 rounded border border-border-light dark:border-border-dark shadow-sm"
+                                            :style="`background-color: ${getSelected().backgroundColor || '#ffffff'}`">
+                                        </div>
+                                        <input type="color" x-model="getSelected().backgroundColor"
+                                            class="h-8 w-8 cursor-pointer rounded-lg border-none p-0">
+                                        <input type="text" x-model="getSelected().backgroundColor"
+                                            class="flex-1 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-lg text-sm uppercase">
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div class="flex justify-between items-center mb-2">
+                                        <label class="text-xs text-gray-500 dark:text-gray-400">Opacity</label>
+                                        <span class="text-xs text-gray-700 dark:text-gray-300"
+                                            x-text="getSelected().opacity + '%'"></span>
+                                    </div>
+                                    <input type="range" x-model="getSelected().opacity" min="0" max="100"
+                                        class="w-full accent-primary h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                                </div>
+
+                                <div>
+                                    <label class="text-xs text-gray-500 dark:text-gray-400 mb-2 block">Shadow</label>
+                                    <select x-model="getSelected().shadow"
+                                        class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-lg text-sm">
+                                        <option value="none">None</option>
+                                        <option value="sm">Small</option>
+                                        <option value="md">Medium</option>
+                                        <option value="lg">Large</option>
+                                        <option value="xl">Extra Large</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="mt-6 pt-6 border-t border-border-light dark:border-border-dark">
+                        <h3 class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+                            Layers</h3>
+                        <div class="space-y-1">
+                            <template x-for="element in elements.slice().reverse()" :key="element.id">
+                                <div class="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors group"
+                                    :class="{ 'bg-primary/5 border border-primary/20': selectedElement === element.id }"
+                                    @click="selectElement(element.id)">
+                                    <span class="material-symbols-outlined text-sm text-gray-400">drag_handle</span>
+                                    <span class="material-symbols-outlined text-sm text-gray-500"
+                                        x-text="element.type === 'image' ? 'image' : 'title'"></span>
+                                    <span class="text-xs text-gray-700 dark:text-gray-300 flex-1 truncate"
+                                        x-text="element.type"></span>
+                                    <button @click.stop="deleteElement(element.id)"
+                                        class="opacity-0 group-hover:opacity-100 hover:text-red-500 text-gray-400 p-1">
+                                        <span class="material-symbols-outlined text-sm">delete</span>
+                                    </button>
+                                </div>
+                            </template>
+                            <div x-show="elements.length === 0" class="text-xs text-gray-400 text-center py-2">No layers
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-4 border-t border-border-light dark:border-border-dark bg-gray-50 dark:bg-surface-dark/50 flex-shrink-0 flex gap-2"
+                    x-show="selectedElement">
+                    <button @click="duplicateSelected()"
+                        class="flex-1 py-2 px-3 bg-white dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-lg text-xs font-medium text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 transition-colors">
+                        Duplicate
+                    </button>
+                    <button @click="deleteSelected()"
+                        class="flex-1 py-2 px-3 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 rounded-lg text-xs font-medium text-red-600 dark:text-red-400 shadow-sm hover:bg-red-100 transition-colors">
+                        Delete
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Media Picker Modal -->
+    <div x-show="showMediaPicker" class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style="display: none;">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showMediaPicker = false"
+            x-transition.opacity></div>
+        <div class="relative bg-white dark:bg-surface-dark rounded-2xl shadow-2xl w-full max-w-4xl max-h-[80vh] flex flex-col overflow-hidden"
+            x-transition.scale>
+            <div
+                class="p-4 border-b border-border-light dark:border-border-dark flex justify-between items-center bg-white dark:bg-surface-dark z-10">
+                <h3 class="font-bold text-lg text-gray-900 dark:text-white flex items-center gap-2">
+                    <span class="material-icons-outlined text-primary">perm_media</span>
+                    Media Library
+                </h3>
+                <button @click="showMediaPicker = false"
+                    class="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
+                    <span class="material-icons-outlined text-gray-500">close</span>
+                </button>
+            </div>
+            <div class="flex-1 overflow-y-auto bg-gray-50 dark:bg-black/20" id="media-picker-content">
+                <!-- Content loads via HTMX -->
+                <div class="flex items-center justify-center h-64">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    </div>
+</c-layouts.sidebar>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function storeCMS() {
+        return {
+            // State
+            zoom: 45,
+            elements: [],
+            selectedElement: null,
+            hasUnsavedChanges: false,
+
+            // Interaction State
+            resizingPanel: null, // 'left' or 'right'
+            resizingElement: null, // 'nw', 'ne', 'sw', 'se'
+            draggingElement: null,
+            draggingOver: null,
+            showMediaPicker: false,
+
+            // Metrics
+            leftPanelWidth: 280,
+            rightPanelWidth: 320,
+            startMouse: { x: 0, y: 0 },
+            startDims: { width: 0, height: 0, x: 0, y: 0 },
+
+            init() {
+                // Empty initial state
+                this.elements = [];
+
+                // Keyboard shortcuts
+                window.addEventListener('keydown', (e) => {
+                    if (e.key === 'Delete' || e.key === 'Backspace') {
+                        if (this.selectedElement && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+                            this.deleteSelected();
+                        }
+                    }
+                    if (e.key === 'Escape') {
+                        this.selectedElement = null;
+                    }
+                });
+                if (e.key === 'Escape') {
+                    this.selectedElement = null;
+                    this.showMediaPicker = false;
+                }
+            });
+
+            // Media Selection Listener
+            window.addEventListener('media-selected', (e) => {
+                this.handleMediaSelection(e.detail);
+            });
+        },
+
+            openMediaPicker() {
+            this.showMediaPicker = true;
+            // Trigger HTMX load
+            htmx.ajax('GET', '{% url "media_library" %}?picker=true', '#media-picker-content');
+        },
+
+        handleMediaSelection(media) {
+            const element = this.getSelected();
+            if (element && media.url) {
+                element.content = media.url;
+                this.hasUnsavedChanges = true;
+                this.showMediaPicker = false;
+            }
+        },
+
+        handleImageDrop(event, id) {
+            const file = event.dataTransfer.files[0];
+            if (!file || !file.type.startsWith('image/')) return;
+
+            const element = this.elements.find(el => el.id === id);
+            // Optimistic update or loading state could go here
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('media_type', 'IMAGE');
+
+            fetch('{% url "upload_media" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success' && element) {
+                        element.content = data.url;
+                        this.hasUnsavedChanges = true;
+                    } else {
+                        alert('Upload failed: ' + (data.message || 'Unknown error'));
+                    }
+                })
+                .catch(err => {
+                    console.error('Upload error:', err);
+                    alert('Upload failed');
+                });
+        },
+
+        // --- Panel Resizing ---
+        startPanelResize(event, side) {
+            this.resizingPanel = side;
+            this.startMouse = { x: event.clientX, y: event.clientY };
+            this.startDims = {
+                width: side === 'left' ? this.leftPanelWidth : this.rightPanelWidth
+            };
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+        },
+
+        // --- Element Interaction ---
+        startDrag(event, id) {
+            if (event.button !== 0 || this.resizingElement) return;
+
+            this.draggingElement = id;
+            this.selectElement(id);
+
+            const element = this.elements.find(el => el.id === id);
+            const scale = this.zoom / 100;
+
+            this.startMouse = { x: event.clientX, y: event.clientY };
+            this.startDims = { x: element.x, y: element.y };
+        },
+
+        startElementResize(event, handle) {
+            event.stopPropagation(); // Prevent drag start
+            this.resizingElement = handle;
+
+            const element = this.getSelected();
+            this.startMouse = { x: event.clientX, y: event.clientY };
+            this.startDims = {
+                width: element.width,
+                height: element.height,
+                x: element.x,
+                y: element.y
+            };
+        },
+
+        handleGlobalMouseMove(event) {
+            // 1. Panel Resizing
+            if (this.resizingPanel) {
+                const delta = event.clientX - this.startMouse.x;
+                if (this.resizingPanel === 'left') {
+                    const newWidth = Math.max(200, Math.min(this.startDims.width + delta, 500));
+                    this.leftPanelWidth = newWidth;
+                } else {
+                    const newWidth = Math.max(250, Math.min(this.startDims.width - delta, 500));
+                    this.rightPanelWidth = newWidth;
+                }
+                return;
+            }
+
+            // 2. Element Dragging
+            if (this.draggingElement) {
+                const scale = this.zoom / 100;
+                const deltaX = (event.clientX - this.startMouse.x) / scale;
+                const deltaY = (event.clientY - this.startMouse.y) / scale;
+
+                const element = this.elements.find(el => el.id === this.draggingElement);
+                if (element) {
+                    element.x = this.startDims.x + deltaX;
+                    element.y = this.startDims.y + deltaY;
+                    this.hasUnsavedChanges = true;
+                }
+                return;
+            }
+
+            // 3. Element Resizing
+            if (this.resizingElement) {
+                const scale = this.zoom / 100;
+                const deltaX = (event.clientX - this.startMouse.x) / scale;
+                const deltaY = (event.clientY - this.startMouse.y) / scale;
+
+                const element = this.getSelected();
+                const handle = this.resizingElement;
+
+                if (handle.includes('e')) element.width = Math.max(20, this.startDims.width + deltaX);
+                if (handle.includes('w')) {
+                    const newWidth = Math.max(20, this.startDims.width - deltaX);
+                    element.width = newWidth;
+                    element.x = this.startDims.x + (this.startDims.width - newWidth);
+                }
+                if (handle.includes('s')) element.height = Math.max(20, this.startDims.height + deltaY);
+                if (handle.includes('n')) {
+                    const newHeight = Math.max(20, this.startDims.height - deltaY);
+                    element.height = newHeight;
+                    element.y = this.startDims.y + (this.startDims.height - newHeight);
+                }
+
+                this.hasUnsavedChanges = true;
+            }
+        },
+
+        handleGlobalMouseUp() {
+            this.resizingPanel = null;
+            this.draggingElement = null;
+            this.resizingElement = null;
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+        },
+
+        // --- Helpers ---
+        addElement(type) {
+            const id = 'el_' + Date.now();
+            const defaults = {
+                heading: { width: 400, height: 80, content: 'New Heading' },
+                paragraph: { width: 400, height: 120, content: 'Double click to edit text' },
+                image: { width: 300, height: 200, content: '' },
+                video: { width: 400, height: 225 },
+                weather: { width: 250, height: 150 },
+                clock: { width: 200, height: 100 },
+                qrcode: { width: 150, height: 150 },
+            };
+
+            const config = defaults[type] || { width: 200, height: 100 };
+
+            this.elements.push({
+                id: id,
+                type: type,
+                x: 1920 / 2 - config.width / 2,
+                y: 1080 / 2 - config.height / 2,
+                width: config.width,
+                height: config.height,
+                content: config.content || '',
+                backgroundColor: '',
+                opacity: 100,
+                shadow: 'none',
+                zIndex: 10,
+                ...config
+            });
+
+            this.selectedElement = id;
+            this.hasUnsavedChanges = true;
+        },
+
+        selectElement(id) {
+            this.selectedElement = id;
+        },
+
+        getSelected() {
+            return this.elements.find(el => el.id === this.selectedElement) || {};
+        },
+
+        deleteElement(id) {
+            this.elements = this.elements.filter(el => el.id !== id);
+            if (this.selectedElement === id) this.selectedElement = null;
+            this.hasUnsavedChanges = true;
+        },
+
+        deleteSelected() {
+            if (this.selectedElement) this.deleteElement(this.selectedElement);
+        },
+
+        duplicateSelected() {
+            const selected = this.getSelected();
+            if (selected && selected.id) {
+                const newId = 'el_' + Date.now();
+                const newElement = {
+                    ...selected,
+                    id: newId,
+                    x: selected.x + 20,
+                    y: selected.y + 20
+                };
+                this.elements.push(newElement);
+                this.selectedElement = newId;
+            }
+        },
+
+        getShadowStyle(shadowType) {
+            const shadows = {
+                'none': 'none',
+                'sm': '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+                'md': '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                'lg': '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                'xl': '0 20px 25px -5px rgb(0 0 0 / 0.1)'
+            };
+            return shadows[shadowType] || 'none';
+        },
+
+        saveLayout() {
+            const formData = new FormData();
+            formData.append('layout_data', JSON.stringify(this.elements));
+            formData.append('canvas_width', 1920);
+            formData.append('canvas_height', 1080);
+            formData.append('status', 'PUBLISHED'); // Or map from UI
+
+            // Use the button for feedback
+            const btn = event.currentTarget || document.querySelector('button[title="Save & Publish"]'); // Fallback if called programmatically
+            const originalText = btn ? btn.innerHTML : '';
+            if (btn) btn.innerHTML = '<span class="material-symbols-outlined text-lg">sync</span> Saving...';
+
+            fetch('{% url "save_layout" layout.id %}', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+                body: formData
+            })
+                .then(response => {
+                    if (response.ok) {
+                        this.hasUnsavedChanges = false;
+                        if (btn) {
+                            btn.innerHTML = '<span class="material-symbols-outlined text-lg">check</span> Saved!';
+                            setTimeout(() => btn.innerHTML = originalText, 1000);
+                        }
+                    } else {
+                        alert('Error saving layout');
+                        if (btn) btn.innerHTML = originalText;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error saving layout');
+                    if (btn) btn.innerHTML = originalText;
+                });
+        },
+
+        previewLayout() {
+            alert('Preview functionality coming soon!');
+        }
+    }
+    }
+</script>
+{% endblock %}

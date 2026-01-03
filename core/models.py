@@ -140,6 +140,7 @@ class Screen(models.Model):
     
     # Device pairing
     pairing_code = models.CharField(max_length=6, blank=True, null=True, unique=True)
+    location = models.CharField(max_length=255, blank=True, help_text="Physical location of the screen")
     
     # Status
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='OFFLINE')

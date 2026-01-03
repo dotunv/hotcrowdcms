@@ -1,0 +1,33 @@
+<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4">
+    {% for media in media_items %}
+    <div class="aspect-square bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary relative group transition-all"
+        @click="$dispatch('media-selected', { url: '{{ media.file_url }}', type: '{{ media.media_type }}' })">
+
+        {% if media.media_type == 'IMAGE' %}
+        <img src="{{ media.file_url }}" class="w-full h-full object-cover" loading="lazy">
+        {% elif media.thumbnail_url %}
+        <img src="{{ media.thumbnail_url }}" class="w-full h-full object-cover" loading="lazy">
+        <div class="absolute inset-0 flex items-center justify-center bg-black/20">
+            <span class="material-icons-outlined text-white text-2xl drop-shadow-md">play_circle</span>
+        </div>
+        {% else %}
+        <div class="w-full h-full flex items-center justify-center text-gray-400">
+            <span class="material-icons-outlined text-4xl">
+                {% if media.media_type == 'VIDEO' %}videocam{% else %}image{% endif %}
+            </span>
+        </div>
+        {% endif %}
+
+        <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
+        <div
+            class="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+            <p class="text-white text-xs truncate">{{ media.name|default:"Untitled" }}</p>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-span-full text-center py-12 text-gray-400">
+        <span class="material-icons-outlined text-4xl mb-2">perm_media</span>
+        <p>No media found locally.</p>
+    </div>
+    {% endfor %}
+</div>

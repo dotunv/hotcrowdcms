@@ -95,10 +95,10 @@
                 </div>
                 <!-- Dark Mode Toggle -->
                 <button @click="$root.darkMode = !$root.darkMode"
-                    class="p-2 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    class="p-2 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200"
                     :title="$root.darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'">
-                    <span x-show="!$root.darkMode" class="material-symbols-outlined">dark_mode</span>
-                    <span x-show="$root.darkMode" class="material-symbols-outlined">light_mode</span>
+                    <span x-show="!$root.darkMode" class="material-symbols-outlined text-xl" x-cloak>dark_mode</span>
+                    <span x-show="$root.darkMode" class="material-symbols-outlined text-xl" x-cloak>light_mode</span>
                 </button>
                 <a href="{% url 'account_logout' %}" class="text-gray-400 hover:text-red-500 transition-colors">
                     <span class="material-symbols-outlined">logout</span>
