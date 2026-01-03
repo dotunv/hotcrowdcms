@@ -1,48 +1,254 @@
-<div id="uploadMediaModal" class="hidden fixed inset-0 z-50 overflow-y-auto">
-    <!-- ... (Same overlay structure) ... -->
-    <div class="flex items-center justify-center min-h-screen px-4">
+<!-- c-vars show_duration=True -->
+<!-- Upload Media Modal -->
+<div id="uploadMediaModal" class="hidden fixed inset-0 z-50 overflow-y-auto" x-data="{
+        uploadMode: 'file',
+        fileUrl: '',
+        mediaType: 'IMAGE',
+        duration: 10,
+        name: '',
+        selectedFile: null,
+        previewUrl: null,
+        isDragging: false,
+        errors: {},
+        handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                this.processFile(file);
+            }
+        },
+        handleFileDrop(event) {
+            event.preventDefault();
+            this.isDragging = false;
+            const file = event.dataTransfer.files[0];
+            if (file) {
+                this.processFile(file);
+            }
+        },
+        processFile(file) {
+            this.selectedFile = file;
+            this.name = this.name || file.name.replace(/\.[^/.]+$/, '');
+
+            // Detect media type from file
+            if (file.type.startsWith('image/')) {
+                this.mediaType = 'IMAGE';
+            } else if (file.type.startsWith('video/')) {
+                this.mediaType = 'VIDEO';
+            }
+
+            // Create preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                this.previewUrl = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        },
+        validate() {
+            this.errors = {};
+            if (this.uploadMode === 'url') {
+                if (!this.fileUrl || this.fileUrl.trim() === '') {
+                    this.errors.fileUrl = 'File URL is required';
+                } else if (!this.fileUrl.match(/^https?:\/\/.+/)) {
+                    this.errors.fileUrl = 'Please enter a valid URL';
+                }
+            } else {
+                if (!this.selectedFile) {
+                    this.errors.file = 'Please select a file';
+                }
+            }
+            // Only validate duration if the field is visible
+            {% if show_duration %}
+            if (this.duration < 1) {
+                this.errors.duration = 'Duration must be at least 1 second';
+            }
+            {% endif %}
+            return Object.keys(this.errors).length === 0;
+        },
+        submit() {
+            if (this.validate()) {
+                document.getElementById('uploadForm').submit();
+            }
+        },
+        reset() {
+            this.uploadMode = 'file';
+            this.fileUrl = '';
+            this.mediaType = 'IMAGE';
+            this.duration = 10;
+            this.name = '';
+            this.selectedFile = null;
+            this.previewUrl = null;
+            this.errors = {};
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput) fileInput.value = '';
+        }
+    }" @keydown.escape="document.getElementById('uploadMediaModal').classList.add('hidden'); reset()">
+
+    <div class="flex items-center justify-center min-h-screen px-4 py-8">
+        <!-- Overlay -->
         <div class="fixed inset-0 bg-black/60 transition-opacity"
-            onclick="document.getElementById('uploadMediaModal').classList.add('hidden')"></div>
-        <div class="relative bg-white rounded-2xl shadow-xl max-w-lg w-full p-8 text-center">
-            <button onclick="document.getElementById('uploadMediaModal').classList.add('hidden')"
-                class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><svg class="w-5 h-5" fill="none"
-                    viewBox="0 0 24 24" stroke="currentColor">
+            @click="document.getElementById('uploadMediaModal').classList.add('hidden'); reset()"></div>
+
+        <!-- Modal Content -->
+        <div class="relative bg-white dark:bg-surface-dark rounded-2xl shadow-xl max-w-lg w-full p-8">
+            <!-- Close Button -->
+            <button @click="document.getElementById('uploadMediaModal').classList.add('hidden'); reset()"
+                class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg></button>
+                </svg>
+            </button>
 
-            <h3 class="text-lg font-bold text-slate-900 mb-6">Upload New Media</h3>
+            <!-- Header -->
+            <div class="mb-6">
+                <h3 class="text-xl font-bold text-gray-900 dark:text-white">Upload New Media</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Upload from your device or provide a URL</p>
+            </div>
 
-            <div
-                class="border-2 border-dashed border-slate-200 rounded-xl p-8 mb-6 hover:border-green-500 transition-colors bg-slate-50 group cursor-pointer">
-                <div
-                    class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400 group-hover:text-green-500 group-hover:scale-110 transition-all">
-                    <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                    </svg>
+            <!-- Upload Mode Tabs -->
+            <div class="flex gap-2 mb-6 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                <button type="button" @click="uploadMode = 'file'"
+                    :class="uploadMode === 'file' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'hover:bg-gray-50 dark:hover:bg-gray-700'"
+                    class="flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined text-lg">upload_file</span>
+                    Upload File
+                </button>
+                <button type="button" @click="uploadMode = 'url'"
+                    :class="uploadMode === 'url' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'hover:bg-gray-50 dark:hover:bg-gray-700'"
+                    class="flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined text-lg">link</span>
+                    From URL
+                </button>
+            </div>
+
+            <!-- Form -->
+            <form id="uploadForm" action="{% url 'upload_media' %}" method="post" enctype="multipart/form-data"
+                class="space-y-4" @submit.prevent="submit()">
+                {% csrf_token %}
+
+                <!-- File Upload Section -->
+                <div x-show="uploadMode === 'file'" x-transition>
+                    <!-- Drag and Drop Area -->
+                    <div @dragover.prevent="isDragging = true" @dragleave.prevent="isDragging = false"
+                        @drop.prevent="handleFileDrop($event)"
+                        :class="{ 'border-primary bg-primary/5': isDragging, 'border-gray-300 dark:border-gray-600': !isDragging }"
+                        class="border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer hover:border-primary hover:bg-gray-50 dark:hover:bg-gray-800"
+                        @click="$refs.fileInput.click()">
+
+                        <!-- Preview or Upload Icon -->
+                        <div x-show="!previewUrl" class="space-y-4">
+                            <div
+                                class="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto">
+                                <span class="material-symbols-outlined text-4xl text-gray-400">cloud_upload</span>
+                            </div>
+                            <div>
+                                <p class="text-base font-medium text-gray-700 dark:text-gray-300">Drop your file here
+                                </p>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">or click to browse</p>
+                            </div>
+                            <p class="text-xs text-gray-400">Supports: JPG, PNG, GIF, MP4, WebM (Max 50MB)</p>
+                        </div>
+
+                        <!-- File Preview -->
+                        <div x-show="previewUrl" class="space-y-3">
+                            <div class="relative inline-block">
+                                <img x-show="mediaType === 'IMAGE'" :src="previewUrl"
+                                    class="max-h-32 rounded-lg shadow-sm">
+                                <div x-show="mediaType === 'VIDEO'"
+                                    class="w-32 h-32 bg-gray-900 rounded-lg flex items-center justify-center">
+                                    <span class="material-symbols-outlined text-white text-4xl">videocam</span>
+                                </div>
+                                <button type="button"
+                                    @click.stop="selectedFile = null; previewUrl = null; $refs.fileInput.value = ''"
+                                    class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors">
+                                    <span class="material-symbols-outlined text-sm">close</span>
+                                </button>
+                            </div>
+                            <p x-text="selectedFile?.name" class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            </p>
+                            <p x-text="(selectedFile?.size / 1024 / 1024).toFixed(2) + ' MB'"
+                                class="text-xs text-gray-500"></p>
+                        </div>
+                    </div>
+
+                    <input type="file" x-ref="fileInput" id="fileInput" name="file" accept="image/*,video/*"
+                        @change="handleFileSelect($event)" class="hidden">
+
+                    <p x-show="errors.file" x-text="errors.file" class="text-xs text-red-500 mt-1"></p>
                 </div>
-                <p class="text-slate-900 font-medium mb-1">Drag and drop files here</p>
-                <p class="text-sm text-slate-500 mb-4">or browse to upload</p>
-                <button
-                    class="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 shadow-sm">Browse
-                    files</button>
-            </div>
 
-            <p class="text-xs text-slate-400">Supported formats: MP4, JPG, PNG, GIF</p>
+                <!-- URL Input Section -->
+                <div x-show="uploadMode === 'url'" x-transition>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Media URL <span class="text-red-500">*</span>
+                        </label>
+                        <input type="url" x-model="fileUrl" name="file_url" placeholder="https://example.com/image.jpg"
+                            class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                            :class="{ 'border-red-500': errors.fileUrl }">
+                        <p x-show="errors.fileUrl" x-text="errors.fileUrl" class="text-xs text-red-500 mt-1"></p>
+                    </div>
+                </div>
 
-            <div class="mt-6 flex gap-3 justify-end">
-                <button onclick="document.getElementById('uploadMediaModal').classList.add('hidden')"
-                    class="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
-                <form action="{% url 'upload_media' %}" method="post">
-                    {% csrf_token %}
-                    <input type="hidden" name="media_type" value="IMAGE">
-                    <input type="hidden" name="file_url"
-                        value="https://images.unsplash.com/photo-1556742031-c6961e8560b0?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80">
+                <!-- Media Type Select -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Media Type
+                    </label>
+                    <select x-model="mediaType" name="media_type"
+                        class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all cursor-pointer">
+                        <option value="IMAGE">Image</option>
+                        <option value="VIDEO">Video</option>
+                    </select>
+                </div>
+
+                {% if show_duration %}
+                <!-- Name Input (Optional) -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Name (Optional)
+                    </label>
+                    <input type="text" x-model="name" name="name" placeholder="Enter media name"
+                        class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all">
+                </div>
+                {% endif %}
+
+                {% if show_duration %}
+                <!-- Duration Input -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Duration (seconds) <span class="text-red-500">*</span>
+                    </label>
+                    <input type="number" x-model.number="duration" name="duration" min="1" max="300"
+                        class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                        :class="{ 'border-red-500': errors.duration }">
+                    <p x-show="errors.duration" x-text="errors.duration" class="text-xs text-red-500 mt-1"></p>
+                    <p class="text-xs text-gray-500 mt-1">How long to display this media (1-300 seconds)</p>
+                </div>
+                {% else %}
+                <!-- Hidden duration field with default value -->
+                <input type="hidden" name="duration" value="10">
+                {% endif %}
+
+                <!-- Format Support Info -->
+                <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg p-3">
+                    <p class="text-xs text-blue-800 dark:text-blue-200">
+                        <strong>Supported formats:</strong> JPG, PNG, GIF, MP4, WebM
+                    </p>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex gap-3 justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <button type="button"
+                        @click="document.getElementById('uploadMediaModal').classList.add('hidden'); reset()"
+                        class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        Cancel
+                    </button>
                     <button type="submit"
-                        class="px-6 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg shadow-sm">Upload
-                        (Demo)</button>
-                </form>
-            </div>
+                        class="px-6 py-2 text-sm font-bold text-white bg-primary hover:bg-secondary rounded-xl shadow-sm transition-all hover:shadow-md inline-flex items-center gap-2">
+                        <span class="material-symbols-outlined text-lg">upload</span>
+                        Upload Media
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

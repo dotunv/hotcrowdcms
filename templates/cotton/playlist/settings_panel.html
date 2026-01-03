@@ -24,11 +24,11 @@
             <label class="block text-sm font-medium text-slate-700 mb-2">Schedule</label>
             <select name="schedule_type"
                 class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none cursor-pointer">
-                <option value="ALWAYS" {% if playlist.schedule_type=='ALWAYS' %}selected{% endif %}>Always On</option>
-                <option value="SCHEDULED" {% if playlist.schedule_type=='SCHEDULED' %}selected{% endif %}>Specific
+                <option value="ALWAYS" {% if playlist.schedule_type == 'ALWAYS' %}selected{% endif %}>Always On</option>
+                <option value="SCHEDULED" {% if playlist.schedule_type == 'SCHEDULED' %}selected{% endif %}>Specific
                     Date/Time
                 </option>
-                <option value="RECURRING" {% if playlist.schedule_type=='RECURRING' %}selected{% endif %}>Recurring
+                <option value="RECURRING" {% if playlist.schedule_type == 'RECURRING' %}selected{% endif %}>Recurring
                     (Weekly)
                 </option>
             </select>
@@ -68,15 +68,13 @@
             <div class="grid grid-cols-2 gap-2">
                 <label
                     class="cursor-pointer border border-slate-200 rounded-lg p-3 hover:border-primary hover:bg-slate-50 transition-all {% if playlist.transition_effect == 'FADE' %}border-primary bg-primary/5{% endif %}">
-                    <input type="radio" name="transition_effect" value="FADE" class="sr-only" {% if
-                        playlist.transition_effect=='FADE' %}checked{% endif %}>
+                    <input type="radio" name="transition_effect" value="FADE" class="sr-only" {% if playlist.transition_effect == 'FADE' %}checked{% endif %}>
                     <div class="text-sm font-medium text-slate-900">Fade</div>
                     <div class="text-xs text-slate-500">Smooth crossfind</div>
                 </label>
                 <label
                     class="cursor-pointer border border-slate-200 rounded-lg p-3 hover:border-primary hover:bg-slate-50 transition-all {% if playlist.transition_effect == 'SLIDE' %}border-primary bg-primary/5{% endif %}">
-                    <input type="radio" name="transition_effect" value="SLIDE" class="sr-only" {% if
-                        playlist.transition_effect=='SLIDE' %}checked{% endif %}>
+                    <input type="radio" name="transition_effect" value="SLIDE" class="sr-only" {% if playlist.transition_effect == 'SLIDE' %}checked{% endif %}>
                     <div class="text-sm font-medium text-slate-900">Slide</div>
                     <div class="text-xs text-slate-500">Horizontal move</div>
                 </label>
@@ -88,8 +86,7 @@
             <label
                 class="flex items-center gap-3 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50">
                 <input type="checkbox" name="is_loop"
-                    class="w-4 h-4 text-primary rounded border-slate-300 focus:ring-primary" {% if playlist.is_loop
-                    %}checked{% endif %}>
+                    class="w-4 h-4 text-primary rounded border-slate-300 focus:ring-primary" {% if playlist.is_loop %}checked{% endif %}>
                 <div>
                     <span class="block text-sm font-medium text-slate-900">Loop Playlist</span>
                     <span class="block text-xs text-slate-500">Repeat when finished</span>
@@ -107,8 +104,7 @@
                 {% for screen in all_screens %}
                 <label class="flex items-start gap-2 cursor-pointer hover:bg-slate-100 p-1 rounded transition-colors">
                     <input type="checkbox" name="assigned_screens" value="{{ screen.id }}"
-                        class="mt-0.5 w-4 h-4 text-primary rounded border-slate-300 focus:ring-primary" {% if
-                        screen.assigned_playlist==playlist %}checked{% endif %}>
+                        class="mt-0.5 w-4 h-4 text-primary rounded border-slate-300 focus:ring-primary" {% if screen.assigned_playlist == playlist %}checked{% endif %}>
                     <div class="flex-1 min-w-0">
                         <span class="block text-sm font-medium text-slate-900 truncate">{{ screen.name }}</span>
                         <span class="block text-[10px] text-slate-500 uppercase tracking-wide">

@@ -1,73 +1,306 @@
 <c-vars playlist />
 
-<div id="previewModal" class="hidden fixed inset-0 z-[60] overflow-y-auto">
-    <div class="flex items-center justify-center min-h-screen px-4 bg-black/80 backdrop-blur-sm">
-        <div
-            class="w-full max-w-4xl bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border border-slate-700 flex flex-col relative">
+{% load static %}
 
-            <!-- Header -->
-            <div
-                class="px-6 py-4 flex justify-between items-center bg-slate-800/50 backdrop-blur border-b border-slate-700 absolute top-0 w-full z-10">
-                <h3 class="text-white font-semibold">Full Playlist Preview</h3>
-                <button onclick="closePreviewModal()"
-                    class="flex items-center gap-1 text-slate-400 hover:text-white bg-white/10 px-3 py-1.5 rounded-full text-xs font-medium transition-colors">
-                    Close <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
+<div x-data="playlistPreview({
+        items: [
+            {% for item in playlist.items.all %}
+            {
+                id: '{{ item.id }}',
+                type: '{{ item.media.type }}',
+                url: '{{ item.media.file.url }}',
+                thumbnail: '{% if item.media.thumbnail %}{{ item.media.thumbnail.url }}{% else %}{{ item.media.file.url }}{% endif %}',
+                name: '{{ item.media.name|escapejs }}',
+                duration: {{ item.custom_duration|default:item.media.duration|default:10 }},
+                width: {{ item.media.width|default:1920 }},
+                height: {{ item.media.height|default:1080 }}
+            },
+            {% endfor %}
+        ],
+        playlistName: '{{ playlist.name|escapejs }}'
+    })" x-show="isOpen" @open-preview-modal.window="openModal($event)"
+    class="fixed inset-0 z-50 flex items-center justify-center px-4 sm:px-6" style="display: none;">
 
-            <!-- Video Player Area -->
-            <div class="aspect-video bg-black relative flex items-center justify-center group">
-                <img src="https://images.unsplash.com/photo-1629198688000-71f23e745b6e?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"
-                    class="w-full h-full object-contain opacity-80" alt="Preview Content">
+    <!-- Backdrop -->
+    <div x-show="isOpen" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100" x-transition:leave="ease-in duration-200"
+        x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+        class="fixed inset-0 bg-gray-900/90 backdrop-blur-sm transition-opacity" @click="close()"></div>
 
-                <!-- Live Badge -->
-                <div
-                    class="absolute top-20 left-6 bg-red-600 text-white text-xs font-bold px-2 py-0.5 rounded shadow-lg">
-                    LIVE</div>
+    <!-- Modal Panel -->
+    <div x-show="isOpen" x-transition:enter="ease-out duration-300"
+        x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+        x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100" x-transition:leave="ease-in duration-200"
+        x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+        x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+        class="relative bg-[#0F1419] rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden border border-gray-800">
 
-                <!-- Controls Overlay -->
-                <div
-                    class="absolute bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform translate-y-2 group-hover:translate-y-0">
-                    <button
-                        class="p-4 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl text-white transition-all"><svg
-                            class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                            <path
-                                d="M8.445 14.832A1 1 0 0010 14v-2.798l5.445 3.63A1 1 0 0017 14V6a1 1 0 00-1.555-.832L10 8.798V6a1 1 0 00-1.555-.832l-6 4a1 1 0 000 1.664l6 4z" />
-                        </svg></button>
-                    <button
-                        class="p-5 bg-white text-slate-900 rounded-2xl shadow-xl hover:scale-105 transition-transform"><svg
-                            class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd"
-                                d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z"
-                                clip-rule="evenodd" />
-                            <path fill-rule="evenodd"
-                                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                                clip-rule="evenodd" />
-                        </svg> <!-- Pause Icon roughly --><svg class="w-8 h-8 hidden" fill="currentColor"
-                            viewBox="0 0 20 20">
-                            <path fill-rule="evenodd"
-                                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z"
-                                clip-rule="evenodd" />
-                        </svg></button>
-                    <button
-                        class="p-4 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl text-white transition-all"><svg
-                            class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                            <path
-                                d="M4.555 5.168A1 1 0 003 6v8a1 1 0 001.555.832L10 11.202V14a1 1 0 001.555.832l6-4a1 1 0 000-1.664l-6-4A1 1 0 0010 4v2.798L4.555 5.168z" />
-                        </svg></button>
+        <!-- Header -->
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-800 bg-[#0F1419] z-10">
+            <h3 class="text-lg font-bold text-white">Full Playlist Preview</h3>
+            <button @click="close()"
+                class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-700 hover:bg-gray-800 text-gray-400 hover:text-white transition-colors text-sm font-medium">
+                <span>Close</span>
+                <span class="material-icons-outlined text-sm">close</span>
+            </button>
+        </div>
+
+        <!-- Content Area -->
+        <div class="flex-1 overflow-hidden relative flex flex-col bg-[#050505]">
+
+            <!-- EMPTY STATE -->
+            <template x-if="items.length === 0">
+                <div class="flex-1 flex flex-col items-center justify-center p-8 text-center">
+                    <div class="relative mb-6">
+                        <div
+                            class="w-20 h-20 rounded-full border-2 border-dashed border-gray-700 flex items-center justify-center">
+                            <span class="material-icons-outlined text-3xl text-gray-600">movie</span>
+                        </div>
+                        <div
+                            class="absolute -top-1 -right-1 w-6 h-6 bg-gray-800 rounded-full flex items-center justify-center border border-gray-900">
+                            <span class="material-icons-outlined text-sm text-yellow-500">priority_high</span>
+                        </div>
+                    </div>
+
+                    <h4 class="text-2xl font-bold text-white mb-2">Nothing to Preview</h4>
+                    <p class="text-gray-400 max-w-md mb-8">
+                        Your playlist "<span x-text="playlistName" class="text-white font-medium"></span>" is currently
+                        empty.
+                        Add images or videos to the timeline to visualize your loop.
+                    </p>
+
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <button
+                            class="flex items-center gap-2 px-6 py-3 bg-primary hover:bg-green-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-green-900/20">
+                            <span class="material-icons-outlined text-lg">add_to_photos</span>
+                            Add Media
+                        </button>
+                        <button
+                            class="flex items-center gap-2 px-6 py-3 bg-[#1A1F25] hover:bg-[#252b33] border border-gray-700 text-gray-300 hover:text-white rounded-xl font-medium transition-all">
+                            <span>Import from Instagram</span>
+                        </button>
+                    </div>
                 </div>
-            </div>
+            </template>
 
-            <!-- Timeline (Visual Only) -->
-            <div class="h-16 bg-slate-900 border-t border-slate-700 flex items-center px-4 gap-2 overflow-hidden">
-                <div class="w-24 h-12 bg-green-900/40 rounded border border-green-500/30 flex-shrink-0"></div>
-                <div class="w-16 h-12 bg-slate-800 rounded border border-slate-700 flex-shrink-0"></div>
-                <div class="w-32 h-12 bg-slate-800 rounded border border-slate-700 flex-shrink-0"></div>
-            </div>
+            <!-- PREVIEW STATE -->
+            <template x-if="items.length > 0">
+                <div class="flex-1 flex flex-col h-full">
+                    <!-- Main Viewer -->
+                    <div class="flex-1 relative bg-black flex items-center justify-center overflow-hidden group">
+                        <!-- Active Item -->
+                        <template x-if="currentItem">
+                            <div class="relative w-full h-full flex items-center justify-center">
+                                <template x-if="currentItem.type === 'IMAGE'">
+                                    <img :src="currentItem.url" class="max-w-full max-h-full object-contain shadow-2xl"
+                                        alt="Preview">
+                                </template>
+                                <template x-if="currentItem.type === 'VIDEO'">
+                                    <video x-ref="videoPlayer" :src="currentItem.url"
+                                        class="max-w-full max-h-full object-contain shadow-2xl" autoplay muted
+                                        playsinline loop></video>
+                                </template>
+                            </div>
+                        </template>
+
+                        <!-- Hover Controls Overlay -->
+                        <div
+                            class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none flex flex-col justify-end p-8">
+                            <!-- Info Badge -->
+                            <div class="absolute top-6 left-6">
+                                <span
+                                    class="bg-red-600 text-white text-[10px] font-black tracking-wider px-2 py-1 rounded-md uppercase">Live</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bottom Bar: Controls & Timeline -->
+                    <div class="h-auto border-t border-gray-800 bg-[#0F1419] p-4 flex flex-col gap-4">
+
+                        <!-- Main Controls (Centered) -->
+                        <div class="flex items-center justify-center gap-6">
+                            <button @click="prev()"
+                                class="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-full transition-all">
+                                <span class="material-icons-outlined text-xl">skip_previous</span>
+                            </button>
+
+                            <button @click="togglePlay()"
+                                class="w-12 h-12 bg-white hover:scale-105 text-black rounded-xl flex items-center justify-center transition-all shadow-lg shadow-white/10">
+                                <span class="material-icons-outlined text-2xl"
+                                    x-text="isPlaying ? 'pause' : 'play_arrow'"></span>
+                            </button>
+
+                            <button @click="next()"
+                                class="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-full transition-all">
+                                <span class="material-icons-outlined text-xl">skip_next</span>
+                            </button>
+                        </div>
+
+                        <!-- Timeline -->
+                        <div class="relative flex items-center gap-4">
+
+                            <!-- Items Row -->
+                            <div class="flex-1 overflow-x-auto pb-2 scrollbar-hide flex gap-3 px-2">
+                                <template x-for="(item, index) in items" :key="item.id">
+                                    <button @click="jumpTo(index)"
+                                        class="relative flex-shrink-0 w-48 h-16 rounded-lg border overflow-hidden transition-all group text-left flex"
+                                        :class="index === currentIndex ? 'border-primary ring-1 ring-primary bg-primary/10' : 'border-gray-700 bg-gray-800/50 hover:border-gray-500 opacity-60 hover:opacity-100'">
+
+                                        <!-- Thumb -->
+                                        <div class="w-20 h-full bg-gray-900 border-r border-gray-700/50 relative">
+                                            <img :src="item.thumbnail" class="w-full h-full object-cover">
+                                            <div x-show="item.type === 'VIDEO'"
+                                                class="absolute inset-0 flex items-center justify-center bg-black/20">
+                                                <span
+                                                    class="material-icons-outlined text-white text-sm opacity-80">play_circle</span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Info -->
+                                        <div class="flex-1 p-2 flex flex-col justify-center min-w-0">
+                                            <p class="text-xs font-medium text-white truncate w-full"
+                                                x-text="item.name || 'Untitled'"></p>
+                                            <p class="text-[10px] text-gray-400 truncate mt-0.5">
+                                                <span x-text="formatDuration(item.duration)"></span> • <span
+                                                    class="capitalize" x-text="item.type.toLowerCase()"></span>
+                                            </p>
+                                        </div>
+
+                                        <!-- Live Indicator (if active) -->
+                                        <div x-show="index === currentIndex"
+                                            class="absolute right-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-green-500 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.6)]">
+                                        </div>
+                                    </button>
+                                </template>
+                            </div>
+
+                            <!-- Auto-Advance Toggle -->
+                            <div class="flex items-center gap-2 pl-4 border-l border-gray-800/50">
+                                <span class="text-xs font-medium text-gray-400">Auto-Slide</span>
+                                <button @click="toggleAutoSlide()"
+                                    class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-[#0F1419]"
+                                    :class="autoSlide ? 'bg-primary' : 'bg-gray-700'">
+                                    <span class="sr-only">Use setting</span>
+                                    <span aria-hidden="true"
+                                        class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                                        :class="autoSlide ? 'translate-x-4' : 'translate-x-0'"></span>
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </template>
 
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('playlistPreview', (config) => ({
+            isOpen: false,
+            items: config.items || [],
+            playlistName: config.playlistName || 'Untitled',
+            currentIndex: 0,
+            isPlaying: false,
+            autoSlide: true,
+            timer: null,
+            durationTimer: null,
+
+            openModal(event) {
+                this.isOpen = true;
+                this.currentIndex = 0;
+                this.isPlaying = true;
+                if (this.items.length > 0) {
+                    this.startPlayback();
+                }
+            },
+
+            close() {
+                this.isOpen = false;
+                this.stopPlayback();
+            },
+
+            get currentItem() {
+                return this.items[this.currentIndex];
+            },
+
+            next() {
+                if (this.currentIndex < this.items.length - 1) {
+                    this.currentIndex++;
+                } else {
+                    this.currentIndex = 0; // Loop
+                }
+                this.resetTimer();
+            },
+
+            prev() {
+                if (this.currentIndex > 0) {
+                    this.currentIndex--;
+                } else {
+                    this.currentIndex = this.items.length - 1;
+                }
+                this.resetTimer();
+            },
+
+            jumpTo(index) {
+                this.currentIndex = index;
+                this.resetTimer();
+            },
+
+            togglePlay() {
+                this.isPlaying = !this.isPlaying;
+                if (this.isPlaying) {
+                    this.startPlayback();
+                } else {
+                    this.stopPlayback();
+                    // If video, pause it
+                    if (this.$refs.videoPlayer) this.$refs.videoPlayer.pause();
+                }
+            },
+
+            toggleAutoSlide() {
+                this.autoSlide = !this.autoSlide;
+                if (this.autoSlide && this.isPlaying) {
+                    this.resetTimer();
+                } else {
+                    clearTimeout(this.timer);
+                }
+            },
+
+            startPlayback() {
+                if (!this.autoSlide) return;
+
+                this.stopPlayback(); // Clear existing
+
+                const item = this.currentItem;
+                if (!item) return;
+
+                // For video, we might want to listen to 'ended' event instead of duration
+                // But simplified duration logic for now:
+                const durationMs = (item.duration || 10) * 1000;
+
+                this.timer = setTimeout(() => {
+                    this.next();
+                }, durationMs);
+            },
+
+            stopPlayback() {
+                clearTimeout(this.timer);
+            },
+
+            resetTimer() {
+                if (this.isPlaying) {
+                    this.startPlayback();
+                }
+            },
+
+            formatDuration(seconds) {
+                const m = Math.floor(seconds / 60);
+                const s = Math.floor(seconds % 60);
+                return `${m}:${s.toString().padStart(2, '0')}`;
+            }
+        }))
+    })
+</script>

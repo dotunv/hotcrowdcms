@@ -8,9 +8,34 @@ class Store(models.Model):
     Profile for the Store Owner (User). 
     We extend the built-in User model using a OneToOneField.
     """
+    TRANSITION_EFFECTS = [
+        ('fade', 'Fade'),
+        ('slide', 'Slide'),
+        ('zoom', 'Zoom'),
+        ('none', 'None'),
+    ]
+
+    FALLBACK_TYPES = [
+        ('brand_logo', 'Brand Logo'),
+        ('custom_media', 'Custom Media'),
+        ('black_screen', 'Black Screen'),
+    ]
+
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='store_profile')
     business_name = models.CharField(max_length=255, blank=True)
-    branding_color = models.CharField(max_length=7, default='#22c55e') # Hex code
+    branding_color = models.CharField(max_length=7, default='#22c55e')  # Hex code
+
+    # Playlist Settings - Playback Defaults
+    default_image_duration = models.PositiveIntegerField(default=10, help_text="Default duration for images in seconds")
+    transition_effect = models.CharField(max_length=10, choices=TRANSITION_EFFECTS, default='fade')
+
+    # Playlist Settings - Audio Configuration
+    mute_by_default = models.BooleanField(default=False)
+    default_volume = models.PositiveIntegerField(default=75, help_text="Default volume percentage (0-100)")
+
+    # Playlist Settings - Fallback Behavior
+    fallback_type = models.CharField(max_length=20, choices=FALLBACK_TYPES, default='brand_logo')
+    fallback_logo = models.URLField(max_length=1024, blank=True, null=True, help_text="URL to fallback logo image")
 
     def __str__(self):
         return self.business_name or self.user.username
@@ -27,13 +52,14 @@ class MediaAsset(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='media_assets')
+    name = models.CharField(max_length=255, blank=True, null=True, help_text="Optional name for the media")
     file_url = models.URLField(max_length=1024, help_text="Direct URL to the file or Instagram media")
     media_type = models.CharField(max_length=10, choices=MEDIA_TYPES)
     source = models.CharField(max_length=10, choices=SOURCES)
-    
+
     # Instagram specific
     instagram_id = models.CharField(max_length=255, blank=True, null=True, unique=True, help_text="Instagram Media ID to prevent duplicates")
-    
+
     # Metadata
     duration = models.IntegerField(default=10, help_text="Duration in seconds. Default 10s for images.")
     created_at = models.DateTimeField(auto_now_add=True)

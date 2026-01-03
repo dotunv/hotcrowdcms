@@ -1,0 +1,205 @@
+<!-- Playlist Settings Modal -->
+<div id="playlistSettingsModal" class="hidden fixed inset-0 z-50 overflow-y-auto" x-data="{
+        defaultDuration: {{ store.default_image_duration|default:10 }},
+        transitionEffect: '{{ store.transition_effect|default:'fade' }}',
+        muteByDefault: {{ store.mute_by_default|yesno:'true,false'|default:'false' }},
+        defaultVolume: {{ store.default_volume|default:75 }},
+        fallbackType: '{{ store.fallback_type|default:'brand_logo' }}',
+        fallbackLogo: '{{ store.fallback_logo|default:'hotcrowd_logo_v2.png' }}',
+        close() {
+            document.getElementById('playlistSettingsModal').classList.add('hidden');
+        }
+    }" @keydown.escape="close()">
+
+    <div class="flex items-center justify-center min-h-screen px-4 py-8">
+        <!-- Overlay -->
+        <div class="fixed inset-0 bg-black/50 transition-opacity" @click="close()"></div>
+
+        <!-- Modal Content -->
+        <form method="POST" action="{% url 'save_playlist_settings' %}"
+            class="relative bg-white dark:bg-surface-dark rounded-2xl shadow-xl max-w-xl w-full max-h-[90vh] overflow-y-auto">
+            {% csrf_token %}
+
+            <!-- Hidden inputs to sync Alpine.js state with form submission -->
+            <input type="hidden" name="default_duration" :value="defaultDuration">
+            <input type="hidden" name="transition_effect" :value="transitionEffect">
+            <input type="hidden" name="mute_by_default" :value="muteByDefault">
+            <input type="hidden" name="default_volume" :value="defaultVolume">
+            <input type="hidden" name="fallback_type" :value="fallbackType">
+            <input type="hidden" name="fallback_logo" :value="fallbackLogo">
+
+            <!-- Header -->
+            <div class="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-700">
+                <div>
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">Playlist Settings</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Manage global defaults and playback
+                        behavior.</p>
+                </div>
+                <button type="button" @click="close()"
+                    class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="p-6 space-y-8">
+                <!-- Playback Defaults Section -->
+                <div>
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="material-symbols-outlined text-primary">tune</span>
+                        <h4 class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">Playback
+                            Defaults</h4>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <!-- Default Image Duration -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Default Image
+                                Duration</label>
+                            <div class="relative">
+                                <input type="number" x-model.number="defaultDuration" min="1" max="300"
+                                    class="w-full px-4 py-2.5 pr-12 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all">
+                                <span class="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-400">sec</span>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">Applied to images without specific timing.</p>
+                        </div>
+
+                        <!-- Transition Effect -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Transition
+                                Effect</label>
+                            <select x-model="transitionEffect"
+                                class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all cursor-pointer">
+                                <option value="fade">Fade (Default)</option>
+                                <option value="slide">Slide</option>
+                                <option value="zoom">Zoom</option>
+                                <option value="none">None</option>
+                            </select>
+                            <p class="text-xs text-gray-500 mt-1">Global transition style between items.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Audio Configuration Section -->
+                <div>
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="material-symbols-outlined text-primary">volume_up</span>
+                        <h4 class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">Audio
+                            Configuration</h4>
+                    </div>
+
+                    <div
+                        class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 space-y-6 border border-gray-100 dark:border-gray-700">
+                        <!-- Mute by Default -->
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-900 dark:text-white">Mute by Default</p>
+                                <p class="text-xs text-gray-500">Start playback with audio muted on all screens.</p>
+                            </div>
+                            <button type="button" @click="muteByDefault = !muteByDefault"
+                                :class="muteByDefault ? 'bg-primary' : 'bg-gray-300 dark:bg-gray-600'"
+                                class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
+                                <span :class="muteByDefault ? 'translate-x-5' : 'translate-x-0'"
+                                    class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+                            </button>
+                        </div>
+
+                        <!-- Default Volume -->
+                        <div>
+                            <div class="flex items-center justify-between mb-2">
+                                <p class="text-sm font-medium text-gray-900 dark:text-white">Default Volume</p>
+                                <span class="text-sm font-bold text-primary" x-text="defaultVolume + '%'"></span>
+                            </div>
+                            <input type="range" x-model="defaultVolume" min="0" max="100"
+                                class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-primary">
+                            <div class="flex justify-between text-xs text-gray-400 mt-1">
+                                <span>0%</span>
+                                <span>50%</span>
+                                <span>100%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fallback Behavior Section -->
+                <div>
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="material-symbols-outlined text-primary">info</span>
+                        <h4 class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">Fallback
+                            Behavior</h4>
+                    </div>
+
+                    <p class="text-sm text-gray-500 mb-4">Choose what displays when a playlist is empty or fails to
+                        load.</p>
+
+                    <div class="grid grid-cols-3 gap-3 mb-4">
+                        <!-- Brand Logo -->
+                        <button type="button" @click="fallbackType = 'brand_logo'"
+                            :class="fallbackType === 'brand_logo' ? 'border-primary ring-2 ring-primary/20' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'"
+                            class="relative flex flex-col items-center justify-center p-4 bg-white dark:bg-gray-800 border-2 rounded-xl transition-all">
+                            <span x-show="fallbackType === 'brand_logo'"
+                                class="absolute top-2 right-2 w-5 h-5 bg-primary rounded-full flex items-center justify-center">
+                                <span class="material-symbols-outlined text-white text-sm">check</span>
+                            </span>
+                            <span class="material-symbols-outlined text-2xl text-primary mb-2">tv</span>
+                            <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Brand Logo</span>
+                        </button>
+
+                        <!-- Custom Media -->
+                        <button type="button" @click="fallbackType = 'custom_media'"
+                            :class="fallbackType === 'custom_media' ? 'border-primary ring-2 ring-primary/20' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'"
+                            class="relative flex flex-col items-center justify-center p-4 bg-white dark:bg-gray-800 border-2 rounded-xl transition-all">
+                            <span x-show="fallbackType === 'custom_media'"
+                                class="absolute top-2 right-2 w-5 h-5 bg-primary rounded-full flex items-center justify-center">
+                                <span class="material-symbols-outlined text-white text-sm">check</span>
+                            </span>
+                            <span class="material-symbols-outlined text-2xl text-gray-400 mb-2">image</span>
+                            <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Custom Media</span>
+                        </button>
+
+                        <!-- Black Screen -->
+                        <button type="button" @click="fallbackType = 'black_screen'"
+                            :class="fallbackType === 'black_screen' ? 'border-primary ring-2 ring-primary/20' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'"
+                            class="relative flex flex-col items-center justify-center p-4 bg-white dark:bg-gray-800 border-2 rounded-xl transition-all">
+                            <span x-show="fallbackType === 'black_screen'"
+                                class="absolute top-2 right-2 w-5 h-5 bg-primary rounded-full flex items-center justify-center">
+                                <span class="material-symbols-outlined text-white text-sm">check</span>
+                            </span>
+                            <span class="material-symbols-outlined text-2xl text-gray-400 mb-2">hide_image</span>
+                            <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Black Screen</span>
+                        </button>
+                    </div>
+
+                    <!-- Current Fallback Logo -->
+                    <div x-show="fallbackType === 'brand_logo'"
+                        class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+                                <span class="material-symbols-outlined text-white">circle</span>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-900 dark:text-white" x-text="fallbackLogo"></p>
+                                <p class="text-xs text-gray-500">Used as fallback logo</p>
+                            </div>
+                        </div>
+                        <button type="button" class="text-sm font-medium text-primary hover:underline">Change</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div
+                class="flex items-center justify-end gap-3 p-6 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                <button type="button" @click="close()"
+                    class="px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    Cancel
+                </button>
+                <button type="submit"
+                    class="px-6 py-2.5 text-sm font-bold text-white bg-primary hover:bg-secondary rounded-xl shadow-sm transition-all hover:shadow-md inline-flex items-center gap-2">
+                    <span class="material-symbols-outlined text-lg">check</span>
+                    Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

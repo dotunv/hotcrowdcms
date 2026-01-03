@@ -1,0 +1,87 @@
+<!-- c-vars title="Delete Item" message="Are you sure you want to delete this item?" confirm_text="Delete" -->
+<!-- Reusable Delete Confirmation Modal -->
+<div id="confirmDeleteModal" class="hidden fixed inset-0 z-50 overflow-y-auto" x-data="{
+    deleteAction: null,
+    itemName: '',
+    open(action, name = '') {
+        this.deleteAction = action;
+        this.itemName = name;
+        document.getElementById('confirmDeleteModal').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    },
+    close() {
+        document.getElementById('confirmDeleteModal').classList.add('hidden');
+        document.body.style.overflow = '';
+        this.deleteAction = null;
+        this.itemName = '';
+    },
+    confirm() {
+        if (this.deleteAction && typeof this.deleteAction === 'function') {
+            this.deleteAction();
+        }
+        this.close();
+    }
+}" @keydown.escape="close()">
+
+    <!-- Backdrop -->
+    <div class="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity" @click="close()"></div>
+
+    <!-- Modal Container -->
+    <div class="flex items-center justify-center min-h-screen px-4 py-8">
+        <!-- Modal Content -->
+        <div class="relative bg-white dark:bg-surface-dark rounded-2xl shadow-xl max-w-md w-full p-6 transform transition-all">
+
+            <!-- Icon -->
+            <div class="flex items-center justify-center w-14 h-14 mx-auto mb-4 rounded-full bg-red-50 dark:bg-red-900/20">
+                <span class="material-symbols-outlined text-red-600 dark:text-red-400 text-3xl">delete</span>
+            </div>
+
+            <!-- Title -->
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white text-center mb-2">
+                {{ title }}
+            </h3>
+
+            <!-- Message -->
+            <p class="text-sm text-gray-600 dark:text-gray-400 text-center mb-6">
+                {{ message }}
+                <span x-show="itemName" x-text="' \"' + itemName + '\"?'" class="font-semibold text-gray-900 dark:text-white"></span>
+                <span x-show="!itemName">?</span>
+            </p>
+
+            <!-- Additional Warning -->
+            <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 mb-6">
+                <p class="text-xs text-red-800 dark:text-red-200 flex items-start gap-2">
+                    <span class="material-symbols-outlined text-base mt-0.5 flex-shrink-0">warning</span>
+                    <span>This action cannot be undone. The item will be permanently deleted.</span>
+                </p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex gap-3">
+                <button
+                    type="button"
+                    @click="close()"
+                    class="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    Cancel
+                </button>
+                <button
+                    type="button"
+                    @click="confirm()"
+                    class="flex-1 px-4 py-2.5 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-sm transition-all hover:shadow-md inline-flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined text-lg">delete</span>
+                    {{ confirm_text }}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Global function to open delete confirmation modal
+window.confirmDelete = function(action, itemName = '') {
+    const modal = document.getElementById('confirmDeleteModal');
+    if (modal && modal.__x) {
+        modal.__x.$data.open(action, itemName);
+    }
+}
+</script>

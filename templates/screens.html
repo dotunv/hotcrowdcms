@@ -3,7 +3,8 @@
 
 {% block body %}
 <c-layouts.sidebar>
-    <div class="space-y-6" x-data="{ showConnectModal: false, showSuccessModal: false, showCompleteModal: false }">
+    <div class="space-y-6 p-8 h-full overflow-y-auto"
+        x-data="{ showConnectModal: false, showSuccessModal: false, showCompleteModal: false }">
         <!-- Header -->
         <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
@@ -114,8 +115,7 @@
                             <td class="px-6 py-4">
                                 <div
                                     class="w-8 h-8 rounded-full {{ screen.is_online|yesno:'bg-green-50 text-green-600,bg-red-50 text-red-600' }} flex items-center justify-center">
-                                    <span class="material-symbols-outlined text-lg">{{
-                                        screen.is_online|yesno:'check_circle,wifi_off' }}</span>
+                                    <span class="material-symbols-outlined text-lg">{{ screen.is_online|yesno:'check_circle,wifi_off' }}</span>
                                 </div>
                             </td>
                             <td class="px-6 py-4">
@@ -126,8 +126,7 @@
                                     </div>
                                     <div>
                                         <p class="text-sm font-bold text-gray-900 dark:text-white">{{ screen.name }}</p>
-                                        <p class="text-xs text-gray-500 font-mono">ID: SN-{{
-                                            screen.id|stringformat:"s"|slice:":6"|upper }}</p>
+                                        <p class="text-xs text-gray-500 font-mono">ID: SN-{{ screen.id|stringformat:"s"|slice:":6"|upper }}</p>
                                     </div>
                                 </div>
                             </td>

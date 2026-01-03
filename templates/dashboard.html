@@ -3,7 +3,7 @@
 
 {% block body %}
 <c-layouts.sidebar>
-    <div class="space-y-8">
+    <div class="space-y-8 p-8 h-full overflow-y-auto">
         <!-- Header -->
         <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
@@ -111,16 +111,14 @@
                             <div>
                                 <h4 class="text-sm font-bold text-gray-900 dark:text-white">{{ screen.name }}</h4>
                                 <p class="text-xs text-gray-500">
-                                    {% if screen.assigned_playlist %}Playing: {{ screen.assigned_playlist.name }}{% else
-                                    %}No Content{% endif %}
+ {% if screen.assigned_playlist %}Playing: {{ screen.assigned_playlist.name }}{% else %}No Content{% endif %}
                                 </p>
                             </div>
                         </div>
                         <div class="flex items-center gap-2">
                             <span
                                 class="w-2 h-2 rounded-full {% if screen.is_online %}bg-green-500{% else %}bg-red-500{% endif %}"></span>
-                            <span class="text-xs font-medium text-gray-600">{% if screen.is_online %}Online{% else
-                                %}Offline{% endif %}</span>
+ <span class="text-xs font-medium text-gray-600">{% if screen.is_online %}Online{% else %}Offline{% endif %}</span>
                         </div>
                     </div>
                     {% empty %}

@@ -20,6 +20,7 @@ urlpatterns = [
     path('playlists/', views.playlist_list, name='playlists_list'),
     path('playlist/create/', views.create_playlist, name='create_playlist'),
     path('playlist/delete/<uuid:playlist_id>/', views.delete_playlist, name='delete_playlist'),
+    path('playlist/settings/', views.save_playlist_settings, name='save_playlist_settings'),
     # Screen Management
     path('screen/<uuid:screen_id>/assign/', views.assign_playlist, name='assign_playlist'),
 ]

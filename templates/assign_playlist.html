@@ -46,8 +46,7 @@
                         <label
                             class="flex items-center p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors {% if not screen.assigned_playlist %}border-primary bg-primary/5{% endif %}">
                             <input type="radio" name="playlist_id" value=""
-                                class="w-4 h-4 text-primary focus:ring-primary border-slate-300" {% if not
-                                screen.assigned_playlist %}checked{% endif %}>
+ class="w-4 h-4 text-primary focus:ring-primary border-slate-300" {% if not screen.assigned_playlist %}checked{% endif %}>
                             <span class="ml-3 text-sm text-slate-600">No playlist (screen will show blank)</span>
                         </label>
 
@@ -56,8 +55,7 @@
                             class="flex items-center justify-between p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors {% if screen.assigned_playlist.id == playlist.id %}border-primary bg-primary/5{% endif %}">
                             <div class="flex items-center">
                                 <input type="radio" name="playlist_id" value="{{ playlist.id }}"
-                                    class="w-4 h-4 text-primary focus:ring-primary border-slate-300" {% if
-                                    screen.assigned_playlist.id==playlist.id %}checked{% endif %}>
+ class="w-4 h-4 text-primary focus:ring-primary border-slate-300" {% if screen.assigned_playlist.id==playlist.id %}checked{% endif %}>
                                 <div class="ml-3">
                                     <p class="text-sm font-medium text-slate-900">{{ playlist.name }}</p>
                                     <p class="text-xs text-slate-500">{{ playlist.items.count }} items</p>
