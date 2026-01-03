@@ -179,3 +179,68 @@ class PairingCode(models.Model):
 
     def __str__(self):
         return self.code
+
+
+class StoreLayout(models.Model):
+    """
+    Visual layout for digital signage displays.
+    Stores canvas elements as JSON for drag-and-drop editor.
+    """
+    STATUS_CHOICES = [
+        ('DRAFT', 'Draft'),
+        ('PUBLISHED', 'Published'),
+        ('ARCHIVED', 'Archived'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=255)
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='store_layouts')
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='DRAFT')
+    
+    # Canvas settings
+    layout_data = models.JSONField(default=dict, help_text="JSON data for canvas elements")
+    canvas_width = models.IntegerField(default=1920)
+    canvas_height = models.IntegerField(default=1080)
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-updated_at']
+    
+    def __str__(self):
+        return self.name
+
+
+class StoreContent(models.Model):
+    """
+    Rich text content for store displays.
+    Used in the Content Editor for creating promotional messages.
+    """
+    STATUS_CHOICES = [
+        ('DRAFT', 'Draft'),
+        ('PUBLISHED', 'Published'),
+        ('SCHEDULED', 'Scheduled'),
+        ('ARCHIVED', 'Archived'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    title = models.CharField(max_length=255)
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='store_contents')
+    content_html = models.TextField(blank=True, help_text="Rich text HTML content")
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='DRAFT')
+    
+    # Scheduling
+    scheduled_at = models.DateTimeField(blank=True, null=True)
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-updated_at']
+        verbose_name_plural = 'Store contents'
+    
+    def __str__(self):
+        return self.title

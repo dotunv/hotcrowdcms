@@ -23,4 +23,16 @@ urlpatterns = [
     path('playlist/settings/', views.save_playlist_settings, name='save_playlist_settings'),
     # Screen Management
     path('screen/<uuid:screen_id>/assign/', views.assign_playlist, name='assign_playlist'),
+    path('screen/<uuid:screen_id>/delete/', views.delete_screen, name='delete_screen'),
+    # Store CMS
+    path('store-cms/', views.store_cms, name='store_cms'),
+    path('store-cms/layout/', views.store_cms_editor, name='store_cms_editor'),
+    path('store-cms/layout/<uuid:layout_id>/', views.store_cms_editor, name='store_cms_editor_edit'),
+    path('store-cms/layout/<uuid:layout_id>/save/', views.save_layout, name='save_layout'),
+    path('store-cms/layout/<uuid:layout_id>/delete/', views.delete_layout, name='delete_layout'),
+    path('store-cms/content/', views.store_cms_content, name='store_cms_content'),
+    path('store-cms/content/<uuid:content_id>/', views.store_cms_content, name='store_cms_content_edit'),
+    path('store-cms/content/<uuid:content_id>/save/', views.save_content, name='save_content'),
+    path('store-cms/content/<uuid:content_id>/delete/', views.delete_content, name='delete_content'),
 ]
+

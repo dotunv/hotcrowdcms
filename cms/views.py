@@ -2,9 +2,10 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import HttpResponse, JsonResponse
-from core.models import Screen, Playlist, MediaAsset, PlaylistItem, Store
+from core.models import Screen, Playlist, MediaAsset, PlaylistItem, Store, StoreLayout, StoreContent
 from django.utils import timezone
 from services.instagram import sync_hashtag_media
+
 
 
 @login_required
@@ -83,15 +84,18 @@ def setup_screen(request):
     if request.method == "POST":
         code = request.POST.get('pairing_code')
         name = request.POST.get('name')
-        
+        location = request.POST.get('location', '')
+
         # Create screen with the authenticated user as owner
-        Screen.objects.create(
+        screen = Screen.objects.create(
             name=name,
             pairing_code=code,
+            location=location if location else None,
             owner=request.user
         )
-        return redirect('dashboard')
-        
+        messages.success(request, f'Screen "{name}" connected successfully!')
+        return redirect('screens')
+
     return render(request, 'setup_screen.html')
 
 
@@ -470,8 +474,23 @@ def delete_media(request, media_id):
     if request.method == "POST":
         media = get_object_or_404(MediaAsset, id=media_id, owner=request.user)
         media.delete()
-        
+        messages.success(request, 'Media deleted successfully')
+
     return redirect('media_library')
+
+
+@login_required
+def delete_screen(request, screen_id):
+    """
+    Delete a screen.
+    """
+    if request.method == "POST":
+        screen = get_object_or_404(Screen, id=screen_id, owner=request.user)
+        screen_name = screen.name
+        screen.delete()
+        messages.success(request, f'Screen "{screen_name}" deleted successfully')
+
+    return redirect('screens')
 
 
 @login_required
@@ -569,3 +588,182 @@ def save_playlist_settings(request):
         return redirect('playlists_list')
 
     return redirect('playlists_list')
+
+
+# =============================================================================
+# Store CMS Views
+# =============================================================================
+
+@login_required
+def store_cms(request):
+    """
+    Main Store CMS page listing all layouts and content.
+    """
+    layouts = StoreLayout.objects.filter(owner=request.user)
+    contents = StoreContent.objects.filter(owner=request.user)
+    media_items = MediaAsset.objects.filter(owner=request.user).order_by('-created_at')[:6]
+    
+    context = {
+        'layouts': layouts,
+        'contents': contents,
+        'media_items': media_items,
+    }
+    return render(request, 'store_cms.html', context)
+
+
+@login_required
+def store_cms_editor(request, layout_id=None):
+    """
+    Layout editor with drag-and-drop canvas.
+    """
+    if layout_id:
+        layout = get_object_or_404(StoreLayout, id=layout_id, owner=request.user)
+    else:
+        # Create a new layout
+        layout = StoreLayout.objects.create(
+            name="Untitled Layout",
+            owner=request.user
+        )
+        return redirect('store_cms_editor_edit', layout_id=layout.id)
+    
+    # Get all layouts for the "existing content" sidebar
+    layouts = StoreLayout.objects.filter(owner=request.user)
+    contents = StoreContent.objects.filter(owner=request.user)
+    media_items = MediaAsset.objects.filter(owner=request.user).order_by('-created_at')[:6]
+    
+    context = {
+        'layout': layout,
+        'layouts': layouts,
+        'contents': contents,
+        'media_items': media_items,
+    }
+    return render(request, 'store_cms.html', context)
+
+
+@login_required
+def store_cms_content(request, content_id=None):
+    """
+    Content editor for rich text content.
+    """
+    if content_id:
+        content = get_object_or_404(StoreContent, id=content_id, owner=request.user)
+    else:
+        # Create new content
+        content = StoreContent.objects.create(
+            title="Untitled Content",
+            owner=request.user
+        )
+        return redirect('store_cms_content_edit', content_id=content.id)
+    
+    # Get all content for the sidebar
+    contents = StoreContent.objects.filter(owner=request.user)
+    media_items = MediaAsset.objects.filter(owner=request.user).order_by('-created_at')[:6]
+    
+    context = {
+        'content': content,
+        'contents': contents,
+        'media_items': media_items,
+    }
+    return render(request, 'store_cms_editor.html', context)
+
+
+@login_required
+def save_layout(request, layout_id):
+    """
+    HTMX endpoint to save layout data.
+    """
+    if request.method == "POST":
+        layout = get_object_or_404(StoreLayout, id=layout_id, owner=request.user)
+        
+        # Update layout fields
+        name = request.POST.get('name')
+        if name:
+            layout.name = name
+        
+        status = request.POST.get('status')
+        if status in ['DRAFT', 'PUBLISHED', 'ARCHIVED']:
+            layout.status = status
+        
+        # Save canvas data if provided (JSON)
+        import json
+        layout_data = request.POST.get('layout_data')
+        if layout_data:
+            try:
+                layout.layout_data = json.loads(layout_data)
+            except json.JSONDecodeError:
+                pass
+        
+        canvas_width = request.POST.get('canvas_width')
+        if canvas_width:
+            layout.canvas_width = int(canvas_width)
+        
+        canvas_height = request.POST.get('canvas_height')
+        if canvas_height:
+            layout.canvas_height = int(canvas_height)
+        
+        layout.save()
+        
+        if request.headers.get('HX-Request'):
+            return HttpResponse(status=204)
+        
+        messages.success(request, 'Layout saved successfully.')
+        return redirect('store_cms_editor_edit', layout_id=layout.id)
+    
+    return redirect('store_cms')
+
+
+@login_required  
+def save_content(request, content_id):
+    """
+    HTMX endpoint to save content data.
+    """
+    if request.method == "POST":
+        content = get_object_or_404(StoreContent, id=content_id, owner=request.user)
+        
+        # Update content fields
+        title = request.POST.get('title')
+        if title:
+            content.title = title
+        
+        content_html = request.POST.get('content_html', '')
+        content.content_html = content_html
+        
+        status = request.POST.get('status')
+        if status in ['DRAFT', 'PUBLISHED', 'SCHEDULED', 'ARCHIVED']:
+            content.status = status
+        
+        content.save()
+        
+        if request.headers.get('HX-Request'):
+            return HttpResponse(status=204)
+        
+        messages.success(request, 'Content saved successfully.')
+        return redirect('store_cms_content_edit', content_id=content.id)
+    
+    return redirect('store_cms')
+
+
+@login_required
+def delete_layout(request, layout_id):
+    """
+    Delete a layout.
+    """
+    if request.method == "POST":
+        layout = get_object_or_404(StoreLayout, id=layout_id, owner=request.user)
+        layout.delete()
+        messages.success(request, 'Layout deleted.')
+    
+    return redirect('store_cms')
+
+
+@login_required
+def delete_content(request, content_id):
+    """
+    Delete content.
+    """
+    if request.method == "POST":
+        content = get_object_or_404(StoreContent, id=content_id, owner=request.user)
+        content.delete()
+        messages.success(request, 'Content deleted.')
+    
+    return redirect('store_cms')

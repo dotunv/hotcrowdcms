@@ -130,10 +130,11 @@
                                 <span class="material-symbols-outlined text-lg">playlist_add</span>
                             </button>
                         </form>
-                        <form action="{% url 'delete_media' item.id %}" method="post"
-                            onsubmit="return confirm('Delete this media?')">
+                        <form id="deleteMediaForm{{ item.id }}" action="{% url 'delete_media' item.id %}" method="post">
                             {% csrf_token %}
-                            <button type="submit"
+                            <button
+                                type="button"
+                                onclick="confirmDelete(() => document.getElementById('deleteMediaForm{{ item.id }}').submit(), '{{ item.name|default:'this media'|escapejs }}')"
                                 class="w-8 h-8 rounded-full bg-white text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition-colors"
                                 title="Delete">
                                 <span class="material-symbols-outlined text-lg">delete</span>
@@ -167,5 +168,8 @@
 
     <!-- Upload Modal -->
     <c-playlist.upload_modal show_duration="False" />
+
+    <!-- Delete Confirmation Modal -->
+    <c-modals.confirm_delete title="Delete Media" message="Are you sure you want to delete" confirm_text="Delete Media" />
 </c-layouts.sidebar>
 {% endblock %}

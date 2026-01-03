@@ -62,11 +62,13 @@
                 <span class="material-symbols-outlined">rss_feed</span>
                 Instagram Sync
             </a>
-            <a href="#"
-                class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white transition-colors">
-                <span class="material-symbols-outlined">storefront</span>
+            <a href="{% url 'store_cms' %}"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium {% if 'store_cms' in request.resolver_match.url_name %}bg-primary/10 text-primary{% else %}text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white{% endif %} transition-colors">
+                <span
+                    class="material-symbols-outlined {% if 'store_cms' in request.resolver_match.url_name %}text-primary{% endif %}">storefront</span>
                 Store CMS
             </a>
+
 
             <p class="px-2 text-xs font-bold text-muted-light upercase tracking-wider mt-6 mb-2">SETTINGS</p>
             <a href="#"
@@ -91,6 +93,13 @@
                     <p class="text-sm font-bold text-gray-900 dark:text-white truncate">{{ user.username }}</p>
                     <p class="text-xs text-muted-light truncate">{{ user.email }}</p>
                 </div>
+                <!-- Dark Mode Toggle -->
+                <button @click="$root.darkMode = !$root.darkMode"
+                    class="p-2 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    :title="$root.darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'">
+                    <span x-show="!$root.darkMode" class="material-symbols-outlined">dark_mode</span>
+                    <span x-show="$root.darkMode" class="material-symbols-outlined">light_mode</span>
+                </button>
                 <a href="{% url 'account_logout' %}" class="text-gray-400 hover:text-red-500 transition-colors">
                     <span class="material-symbols-outlined">logout</span>
                 </a>

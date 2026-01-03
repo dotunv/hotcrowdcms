@@ -1,27 +1,9 @@
-<!-- c-vars title="Delete Item" message="Are you sure you want to delete this item?" confirm_text="Delete" -->
+<!-- c-vars title="Delete Item" message="Are you sure you want to delete this item?" confirm_text="Delete" modal_id="confirmDeleteModal" -->
 <!-- Reusable Delete Confirmation Modal -->
-<div id="confirmDeleteModal" class="hidden fixed inset-0 z-50 overflow-y-auto" x-data="{
-    deleteAction: null,
-    itemName: '',
-    open(action, name = '') {
-        this.deleteAction = action;
-        this.itemName = name;
-        document.getElementById('confirmDeleteModal').classList.remove('hidden');
-        document.body.style.overflow = 'hidden';
-    },
-    close() {
-        document.getElementById('confirmDeleteModal').classList.add('hidden');
-        document.body.style.overflow = '';
-        this.deleteAction = null;
-        this.itemName = '';
-    },
-    confirm() {
-        if (this.deleteAction && typeof this.deleteAction === 'function') {
-            this.deleteAction();
-        }
-        this.close();
-    }
-}" @keydown.escape="close()">
+<div id="{{ modal_id }}" class="hidden fixed inset-0 z-50 overflow-y-auto"
+     x-data="deleteModalData('{{ modal_id }}', '{{ title }}', '{{ message }}', '{{ confirm_text }}')"
+     x-init="window.deleteModalInstance = $data"
+     @keydown.escape.window="close()">
 
     <!-- Backdrop -->
     <div class="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity" @click="close()"></div>
@@ -37,13 +19,12 @@
             </div>
 
             <!-- Title -->
-            <h3 class="text-xl font-bold text-gray-900 dark:text-white text-center mb-2">
-                {{ title }}
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white text-center mb-2" x-text="modalTitle">
             </h3>
 
             <!-- Message -->
             <p class="text-sm text-gray-600 dark:text-gray-400 text-center mb-6">
-                {{ message }}
+                <span x-text="modalMessage"></span>
                 <span x-show="itemName" x-text="' \"' + itemName + '\"?'" class="font-semibold text-gray-900 dark:text-white"></span>
                 <span x-show="!itemName">?</span>
             </p>
@@ -69,7 +50,7 @@
                     @click="confirm()"
                     class="flex-1 px-4 py-2.5 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-sm transition-all hover:shadow-md inline-flex items-center justify-center gap-2">
                     <span class="material-symbols-outlined text-lg">delete</span>
-                    {{ confirm_text }}
+                    <span x-text="confirmText"></span>
                 </button>
             </div>
         </div>
@@ -77,11 +58,69 @@
 </div>
 
 <script>
+// Alpine.js component for delete modal
+function deleteModalData(modalId, title, message, confirmText) {
+    return {
+        modalId: modalId,
+        modalTitle: title,
+        modalMessage: message,
+        confirmText: confirmText,
+        deleteAction: null,
+        itemName: '',
+        open(action, name = '') {
+            console.log('Opening delete modal for:', name);
+            this.deleteAction = action;
+            this.itemName = name;
+            document.getElementById(this.modalId).classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        },
+        close() {
+            console.log('Closing delete modal');
+            document.getElementById(this.modalId).classList.add('hidden');
+            document.body.style.overflow = '';
+            this.deleteAction = null;
+            this.itemName = '';
+        },
+        confirm() {
+            console.log('Confirming delete action');
+            if (this.deleteAction && typeof this.deleteAction === 'function') {
+                this.deleteAction();
+            }
+            this.close();
+        }
+    };
+}
+
 // Global function to open delete confirmation modal
 window.confirmDelete = function(action, itemName = '') {
-    const modal = document.getElementById('confirmDeleteModal');
-    if (modal && modal.__x) {
-        modal.__x.$data.open(action, itemName);
+    console.log('confirmDelete called with:', itemName);
+
+    // Try to get the modal instance
+    const tryOpen = () => {
+        if (window.deleteModalInstance) {
+            console.log('Found modal instance, opening...');
+            window.deleteModalInstance.open(action, itemName);
+            return true;
+        }
+        console.log('Modal instance not yet available');
+        return false;
+    };
+
+    // Try immediately
+    if (!tryOpen()) {
+        // If not available, wait for Alpine to initialize
+        console.log('Waiting 100ms for Alpine initialization...');
+        setTimeout(() => {
+            if (!tryOpen()) {
+                console.error('Delete modal instance still not found after timeout');
+                // Last resort - try direct DOM manipulation
+                const modal = document.getElementById('confirmDeleteModal');
+                if (modal) {
+                    console.log('Using direct DOM manipulation as fallback');
+                    modal.classList.remove('hidden');
+                }
+            }
+        }, 100);
     }
 }
 </script>
