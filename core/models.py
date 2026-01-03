@@ -162,6 +162,9 @@ class Screen(models.Model):
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='OFFLINE')
     last_heartbeat = models.DateTimeField(blank=True, null=True)
     
+    # API Authentication
+    api_token = models.CharField(max_length=64, unique=True, null=True, blank=True, help_text="Token for player API authentication")
+    
     # Content
     assigned_playlist = models.ForeignKey(Playlist, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_screens')
     

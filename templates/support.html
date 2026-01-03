@@ -1,230 +1,243 @@
 {% extends 'base.html' %}
 {% load static %}
 
+{% block extra_head %}
+<!-- Alpine.js Collapse Plugin -->
+<script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
+{% endblock %}
+
 {% block body %}
 <c-layouts.sidebar>
-    <main class="flex-1 overflow-y-auto bg-background-light dark:bg-background-dark relative">
-        <div class="max-w-7xl mx-auto px-8 py-8">
-            <!-- Header Section -->
-            <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+    <main class="flex-1 overflow-y-auto bg-gray-50 dark:bg-background-dark relative">
+        <div class="max-w-6xl mx-auto px-6 py-12 space-y-16">
+
+            <!-- Header & Search Hero -->
+            <div class="space-y-8 text-center max-w-2xl mx-auto">
                 <div>
-                    <div class="flex items-center gap-2 text-sm text-muted-light dark:text-muted-dark mb-1">
-                        <span>Settings</span>
-                        <span class="material-symbols-outlined text-[12px]">chevron_right</span>
-                        <span>Support</span>
-                    </div>
-                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Help Center</h1>
-                    <p class="text-muted-light dark:text-muted-dark mt-1">Find answers, documentation, and get in touch
-                        with our team.</p>
+                    <h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-3 tracking-tight">How can we help?
+                    </h1>
+                    <p class="text-lg text-gray-500 dark:text-gray-400">Search for articles or browse topics below.</p>
                 </div>
-                <a href="#"
-                    class="bg-white dark:bg-surface-dark hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 border border-border-light dark:border-border-dark px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-all flex items-center gap-2">
-                    <span class="material-symbols-outlined text-sm">open_in_new</span>
-                    <span>Documentation</span>
-                </a>
+
+                <div class="relative group">
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <span
+                            class="material-symbols-outlined text-gray-400 group-focus-within:text-primary transition-colors">search</span>
+                    </div>
+                    <input type="text"
+                        class="block w-full pl-12 pr-4 py-4 bg-white dark:bg-surface-dark border-0 rounded-2xl text-gray-900 dark:text-white shadow-lg shadow-gray-200/50 dark:shadow-none ring-1 ring-inset ring-gray-200 dark:ring-gray-700 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-base leading-6 transition-shadow"
+                        placeholder="Ask a question..." autocomplete="off">
+                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                        <kbd
+                            class="hidden sm:inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-500 bg-gray-100 dark:bg-gray-800 rounded-lg">⌘K</kbd>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap justify-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                    <span>Popular:</span>
+                    <button
+                        class="hover:text-primary dark:hover:text-accent transition-colors underline decoration-dotted underline-offset-2">Instagram
+                        Setup</button>
+                    <button
+                        class="hover:text-primary dark:hover:text-accent transition-colors underline decoration-dotted underline-offset-2">Billing</button>
+                    <button
+                        class="hover:text-primary dark:hover:text-accent transition-colors underline decoration-dotted underline-offset-2">Screen
+                        Offline</button>
+                </div>
             </div>
 
-            <!-- Hero Search Section -->
-            <div
-                class="bg-gradient-to-br from-primary to-secondary rounded-2xl p-8 md:p-12 text-center text-white shadow-lg shadow-primary/20 mb-10 relative overflow-hidden">
-                <div class="relative z-10 max-w-2xl mx-auto">
-                    <h2 class="text-2xl md:text-3xl font-bold mb-6">How can we help you today?</h2>
-                    <div class="relative">
-                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-                            <span class="material-symbols-outlined text-gray-400">search</span>
+            <!-- Quick Topics Grid -->
+            <div>
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-6 px-1">Browse by Topic</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Getting Started -->
+                    <a href="#"
+                        class="group relative bg-white dark:bg-surface-dark p-6 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-md transition-all hover:-translate-y-1">
+                        <div
+                            class="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 rounded-xl flex items-center justify-center text-blue-600 dark:text-blue-400 mb-4 group-hover:scale-110 transition-transform duration-300">
+                            <span class="material-symbols-outlined">rocket_launch</span>
                         </div>
-                        <input type="text" placeholder="Search articles, topics, or keywords..."
-                            class="block w-full rounded-xl border-0 py-4 pl-12 pr-4 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-white/50 sm:text-sm sm:leading-6 shadow-xl" />
-                    </div>
-                    <div class="mt-4 flex flex-wrap justify-center gap-2 text-sm text-white/80">
-                        <span>Popular:</span>
-                        <a class="underline hover:text-white transition-colors" href="#">Instagram Sync</a>
-                        <span class="opacity-50">,</span>
-                        <a class="underline hover:text-white transition-colors" href="#">Billing</a>
-                        <span class="opacity-50">,</span>
-                        <a class="underline hover:text-white transition-colors" href="#">Screen Setup</a>
-                    </div>
+                        <h3 class="font-bold text-gray-900 dark:text-white mb-2">Getting Started</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+                            Learn the basics of setting up your screens and creating your first playlist.
+                        </p>
+                    </a>
+
+                    <!-- Account & Billing -->
+                    <a href="#"
+                        class="group relative bg-white dark:bg-surface-dark p-6 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-md transition-all hover:-translate-y-1">
+                        <div
+                            class="w-12 h-12 bg-purple-50 dark:bg-purple-900/30 rounded-xl flex items-center justify-center text-purple-600 dark:text-purple-400 mb-4 group-hover:scale-110 transition-transform duration-300">
+                            <span class="material-symbols-outlined">credit_card</span>
+                        </div>
+                        <h3 class="font-bold text-gray-900 dark:text-white mb-2">Account & Billing</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+                            Manage your subscription, invoices, and team member permissions.
+                        </p>
+                    </a>
+
+                    <!-- Troubleshooting -->
+                    <a href="#"
+                        class="group relative bg-white dark:bg-surface-dark p-6 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-md transition-all hover:-translate-y-1">
+                        <div
+                            class="w-12 h-12 bg-orange-50 dark:bg-orange-900/30 rounded-xl flex items-center justify-center text-orange-600 dark:text-orange-400 mb-4 group-hover:scale-110 transition-transform duration-300">
+                            <span class="material-symbols-outlined">build</span>
+                        </div>
+                        <h3 class="font-bold text-gray-900 dark:text-white mb-2">Troubleshooting</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+                            Solutions for common issues with screens, playback, and connectivity.
+                        </p>
+                    </a>
                 </div>
             </div>
 
-            <!-- Topic Cards Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-                <!-- Getting Started -->
-                <div
-                    class="bg-white dark:bg-surface-dark rounded-2xl border border-border-light dark:border-border-dark p-6 shadow-soft hover:shadow-md transition-all group cursor-pointer">
-                    <div
-                        class="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 rounded-xl flex items-center justify-center text-blue-600 dark:text-blue-400 mb-4 group-hover:scale-110 transition-transform">
-                        <span class="material-symbols-outlined text-2xl">rocket_launch</span>
-                    </div>
-                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-3">Getting Started</h3>
-                    <ul class="space-y-3">
-                        <li>
-                            <a class="text-sm text-muted-light dark:text-muted-dark hover:text-primary dark:hover:text-accent flex items-start gap-2 transition-colors"
-                                href="#">
-                                <span class="material-symbols-outlined text-base mt-0.5">article</span>
-                                Setting up your first screen
-                            </a>
-                        </li>
-                        <li>
-                            <a class="text-sm text-muted-light dark:text-muted-dark hover:text-primary dark:hover:text-accent flex items-start gap-2 transition-colors"
-                                href="#">
-                                <span class="material-symbols-outlined text-base mt-0.5">article</span>
-                                Importing media assets
-                            </a>
-                        </li>
-                        <li>
-                            <a class="text-sm text-muted-light dark:text-muted-dark hover:text-primary dark:hover:text-accent flex items-start gap-2 transition-colors"
-                                href="#">
-                                <span class="material-symbols-outlined text-base mt-0.5">article</span>
-                                Creating a playlist
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-
-                <!-- Troubleshooting -->
-                <div
-                    class="bg-white dark:bg-surface-dark rounded-2xl border border-border-light dark:border-border-dark p-6 shadow-soft hover:shadow-md transition-all group cursor-pointer">
-                    <div
-                        class="w-12 h-12 bg-orange-50 dark:bg-orange-900/20 rounded-xl flex items-center justify-center text-orange-600 dark:text-orange-400 mb-4 group-hover:scale-110 transition-transform">
-                        <span class="material-symbols-outlined text-2xl">build</span>
-                    </div>
-                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-3">Troubleshooting</h3>
-                    <ul class="space-y-3">
-                        <li>
-                            <a class="text-sm text-muted-light dark:text-muted-dark hover:text-primary dark:hover:text-accent flex items-start gap-2 transition-colors"
-                                href="#">
-                                <span class="material-symbols-outlined text-base mt-0.5">article</span>
-                                Screen offline status
-                            </a>
-                        </li>
-                        <li>
-                            <a class="text-sm text-muted-light dark:text-muted-dark hover:text-primary dark:hover:text-accent flex items-start gap-2 transition-colors"
-                                href="#">
-                                <span class="material-symbols-outlined text-base mt-0.5">article</span>
-                                Instagram feed not updating
-                            </a>
-                        </li>
-                        <li>
-                            <a class="text-sm text-muted-light dark:text-muted-dark hover:text-primary dark:hover:text-accent flex items-start gap-2 transition-colors"
-                                href="#">
-                                <span class="material-symbols-outlined text-base mt-0.5">article</span>
-                                Playback issues
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-
-                <!-- Account Management -->
-                <div
-                    class="bg-white dark:bg-surface-dark rounded-2xl border border-border-light dark:border-border-dark p-6 shadow-soft hover:shadow-md transition-all group cursor-pointer">
-                    <div
-                        class="w-12 h-12 bg-purple-50 dark:bg-purple-900/20 rounded-xl flex items-center justify-center text-purple-600 dark:text-purple-400 mb-4 group-hover:scale-110 transition-transform">
-                        <span class="material-symbols-outlined text-2xl">manage_accounts</span>
-                    </div>
-                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-3">Account Management</h3>
-                    <ul class="space-y-3">
-                        <li>
-                            <a class="text-sm text-muted-light dark:text-muted-dark hover:text-primary dark:hover:text-accent flex items-start gap-2 transition-colors"
-                                href="#">
-                                <span class="material-symbols-outlined text-base mt-0.5">article</span>
-                                Update billing information
-                            </a>
-                        </li>
-                        <li>
-                            <a class="text-sm text-muted-light dark:text-muted-dark hover:text-primary dark:hover:text-accent flex items-start gap-2 transition-colors"
-                                href="#">
-                                <span class="material-symbols-outlined text-base mt-0.5">article</span>
-                                Manage team members
-                            </a>
-                        </li>
-                        <li>
-                            <a class="text-sm text-muted-light dark:text-muted-dark hover:text-primary dark:hover:text-accent flex items-start gap-2 transition-colors"
-                                href="#">
-                                <span class="material-symbols-outlined text-base mt-0.5">article</span>
-                                Change password
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-
-            <!-- Support Contact Section -->
-            <div
-                class="bg-white dark:bg-surface-dark rounded-2xl border border-border-light dark:border-border-dark shadow-soft overflow-hidden">
-                <div class="flex flex-col lg:flex-row">
-                    <!-- Left: Contact Info -->
-                    <div
-                        class="p-8 lg:w-1/3 bg-gray-50 dark:bg-gray-800/30 border-b lg:border-b-0 lg:border-r border-border-light dark:border-border-dark">
-                        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Still need help?</h3>
-                        <p class="text-sm text-muted-light dark:text-muted-dark mb-6">Our support team is available
-                            Mon-Fri, 9am-5pm EST.</p>
-                        <div class="space-y-4">
-                            <div class="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
-                                <div
-                                    class="w-8 h-8 rounded-full bg-white dark:bg-surface-dark border border-border-light dark:border-border-dark flex items-center justify-center text-primary">
-                                    <span class="material-symbols-outlined text-sm">mail</span>
-                                </div>
-                                <span>support@hotcrowd.com</span>
-                            </div>
-                            <div class="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
-                                <div
-                                    class="w-8 h-8 rounded-full bg-white dark:bg-surface-dark border border-border-light dark:border-border-dark flex items-center justify-center text-primary">
-                                    <span class="material-symbols-outlined text-sm">chat</span>
-                                </div>
-                                <span>Live chat (available)</span>
-                            </div>
+            <!-- FAQ Section -->
+            <div class="max-w-3xl mx-auto w-full">
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-6 text-center">Frequently Asked Questions
+                </h2>
+                <div class="space-y-4">
+                    <div class="bg-white dark:bg-surface-dark rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden"
+                        x-data="{ open: false }">
+                        <button @click="open = !open"
+                            class="w-full flex items-center justify-between p-5 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                            <span class="font-medium text-gray-900 dark:text-white">How do I add a new screen?</span>
+                            <span class="material-symbols-outlined text-gray-400 transition-transform duration-200"
+                                :class="{ 'rotate-180': open }">expand_more</span>
+                        </button>
+                        <div x-show="open" x-collapse
+                            class="px-5 pb-5 text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+                            To add a new screen, navigate to the "Screens" tab and click "Add Screen". Enter the pairing
+                            code displayed on your TV/Monitor app to connect it instantly.
                         </div>
                     </div>
 
-                    <!-- Right: Ticket Form -->
-                    <div class="p-8 lg:w-2/3">
-                        <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-6">Submit a Support Ticket</h3>
-                        <form method="POST" action="{% url 'support' %}" class="space-y-5">
-                            {% csrf_token %}
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div class="bg-white dark:bg-surface-dark rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden"
+                        x-data="{ open: false }">
+                        <button @click="open = !open"
+                            class="w-full flex items-center justify-between p-5 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                            <span class="font-medium text-gray-900 dark:text-white">Why is my screen showing
+                                offline?</span>
+                            <span class="material-symbols-outlined text-gray-400 transition-transform duration-200"
+                                :class="{ 'rotate-180': open }">expand_more</span>
+                        </button>
+                        <div x-show="open" x-collapse
+                            class="px-5 pb-5 text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+                            A screen may show offline if it loses internet connection. Check the Wi-Fi or Ethernet
+                            connection on the device. If the issue persists, try restarting the HotCrowd Player app.
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-surface-dark rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden"
+                        x-data="{ open: false }">
+                        <button @click="open = !open"
+                            class="w-full flex items-center justify-between p-5 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                            <span class="font-medium text-gray-900 dark:text-white">Can I schedule content for specific
+                                times?</span>
+                            <span class="material-symbols-outlined text-gray-400 transition-transform duration-200"
+                                :class="{ 'rotate-180': open }">expand_more</span>
+                        </button>
+                        <div x-show="open" x-collapse
+                            class="px-5 pb-5 text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+                            Yes! When editing a playlist, you can use the "Schedule" settings to define exactly when
+                            that playlist should be active (e.g., Happy Hour: 5PM - 7PM).
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact Form -->
+            <div class="bg-primary-900 text-white rounded-3xl overflow-hidden shadow-xl mt-12 relative isolate">
+                <!-- Background Pattern -->
+                <div
+                    class="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]">
+                </div>
+
+                <div class="grid lg:grid-cols-2 gap-0 relative z-10">
+                    <div class="p-10 lg:p-12 flex flex-col justify-center bg-gray-900/40 lg:bg-transparent">
+                        <h2 class="text-3xl font-bold mb-4">Still need help?</h2>
+                        <p class="text-white/80 mb-8 text-lg">Our dedicated support team is ready to assist you. We
+                            usually respond within a few hours.</p>
+
+                        <div class="space-y-6">
+                            <div class="flex items-center gap-4">
+                                <div
+                                    class="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center backdrop-blur-sm">
+                                    <span class="material-symbols-outlined text-white">mail</span>
+                                </div>
                                 <div>
-                                    <label
-                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Topic</label>
+                                    <div class="text-sm text-white/60 font-medium">Email Support</div>
+                                    <div class="font-semibold">support@hotcrowd.com</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <div
+                                    class="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center backdrop-blur-sm">
+                                    <span class="material-symbols-outlined text-white">chat</span>
+                                </div>
+                                <div>
+                                    <div class="text-sm text-white/60 font-medium">Live Chat</div>
+                                    <div class="font-semibold">Available Mon-Fri, 9am-5pm</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-10 lg:p-12 bg-white dark:bg-surface-dark text-gray-900 dark:text-white">
+                        <form method="POST" action="{% url 'support' %}" class="space-y-6">
+                            {% csrf_token %}
+                            <div class="grid grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-sm font-semibold mb-2">Topic</label>
                                     <select name="topic"
-                                        class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800/50 focus:border-primary focus:ring-primary dark:text-white sm:text-sm py-2.5">
-                                        <option value="technical">Technical Issue</option>
-                                        <option value="billing">Billing</option>
+                                        class="w-full rounded-xl border-gray-200 dark:border-gray-700 dark:bg-gray-800 focus:border-primary focus:ring-primary">
+                                        <option value="technical">Technical Support</option>
+                                        <option value="billing">Billing & Subscription</option>
                                         <option value="feature">Feature Request</option>
-                                        <option value="other">Other</option>
+                                        <option value="other">Other Inquiry</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label
-                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Urgency</label>
+                                    <label class="block text-sm font-semibold mb-2">Urgency</label>
                                     <select name="urgency"
-                                        class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800/50 focus:border-primary focus:ring-primary dark:text-white sm:text-sm py-2.5">
+                                        class="w-full rounded-xl border-gray-200 dark:border-gray-700 dark:bg-gray-800 focus:border-primary focus:ring-primary">
                                         <option value="low">Low</option>
-                                        <option value="medium">Medium</option>
+                                        <option value="medium" selected>Medium</option>
                                         <option value="high">High</option>
                                     </select>
                                 </div>
                             </div>
                             <div>
-                                <label
-                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Description</label>
-                                <textarea name="description" rows="4" placeholder="Describe your issue..."
-                                    class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800/50 shadow-sm focus:border-primary focus:ring-primary dark:text-white sm:text-sm"
-                                    required></textarea>
+                                <label class="block text-sm font-semibold mb-2">How can we help?</label>
+                                <textarea name="description" rows="4" required
+                                    placeholder="Please describe your issue in detail..."
+                                    class="w-full rounded-xl border-gray-200 dark:border-gray-700 dark:bg-gray-800 focus:border-primary focus:ring-primary resize-none"></textarea>
                             </div>
-                            <div class="flex items-center justify-end gap-3 pt-2">
+                            <div class="flex items-center justify-between">
                                 <button type="button"
-                                    class="text-sm font-medium text-muted-light dark:text-muted-dark hover:text-gray-900 dark:hover:text-white transition-colors">
-                                    Attach File
+                                    class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 font-medium flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-lg">attach_file</span>
+                                    Add Screenshot
                                 </button>
                                 <button type="submit"
-                                    class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded-lg text-sm font-medium shadow-md shadow-primary/30 transition-all">
-                                    Submit Ticket
+                                    class="bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-primary/25 transition-all transform active:scale-95">
+                                    Send Message
                                 </button>
                             </div>
                         </form>
                     </div>
                 </div>
+            </div>
+
+            <!-- Footer Links -->
+            <div class="flex justify-center gap-8 pt-8 border-t border-gray-100 dark:border-gray-800">
+                <a href="#"
+                    class="text-sm font-medium text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">Documentation</a>
+                <a href="#"
+                    class="text-sm font-medium text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">System
+                    Status</a>
+                <a href="#"
+                    class="text-sm font-medium text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">Privacy
+                    Policy</a>
             </div>
         </div>
     </main>

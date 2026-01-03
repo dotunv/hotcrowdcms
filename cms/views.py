@@ -506,22 +506,33 @@ def delete_media(request, media_id):
 
 @login_required
 def sync_instagram(request):
-    """Trigger Instagram sync (mock for demo)."""
+    """
+    Sync media from Instagram hashtag.
+    Downloads media to local storage so URLs don't expire.
+    """
     if request.method == "POST":
-        tag = request.POST.get('hashtag')
-        playlist = Playlist.objects.filter(owner=request.user).first()
-        if not playlist:
-            playlist = Playlist.objects.create(name="Default", owner=request.user)
-
-        # Create mock media for demo
-        MediaAsset.objects.create(
-            owner=request.user,
-            media_type='IMAGE',
-            source='INSTAGRAM',
-            file_url='https://via.placeholder.com/600x800?text=IG+Media',
-            instagram_id=f"mock_{timezone.now().timestamp()}",
-            duration=10
-        )
+        tag = request.POST.get('hashtag', '').strip()
+        
+        if not tag:
+            messages.error(request, 'Please provide a hashtag.')
+            return redirect('playlist_builder')
+        
+        try:
+            # Use the real Instagram service
+            synced_count = sync_hashtag_media(tag, request.user)
+            
+            if synced_count > 0:
+                messages.success(request, f'Successfully synced {synced_count} media items from #{tag}')
+            else:
+                messages.warning(
+                    request, 
+                    f'No new media found for #{tag}. This could mean:\n'
+                    '• All media is already synced\n'
+                    '• Instagram credentials are not configured\n'
+                    '• The hashtag has no recent posts'
+                )
+        except Exception as e:
+            messages.error(request, f'Instagram sync failed: {str(e)}')
 
     return redirect('playlist_builder')
 
