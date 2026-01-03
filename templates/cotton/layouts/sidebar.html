@@ -71,13 +71,14 @@
 
 
             <p class="px-2 text-xs font-bold text-muted-light upercase tracking-wider mt-6 mb-2">SETTINGS</p>
-            <a href="#"
-                class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white transition-colors">
-                <span class="material-symbols-outlined">settings</span>
+            <a href="{% url 'configuration' %}"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium {% if request.resolver_match.url_name == 'configuration' %}bg-primary/10 text-primary{% else %}text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white{% endif %} transition-colors">
+                <span
+                    class="material-symbols-outlined {% if request.resolver_match.url_name == 'configuration' %}text-primary{% endif %}">settings</span>
                 Configuration
             </a>
-            <a href="#"
-                class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white transition-colors">
+            <a href="{% url 'support' %}"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium {% if request.resolver_match.url_name == 'support' %}bg-primary/10 text-primary{% else %}text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white{% endif %} transition-colors">
                 <span class="material-symbols-outlined">help</span>
                 Support
             </a>

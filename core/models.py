@@ -24,6 +24,22 @@ class Store(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='store_profile')
     business_name = models.CharField(max_length=255, blank=True)
     branding_color = models.CharField(max_length=7, default='#22c55e')  # Hex code
+    
+    # Extended Profile
+    description = models.TextField(blank=True, help_text="Internal description of the store")
+    phone_number = models.CharField(max_length=20, blank=True)
+    timezone = models.CharField(max_length=50, default='UTC')
+    logo_url = models.URLField(max_length=1024, blank=True, null=True, help_text="URL to store logo")
+
+    # System Preferences
+    dark_mode = models.BooleanField(default=False)
+    auto_lock = models.BooleanField(default=False)
+    enable_beta = models.BooleanField(default=False)
+
+    # Integrations
+    instagram_connected = models.BooleanField(default=False)
+    facebook_connected = models.BooleanField(default=False)
+    tiktok_connected = models.BooleanField(default=False)
 
     # Playlist Settings - Playback Defaults
     default_image_duration = models.PositiveIntegerField(default=10, help_text="Default duration for images in seconds")
@@ -243,5 +259,33 @@ class StoreContent(models.Model):
         ordering = ['-updated_at']
         verbose_name_plural = 'Store contents'
     
+    
     def __str__(self):
         return self.title
+
+class SupportTicket(models.Model):
+    URGENCY_CHOICES = [
+        ('low', 'Low'),
+        ('medium', 'Medium'),
+        ('high', 'High'),
+        ('critical', 'Critical'),
+    ]
+    
+    TOPIC_CHOICES = [
+        ('technical', 'Technical Issue'),
+        ('billing', 'Billing'),
+        ('account', 'Account Management'),
+        ('feature', 'Feature Request'),
+        ('other', 'Other'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tickets')
+    topic = models.CharField(max_length=20, choices=TOPIC_CHOICES, default='other')
+    urgency = models.CharField(max_length=20, choices=URGENCY_CHOICES, default='low')
+    description = models.TextField()
+    status = models.CharField(max_length=20, default='OPEN') # OPEN, CLOSED, PENDING
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.topic} ({self.created_at.strftime('%Y-%m-%d')})"

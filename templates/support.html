@@ -1,0 +1,232 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block body %}
+<c-layouts.sidebar>
+    <main class="flex-1 overflow-y-auto bg-background-light dark:bg-background-dark relative">
+        <div class="max-w-7xl mx-auto px-8 py-8">
+            <!-- Header Section -->
+            <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+                <div>
+                    <div class="flex items-center gap-2 text-sm text-muted-light dark:text-muted-dark mb-1">
+                        <span>Settings</span>
+                        <span class="material-symbols-outlined text-[12px]">chevron_right</span>
+                        <span>Support</span>
+                    </div>
+                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Help Center</h1>
+                    <p class="text-muted-light dark:text-muted-dark mt-1">Find answers, documentation, and get in touch
+                        with our team.</p>
+                </div>
+                <a href="#"
+                    class="bg-white dark:bg-surface-dark hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 border border-border-light dark:border-border-dark px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-all flex items-center gap-2">
+                    <span class="material-symbols-outlined text-sm">open_in_new</span>
+                    <span>Documentation</span>
+                </a>
+            </div>
+
+            <!-- Hero Search Section -->
+            <div
+                class="bg-gradient-to-br from-primary to-secondary rounded-2xl p-8 md:p-12 text-center text-white shadow-lg shadow-primary/20 mb-10 relative overflow-hidden">
+                <div class="relative z-10 max-w-2xl mx-auto">
+                    <h2 class="text-2xl md:text-3xl font-bold mb-6">How can we help you today?</h2>
+                    <div class="relative">
+                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                            <span class="material-symbols-outlined text-gray-400">search</span>
+                        </div>
+                        <input type="text" placeholder="Search articles, topics, or keywords..."
+                            class="block w-full rounded-xl border-0 py-4 pl-12 pr-4 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-white/50 sm:text-sm sm:leading-6 shadow-xl" />
+                    </div>
+                    <div class="mt-4 flex flex-wrap justify-center gap-2 text-sm text-white/80">
+                        <span>Popular:</span>
+                        <a class="underline hover:text-white transition-colors" href="#">Instagram Sync</a>
+                        <span class="opacity-50">,</span>
+                        <a class="underline hover:text-white transition-colors" href="#">Billing</a>
+                        <span class="opacity-50">,</span>
+                        <a class="underline hover:text-white transition-colors" href="#">Screen Setup</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Topic Cards Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+                <!-- Getting Started -->
+                <div
+                    class="bg-white dark:bg-surface-dark rounded-2xl border border-border-light dark:border-border-dark p-6 shadow-soft hover:shadow-md transition-all group cursor-pointer">
+                    <div
+                        class="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 rounded-xl flex items-center justify-center text-blue-600 dark:text-blue-400 mb-4 group-hover:scale-110 transition-transform">
+                        <span class="material-symbols-outlined text-2xl">rocket_launch</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-3">Getting Started</h3>
+                    <ul class="space-y-3">
+                        <li>
+                            <a class="text-sm text-muted-light dark:text-muted-dark hover:text-primary dark:hover:text-accent flex items-start gap-2 transition-colors"
+                                href="#">
+                                <span class="material-symbols-outlined text-base mt-0.5">article</span>
+                                Setting up your first screen
+                            </a>
+                        </li>
+                        <li>
+                            <a class="text-sm text-muted-light dark:text-muted-dark hover:text-primary dark:hover:text-accent flex items-start gap-2 transition-colors"
+                                href="#">
+                                <span class="material-symbols-outlined text-base mt-0.5">article</span>
+                                Importing media assets
+                            </a>
+                        </li>
+                        <li>
+                            <a class="text-sm text-muted-light dark:text-muted-dark hover:text-primary dark:hover:text-accent flex items-start gap-2 transition-colors"
+                                href="#">
+                                <span class="material-symbols-outlined text-base mt-0.5">article</span>
+                                Creating a playlist
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Troubleshooting -->
+                <div
+                    class="bg-white dark:bg-surface-dark rounded-2xl border border-border-light dark:border-border-dark p-6 shadow-soft hover:shadow-md transition-all group cursor-pointer">
+                    <div
+                        class="w-12 h-12 bg-orange-50 dark:bg-orange-900/20 rounded-xl flex items-center justify-center text-orange-600 dark:text-orange-400 mb-4 group-hover:scale-110 transition-transform">
+                        <span class="material-symbols-outlined text-2xl">build</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-3">Troubleshooting</h3>
+                    <ul class="space-y-3">
+                        <li>
+                            <a class="text-sm text-muted-light dark:text-muted-dark hover:text-primary dark:hover:text-accent flex items-start gap-2 transition-colors"
+                                href="#">
+                                <span class="material-symbols-outlined text-base mt-0.5">article</span>
+                                Screen offline status
+                            </a>
+                        </li>
+                        <li>
+                            <a class="text-sm text-muted-light dark:text-muted-dark hover:text-primary dark:hover:text-accent flex items-start gap-2 transition-colors"
+                                href="#">
+                                <span class="material-symbols-outlined text-base mt-0.5">article</span>
+                                Instagram feed not updating
+                            </a>
+                        </li>
+                        <li>
+                            <a class="text-sm text-muted-light dark:text-muted-dark hover:text-primary dark:hover:text-accent flex items-start gap-2 transition-colors"
+                                href="#">
+                                <span class="material-symbols-outlined text-base mt-0.5">article</span>
+                                Playback issues
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Account Management -->
+                <div
+                    class="bg-white dark:bg-surface-dark rounded-2xl border border-border-light dark:border-border-dark p-6 shadow-soft hover:shadow-md transition-all group cursor-pointer">
+                    <div
+                        class="w-12 h-12 bg-purple-50 dark:bg-purple-900/20 rounded-xl flex items-center justify-center text-purple-600 dark:text-purple-400 mb-4 group-hover:scale-110 transition-transform">
+                        <span class="material-symbols-outlined text-2xl">manage_accounts</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-3">Account Management</h3>
+                    <ul class="space-y-3">
+                        <li>
+                            <a class="text-sm text-muted-light dark:text-muted-dark hover:text-primary dark:hover:text-accent flex items-start gap-2 transition-colors"
+                                href="#">
+                                <span class="material-symbols-outlined text-base mt-0.5">article</span>
+                                Update billing information
+                            </a>
+                        </li>
+                        <li>
+                            <a class="text-sm text-muted-light dark:text-muted-dark hover:text-primary dark:hover:text-accent flex items-start gap-2 transition-colors"
+                                href="#">
+                                <span class="material-symbols-outlined text-base mt-0.5">article</span>
+                                Manage team members
+                            </a>
+                        </li>
+                        <li>
+                            <a class="text-sm text-muted-light dark:text-muted-dark hover:text-primary dark:hover:text-accent flex items-start gap-2 transition-colors"
+                                href="#">
+                                <span class="material-symbols-outlined text-base mt-0.5">article</span>
+                                Change password
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Support Contact Section -->
+            <div
+                class="bg-white dark:bg-surface-dark rounded-2xl border border-border-light dark:border-border-dark shadow-soft overflow-hidden">
+                <div class="flex flex-col lg:flex-row">
+                    <!-- Left: Contact Info -->
+                    <div
+                        class="p-8 lg:w-1/3 bg-gray-50 dark:bg-gray-800/30 border-b lg:border-b-0 lg:border-r border-border-light dark:border-border-dark">
+                        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Still need help?</h3>
+                        <p class="text-sm text-muted-light dark:text-muted-dark mb-6">Our support team is available
+                            Mon-Fri, 9am-5pm EST.</p>
+                        <div class="space-y-4">
+                            <div class="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
+                                <div
+                                    class="w-8 h-8 rounded-full bg-white dark:bg-surface-dark border border-border-light dark:border-border-dark flex items-center justify-center text-primary">
+                                    <span class="material-symbols-outlined text-sm">mail</span>
+                                </div>
+                                <span>support@hotcrowd.com</span>
+                            </div>
+                            <div class="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
+                                <div
+                                    class="w-8 h-8 rounded-full bg-white dark:bg-surface-dark border border-border-light dark:border-border-dark flex items-center justify-center text-primary">
+                                    <span class="material-symbols-outlined text-sm">chat</span>
+                                </div>
+                                <span>Live chat (available)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Ticket Form -->
+                    <div class="p-8 lg:w-2/3">
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-6">Submit a Support Ticket</h3>
+                        <form method="POST" action="{% url 'support' %}" class="space-y-5">
+                            {% csrf_token %}
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                <div>
+                                    <label
+                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Topic</label>
+                                    <select name="topic"
+                                        class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800/50 focus:border-primary focus:ring-primary dark:text-white sm:text-sm py-2.5">
+                                        <option value="technical">Technical Issue</option>
+                                        <option value="billing">Billing</option>
+                                        <option value="feature">Feature Request</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Urgency</label>
+                                    <select name="urgency"
+                                        class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800/50 focus:border-primary focus:ring-primary dark:text-white sm:text-sm py-2.5">
+                                        <option value="low">Low</option>
+                                        <option value="medium">Medium</option>
+                                        <option value="high">High</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label
+                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Description</label>
+                                <textarea name="description" rows="4" placeholder="Describe your issue..."
+                                    class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800/50 shadow-sm focus:border-primary focus:ring-primary dark:text-white sm:text-sm"
+                                    required></textarea>
+                            </div>
+                            <div class="flex items-center justify-end gap-3 pt-2">
+                                <button type="button"
+                                    class="text-sm font-medium text-muted-light dark:text-muted-dark hover:text-gray-900 dark:hover:text-white transition-colors">
+                                    Attach File
+                                </button>
+                                <button type="submit"
+                                    class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded-lg text-sm font-medium shadow-md shadow-primary/30 transition-all">
+                                    Submit Ticket
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</c-layouts.sidebar>
+{% endblock %}

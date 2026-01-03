@@ -1,0 +1,365 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block body %}
+<c-layouts.sidebar>
+    <div class="h-full flex flex-col bg-background-light dark:bg-background-dark overflow-y-auto"
+        x-data="{ activeTab: 'profile' }" x-cloak>
+
+        <!-- Header & Tabs -->
+        <div
+            class="bg-white dark:bg-surface-dark border-b border-border-light dark:border-border-dark sticky top-0 z-10">
+            <div class="max-w-7xl mx-auto px-8 pt-8">
+                <div class="flex items-center justify-between mb-8">
+                    <div>
+                        <div class="flex items-center gap-2 text-sm text-muted-light dark:text-muted-dark mb-1">
+                            <span class="hover:text-primary cursor-pointer">Settings</span>
+                            <span>/</span>
+                            <span>Configuration</span>
+                        </div>
+                        <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Configuration</h1>
+                        <p class="text-muted-light dark:text-muted-dark mt-1">Manage store profile, notification
+                            preferences, and system settings.</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="window.location.reload()" class="btn btn-outline">Discard</button>
+                        <button type="submit" form="configForm" class="btn btn-primary flex items-center gap-2">
+                            <span class="material-symbols-outlined">save</span>
+                            Save Changes
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tabs -->
+                <div class="flex gap-8 border-b border-transparent">
+                    <button @click="activeTab = 'profile'"
+                        class="pb-4 text-sm font-medium flex items-center gap-2 border-b-2 transition-colors relative"
+                        :class="activeTab === 'profile' ? 'text-primary border-primary' : 'text-gray-500 border-transparent hover:text-gray-700'">
+                        <span class="material-symbols-outlined text-lg">store</span>
+                        Store Profile
+                    </button>
+                    <button @click="activeTab = 'notifications'"
+                        class="pb-4 text-sm font-medium flex items-center gap-2 border-b-2 transition-colors relative"
+                        :class="activeTab === 'notifications' ? 'text-primary border-primary' : 'text-gray-500 border-transparent hover:text-gray-700'">
+                        <span class="material-symbols-outlined text-lg">notifications</span>
+                        Notifications
+                    </button>
+                    <button @click="activeTab = 'team'"
+                        class="pb-4 text-sm font-medium flex items-center gap-2 border-b-2 transition-colors relative"
+                        :class="activeTab === 'team' ? 'text-primary border-primary' : 'text-gray-500 border-transparent hover:text-gray-700'">
+                        <span class="material-symbols-outlined text-lg">group</span>
+                        Team Members
+                    </button>
+                    <button @click="activeTab = 'integrations'"
+                        class="pb-4 text-sm font-medium flex items-center gap-2 border-b-2 transition-colors relative"
+                        :class="activeTab === 'integrations' ? 'text-primary border-primary' : 'text-gray-500 border-transparent hover:text-gray-700'">
+                        <span class="material-symbols-outlined text-lg">integration_instructions</span>
+                        Integrations
+                    </button>
+                    <button @click="activeTab = 'billing'"
+                        class="pb-4 text-sm font-medium flex items-center gap-2 border-b-2 transition-colors relative"
+                        :class="activeTab === 'billing' ? 'text-primary border-primary' : 'text-gray-500 border-transparent hover:text-gray-700'">
+                        <span class="material-symbols-outlined text-lg">payment</span>
+                        Billing
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- content -->
+        <div class="max-w-7xl mx-auto px-8 py-8 w-full flex flex-col lg:flex-row gap-8">
+
+            <!-- Main Form Column -->
+            <div class="flex-1 space-y-6">
+                <form id="configForm" method="POST" action="{% url 'configuration' %}">
+                    {% csrf_token %}
+
+                    <!-- Store Profile Tab -->
+                    <div x-show="activeTab === 'profile'" class="space-y-6">
+
+                        <!-- Brand Identity -->
+                        <div
+                            class="bg-white dark:bg-surface-dark rounded-xl p-8 border border-border-light dark:border-border-dark shadow-sm">
+                            <div class="flex items-start gap-4 mb-8">
+                                <div
+                                    class="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600">
+                                    <span class="material-symbols-outlined">branding_watermark</span>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Brand Identity</h3>
+                                    <p class="text-sm text-muted-light dark:text-muted-dark">How your store appears on
+                                        screens and notifications.</p>
+                                </div>
+                            </div>
+
+                            <!-- Logo Upload -->
+                            <div class="flex items-start gap-6 mb-8 pb-8 border-b border-gray-100 dark:border-gray-800">
+                                <div
+                                    class="w-24 h-24 rounded-2xl bg-gray-50 dark:bg-gray-800 flex items-center justify-center border-2 border-dashed border-gray-200 dark:border-gray-700 relative group overflow-hidden">
+                                    {% if store.logo_url %}
+                                    <img src="{{ store.logo_url }}" class="w-full h-full object-cover">
+                                    {% else %}
+                                    <span class="text-2xl font-bold text-gray-400">{{ store.business_name|slice:":2"|upper }}</span>
+                                    {% endif %}
+
+                                    <!-- Edit Button Overlay -->
+                                    <div class="absolute bottom-1 right-1">
+                                        <div
+                                            class="w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center shadow-md cursor-pointer hover:bg-secondary transition-colors">
+                                            <span class="material-symbols-outlined text-xs">edit</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex-1">
+                                    <h4 class="font-bold text-gray-900 dark:text-white mb-1">Store Logo</h4>
+                                    <p class="text-xs text-muted-light dark:text-muted-dark mb-3">Upload your store's
+                                        logo. Recommended size 400x400px. JPG or PNG.</p>
+                                    <div class="flex gap-3">
+                                        <button type="button"
+                                            class="text-primary text-xs font-bold hover:underline">Upload New</button>
+                                        <button type="button"
+                                            class="text-red-500 text-xs font-bold hover:underline">Remove</button>
+                                    </div>
+                                    <!-- Hidden Input for URL (simplified) -->
+                                    <input type="text" name="logo_url" value="{{ store.logo_url|default:'' }}"
+                                        class="mt-2 w-full text-xs border-gray-200 rounded px-2 py-1 hidden"
+                                        placeholder="Or paste URL here">
+                                </div>
+                            </div>
+
+                            <!-- Fields -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">Store
+                                        Name</label>
+                                    <input type="text" name="business_name" value="{{ store.business_name }}"
+                                        class="form-input w-full rounded-lg text-sm border-gray-200 dark:border-gray-700 dark:bg-gray-800 focus:ring-primary focus:border-primary">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">Store
+                                        ID</label>
+                                    <div class="relative">
+                                        <span class="absolute left-3 top-2.5 text-gray-400">#</span>
+                                        <input type="text" value="{{ store.id|stringformat:'s'|slice:':8'|upper }}"
+                                            readonly
+                                            class="form-input w-full pl-7 rounded-lg text-sm bg-gray-50 dark:bg-gray-800 text-gray-500 border-gray-200 dark:border-gray-700 cursor-not-allowed">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-6">
+                                <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">Store
+                                    Description</label>
+                                <textarea name="description" rows="3"
+                                    class="form-input w-full rounded-lg text-sm border-gray-200 dark:border-gray-700 dark:bg-gray-800 focus:ring-primary focus:border-primary">{{ store.description }}</textarea>
+                                <p class="text-[10px] text-gray-400 mt-1">This description is used for internal
+                                    organization.</p>
+                            </div>
+                        </div>
+
+                        <!-- Contact -->
+                        <div
+                            class="bg-white dark:bg-surface-dark rounded-xl p-8 border border-border-light dark:border-border-dark shadow-sm">
+                            <div class="flex items-start gap-4 mb-6">
+                                <div
+                                    class="w-10 h-10 rounded-lg bg-green-50 dark:bg-green-900/20 flex items-center justify-center text-green-600">
+                                    <span class="material-symbols-outlined">location_on</span>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Contact & Location</h3>
+                                    <p class="text-sm text-muted-light dark:text-muted-dark">Regional settings and
+                                        contact points.</p>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">Primary
+                                        Email</label>
+                                    <div class="relative">
+                                        <span
+                                            class="material-symbols-outlined absolute left-3 top-2.5 text-gray-400 text-lg">mail</span>
+                                        <input type="email" value="{{ request.user.email }}" readonly
+                                            class="form-input w-full pl-10 rounded-lg text-sm border-gray-200 dark:border-gray-700 dark:bg-gray-800 text-gray-500 cursor-not-allowed">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">Phone
+                                        Number</label>
+                                    <div class="relative">
+                                        <span
+                                            class="material-symbols-outlined absolute left-3 top-2.5 text-gray-400 text-lg">call</span>
+                                        <input type="tel" name="phone_number" value="{{ store.phone_number }}"
+                                            class="form-input w-full pl-10 rounded-lg text-sm border-gray-200 dark:border-gray-700 dark:bg-gray-800 focus:ring-primary focus:border-primary">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label
+                                    class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">Timezone</label>
+                                <select name="timezone"
+                                    class="form-select w-full rounded-lg text-sm border-gray-200 dark:border-gray-700 dark:bg-gray-800 focus:ring-primary focus:border-primary">
+                                    {% for tz in timezones %}
+                                    <option value="{{ tz }}" {% if store.timezone == tz %}selected{% endif %}>{{ tz }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Integrations Tab -->
+                    <div x-show="activeTab === 'integrations'" class="space-y-6">
+                        <div
+                            class="bg-white dark:bg-surface-dark rounded-xl p-8 border border-border-light dark:border-border-dark shadow-sm">
+                            <div class="flex items-start gap-4 mb-8">
+                                <div
+                                    class="w-10 h-10 rounded-lg bg-pink-50 dark:bg-pink-900/20 flex items-center justify-center text-pink-600">
+                                    <span class="material-symbols-outlined">share</span>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Social Media</h3>
+                                    <p class="text-sm text-muted-light dark:text-muted-dark">Connect your social
+                                        accounts to auto-sync content.</p>
+                                </div>
+                            </div>
+
+                            <!-- Instagram -->
+                            <div
+                                class="p-4 rounded-xl border {% if store.instagram_connected %}bg-green-50 border-green-200 dark:bg-green-900/10 dark:border-green-800{% else %}bg-gray-50 border-gray-100 dark:bg-gray-800 dark:border-gray-700{% endif %} flex items-center justify-between mb-4">
+                                <div class="flex items-center gap-4">
+                                    <div
+                                        class="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm text-pink-600">
+                                        <span class="material-symbols-outlined">photo_camera</span>
+                                    </div>
+                                    <div>
+                                        <div class="flex items-center gap-2">
+                                            <h4 class="font-bold text-gray-900 dark:text-white">Instagram</h4>
+                                            {% if store.instagram_connected %}
+                                            <span
+                                                class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-green-200 text-green-800">Connected</span>
+                                            {% endif %}
+                                        </div>
+                                        <p class="text-xs text-gray-500">Syncing @{{ store.business_name|slugify }}
+                                            posts daily.</p>
+                                    </div>
+                                </div>
+                                <button type="submit" name="toggle_instagram"
+                                    class="btn btn-sm {% if store.instagram_connected %}bg-white border text-red-500 hover:bg-red-50{% else %}bg-primary text-white hover:bg-secondary{% endif %} rounded-lg px-4 py-2 font-bold text-xs">
+                                    {% if store.instagram_connected %}Disconnect{% else %}Connect{% endif %}
+                                </button>
+                            </div>
+
+                            <!-- Mock Facebook -->
+                            <div
+                                class="p-4 rounded-xl bg-gray-50 border border-gray-100 dark:bg-gray-800 dark:border-gray-700 flex items-center justify-between mb-4">
+                                <div class="flex items-center gap-4">
+                                    <div
+                                        class="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm text-blue-600">
+                                        <span class="material-symbols-outlined">facebook</span>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-bold text-gray-900 dark:text-white">Facebook</h4>
+                                        <p class="text-xs text-gray-500">Display your latest page updates and events.
+                                        </p>
+                                    </div>
+                                </div>
+                                <button type="button"
+                                    class="btn btn-sm bg-gray-200 text-gray-500 rounded-lg px-4 py-2 font-bold text-xs"
+                                    disabled>Connect</button>
+                            </div>
+                        </div>
+                    </div>
+
+                </form>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="w-full lg:w-80 space-y-6">
+
+                <!-- Store Status -->
+                <div class="bg-secondary rounded-xl p-6 text-white shadow-lg">
+                    <h3 class="font-bold text-lg mb-1">Store Status</h3>
+                    <div class="flex items-center gap-2 mb-6">
+                        <div class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+                        <span class="text-xs font-medium text-green-100">Live & Active</span>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center bg-white/10 rounded-lg p-3">
+                            <span class="text-sm font-medium">Screens</span>
+                            <span class="font-bold">{{ active_screens }}/{{ total_screens }}</span>
+                        </div>
+                        <div class="flex justify-between items-center bg-white/10 rounded-lg p-3">
+                            <span class="text-sm font-medium">Plan</span>
+                            <span class="font-bold">Pro</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- System Preferences -->
+                <div
+                    class="bg-white dark:bg-surface-dark rounded-xl p-6 border border-border-light dark:border-border-dark shadow-sm">
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-4">System Preferences</h3>
+
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-bold text-gray-800 dark:text-gray-200">Dark Mode</p>
+                                <p class="text-xs text-muted-light">Adjust UI theme</p>
+                            </div>
+                            <!-- Mock Toggle -->
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" name="dark_mode" form="configForm" class="sr-only peer" {% if store.dark_mode %}checked{% endif %}>
+                                <div
+                                    class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary">
+                                </div>
+                            </label>
+                        </div>
+
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-bold text-gray-800 dark:text-gray-200">Auto-Lock</p>
+                                <p class="text-xs text-muted-light">Security timeout</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" name="auto_lock" form="configForm" class="sr-only peer" {% if store.auto_lock %}checked{% endif %}>
+                                <div
+                                    class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary">
+                                </div>
+                            </label>
+                        </div>
+
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-bold text-gray-800 dark:text-gray-200">Beta Features</p>
+                                <p class="text-xs text-muted-light">Try new updates</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" name="enable_beta" form="configForm" class="sr-only peer" {% if store.enable_beta %}checked{% endif %}>
+                                <div
+                                    class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary">
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Danger Zone -->
+                <div class="bg-red-50 dark:bg-red-900/10 rounded-xl p-6 border border-red-100 dark:border-red-900/20">
+                    <h3 class="font-bold text-red-700 dark:text-red-400 mb-2">Danger Zone</h3>
+                    <p class="text-xs text-red-600 dark:text-red-300 mb-4 opacity-80">Deleting your store profile will
+                        remove all associated screens, playlists, and media.</p>
+                    <button type="button"
+                        class="w-full py-2 bg-white dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-300 rounded-lg text-xs font-bold hover:bg-red-50 transition-colors shadow-sm">
+                        Delete Store Profile
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</c-layouts.sidebar>
+{% endblock %}

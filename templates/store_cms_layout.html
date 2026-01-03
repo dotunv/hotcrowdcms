@@ -182,14 +182,14 @@
 
             <div class="flex items-center gap-2">
                 <div class="flex items-center mr-2">
-                    <button
-                        class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors"
-                        title="Undo">
+                    <button @click="undo()" :disabled="historyIndex <= 0 || isUndoing"
+                        class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                        title="Undo (Ctrl+Z)">
                         <span class="material-symbols-outlined">undo</span>
                     </button>
-                    <button
-                        class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors"
-                        title="Redo">
+                    <button @click="redo()" :disabled="historyIndex >= history.length - 1 || isUndoing"
+                        class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                        title="Redo (Ctrl+Y)">
                         <span class="material-symbols-outlined">redo</span>
                     </button>
                 </div>
@@ -307,14 +307,25 @@
                             style="background-image: linear-gradient(#000 1px, transparent 1px), linear-gradient(90deg, #000 1px, transparent 1px); background-size: 100px 100px;">
                         </div>
 
+                        <!-- Snapping Guides -->
+                        <template x-for="x in guides.x">
+                            <div class="absolute top-0 bottom-0 border-l border-red-500 border-dashed z-[2000] pointer-events-none"
+                                :style="`left: ${x}px`"></div>
+                        </template>
+                        <template x-for="y in guides.y">
+                            <div class="absolute left-0 right-0 border-t border-red-500 border-dashed z-[2000] pointer-events-none"
+                                :style="`top: ${y}px`"></div>
+                        </template>
+
                         <!-- Elements -->
-                        <template x-for="element in elements" :key="element.id">
-                            <div class="absolute group/element cursor-move select-none" :style="{ 
+                        <template x-for="(element, index) in elements" :key="element.id">
+                            <div class="absolute group/element select-none" x-show="element.visible"
+                                :class="{'cursor-move': !element.locked, 'cursor-not-allowed': element.locked}" :style="{ 
                                      left: element.x + 'px', 
                                      top: element.y + 'px',
                                      width: element.width + 'px',
                                      height: element.height + 'px',
-                                     zIndex: selectedElement === element.id ? 50 : element.zIndex,
+                                     zIndex: selectedElement === element.id ? 1000 : index,
                                      opacity: element.opacity / 100
                                  }" @mousedown.stop="startDrag($event, element.id)"
                                 @click.stop="selectElement(element.id)">
@@ -323,7 +334,7 @@
                                 <div class="absolute -inset-0.5 border-2 transition-opacity z-20 pointer-events-none"
                                     :class="selectedElement === element.id ? 'border-primary opacity-100' : 'border-transparent opacity-0 group-hover/element:opacity-50 group-hover/element:border-primary/50'">
 
-                                    <template x-if="selectedElement === element.id">
+                                    <template x-if="selectedElement === element.id && !element.locked">
                                         <div class="pointer-events-auto">
                                             <!-- Top Left -->
                                             <div class="absolute -top-1.5 -left-1.5 w-3 h-3 bg-white border border-primary rounded-full cursor-nw-resize hover:bg-primary z-30"
@@ -382,26 +393,80 @@
 
                                     <!-- Video -->
                                     <div x-show="element.type === 'video'"
-                                        class="w-full h-full bg-black flex items-center justify-center text-white">
-                                        <span class="material-symbols-outlined text-5xl opacity-50">play_circle</span>
+                                        class="w-full h-full bg-black flex items-center justify-center text-white overflow-hidden">
+                                        <template x-if="element.content">
+                                            <video :src="element.content" class="w-full h-full object-cover"
+                                                :autoplay="element.autoplay" :loop="element.loop"
+                                                :muted="element.muted"></video>
+                                        </template>
+                                        <template x-if="!element.content">
+                                            <div class="flex flex-col items-center opacity-50">
+                                                <span class="material-symbols-outlined text-5xl">play_circle</span>
+                                                <span class="text-xs mt-2">No Video Source</span>
+                                            </div>
+                                        </template>
+                                        <!-- Overlay to allow dragging/clicking on video -->
+                                        <div class="absolute inset-0 z-10"></div>
                                     </div>
 
                                     <!-- Weather -->
                                     <div x-show="element.type === 'weather'"
-                                        class="w-full h-full bg-blue-500 text-white p-4 flex flex-col justify-between">
+                                        class="w-full h-full bg-gradient-to-br from-blue-400 to-blue-600 text-white p-4 flex flex-col justify-between rounded shadow-inner">
                                         <div class="flex justify-between items-start">
-                                            <span class="text-xl font-bold">Paris</span>
-                                            <span class="material-symbols-outlined text-3xl">partly_cloudy_day</span>
+                                            <div>
+                                                <span class="text-lg font-bold block leading-tight"
+                                                    x-text="element.city || 'City'"></span>
+                                                <span class="text-xs opacity-80">Sunny</span>
+                                            </div>
+                                            <span class="material-symbols-outlined text-4xl">partly_cloudy_day</span>
                                         </div>
-                                        <div class="text-4xl font-bold">24°C</div>
+                                        <div class="flex items-end justify-between">
+                                            <div class="text-4xl font-bold"
+                                                x-text="'24°' + (element.unit === 'f' ? 'F' : 'C')"></div>
+                                            <span class="text-xs opacity-75">H:28° L:18°</span>
+                                        </div>
                                     </div>
 
-                                    <!-- Placeholders -->
-                                    <div x-show="['clock', 'qrcode', 'instagram'].includes(element.type)"
-                                        class="w-full h-full flex items-center justify-center"
-                                        :class="{'bg-gray-100 dark:bg-gray-800': !element.backgroundColor}">
-                                        <span class="material-symbols-outlined text-3xl text-gray-400"
-                                            x-text="element.type === 'clock' ? 'schedule' : element.type === 'qrcode' ? 'qr_code' : 'photo_camera'"></span>
+                                    <!-- Clock -->
+                                    <div x-show="element.type === 'clock'"
+                                        class="w-full h-full flex flex-col items-center justify-center p-4 bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded">
+                                        <div class="text-3xl font-mono font-bold tracking-widest">
+                                            12:30<span x-show="element.showSeconds"
+                                                class="text-xl opacity-70">:45</span>
+                                        </div>
+                                        <div x-show="element.showDate"
+                                            class="text-sm text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wide">
+                                            Monday, Jan 1
+                                        </div>
+                                        <div x-show="element.timezone !== 'local'"
+                                            class="text-[10px] text-gray-400 mt-2 uppercase" x-text="element.timezone">
+                                        </div>
+                                    </div>
+
+                                    <!-- QR Code -->
+                                    <div x-show="element.type === 'qrcode'"
+                                        class="w-full h-full flex items-center justify-center bg-white p-2">
+                                        <!-- Placeholder QR (Simulated) -->
+                                        <div class="w-full h-full bg-contain bg-center bg-no-repeat"
+                                            :style="`background-image: url('https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(element.url || 'https://example.com')}&color=${(element.color || '#000000').replace('#', '')}');`">
+                                        </div>
+                                    </div>
+
+                                    <!-- Instagram -->
+                                    <div x-show="element.type === 'instagram'"
+                                        class="w-full h-full bg-white dark:bg-gray-900 flex flex-col p-2 overflow-hidden">
+                                        <div
+                                            class="flex items-center gap-2 mb-2 pb-2 border-b border-gray-100 dark:border-gray-800">
+                                            <span class="material-symbols-outlined text-pink-600">photo_camera</span>
+                                            <span class="text-xs font-bold truncate"
+                                                x-text="element.source || '@username'"></span>
+                                        </div>
+                                        <div class="flex-1 grid grid-cols-2 gap-1 overflow-hidden">
+                                            <div class="bg-gray-200 dark:bg-gray-800 aspect-square rounded-sm"></div>
+                                            <div class="bg-gray-200 dark:bg-gray-800 aspect-square rounded-sm"></div>
+                                            <div class="bg-gray-200 dark:bg-gray-800 aspect-square rounded-sm"></div>
+                                            <div class="bg-gray-200 dark:bg-gray-800 aspect-square rounded-sm"></div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -455,7 +520,8 @@
                                         class="text-[10px] text-gray-500 dark:text-gray-400 mb-1 block uppercase">Width</label>
                                     <div class="relative">
                                         <input type="number" x-model="getSelected().width"
-                                            class="w-full pl-2 pr-6 py-1.5 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-md text-sm">
+                                            :disabled="getSelected().locked"
+                                            class="w-full pl-2 pr-6 py-1.5 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-md text-sm disabled:opacity-50">
                                         <span class="absolute right-2 top-1.5 text-xs text-gray-400">px</span>
                                     </div>
                                 </div>
@@ -464,21 +530,22 @@
                                         class="text-[10px] text-gray-500 dark:text-gray-400 mb-1 block uppercase">Height</label>
                                     <div class="relative">
                                         <input type="number" x-model="getSelected().height"
-                                            class="w-full pl-2 pr-6 py-1.5 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-md text-sm">
+                                            :disabled="getSelected().locked"
+                                            class="w-full pl-2 pr-6 py-1.5 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-md text-sm disabled:opacity-50">
                                         <span class="absolute right-2 top-1.5 text-xs text-gray-400">px</span>
                                     </div>
                                 </div>
                                 <div>
                                     <label class="text-[10px] text-gray-500 dark:text-gray-400 mb-1 block uppercase">X
                                         Pos</label>
-                                    <input type="number" x-model="getSelected().x"
-                                        class="w-full px-2 py-1.5 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-md text-sm">
+                                    <input type="number" x-model="getSelected().x" :disabled="getSelected().locked"
+                                        class="w-full px-2 py-1.5 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-md text-sm disabled:opacity-50">
                                 </div>
                                 <div>
                                     <label class="text-[10px] text-gray-500 dark:text-gray-400 mb-1 block uppercase">Y
                                         Pos</label>
-                                    <input type="number" x-model="getSelected().y"
-                                        class="w-full px-2 py-1.5 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-md text-sm">
+                                    <input type="number" x-model="getSelected().y" :disabled="getSelected().locked"
+                                        class="w-full px-2 py-1.5 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-md text-sm disabled:opacity-50">
                                 </div>
                             </div>
                         </div>
@@ -489,30 +556,200 @@
                                 class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
                                 Content</h3>
 
-                            <template x-if="getSelected().type === 'heading' || getSelected().type === 'paragraph'">
+                            <!-- Text Elements -->
+                            <template x-if="['heading', 'paragraph'].includes(getSelected().type)">
                                 <div class="space-y-3">
                                     <div>
                                         <label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Text
                                             Content</label>
                                         <textarea x-model="getSelected().content" rows="3"
-                                            class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-lg text-sm"></textarea>
+                                            :disabled="getSelected().locked"
+                                            class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-lg text-sm disabled:opacity-50"></textarea>
+                                    </div>
+                                    <div>
+                                        <label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Color</label>
+                                        <div class="flex items-center gap-2">
+                                            <input type="color" x-model="getSelected().color"
+                                                :disabled="getSelected().locked"
+                                                class="h-8 w-8 cursor-pointer rounded-lg border-none p-0 disabled:opacity-50">
+                                            <input type="text" x-model="getSelected().color"
+                                                :disabled="getSelected().locked"
+                                                class="flex-1 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-lg text-sm uppercase disabled:opacity-50">
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Font Size
+                                            (px)</label>
+                                        <input type="number" x-model="getSelected().fontSize"
+                                            :disabled="getSelected().locked"
+                                            class="w-full px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-lg text-sm disabled:opacity-50">
+                                    </div>
+                                    <div>
+                                        <label
+                                            class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Alignment</label>
+                                        <div
+                                            class="flex bg-gray-50 dark:bg-gray-800 rounded-lg p-1 border border-border-light dark:border-border-dark">
+                                            <button @click="getSelected().textAlign = 'left'"
+                                                :class="{'bg-white dark:bg-gray-700 shadow-sm': getSelected().textAlign === 'left'}"
+                                                class="flex-1 p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"><span
+                                                    class="material-icons-outlined text-sm">format_align_left</span></button>
+                                            <button @click="getSelected().textAlign = 'center'"
+                                                :class="{'bg-white dark:bg-gray-700 shadow-sm': getSelected().textAlign === 'center'}"
+                                                class="flex-1 p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"><span
+                                                    class="material-icons-outlined text-sm">format_align_center</span></button>
+                                            <button @click="getSelected().textAlign = 'right'"
+                                                :class="{'bg-white dark:bg-gray-700 shadow-sm': getSelected().textAlign === 'right'}"
+                                                class="flex-1 p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"><span
+                                                    class="material-icons-outlined text-sm">format_align_right</span></button>
+                                        </div>
                                     </div>
                                 </div>
                             </template>
 
+                            <!-- Image -->
                             <template x-if="getSelected().type === 'image'">
                                 <div class="space-y-3">
-                                    <button @click="openMediaPicker()"
-                                        class="w-full py-2.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors">
+                                    <button @click="openMediaPicker()" :disabled="getSelected().locked"
+                                        class="w-full py-2.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors disabled:opacity-50">
                                         <span class="material-icons-outlined text-lg">collections</span>
                                         Choose from Library
                                     </button>
                                     <div class="relative">
                                         <input type="text" x-model="getSelected().content"
-                                            placeholder="Or paste Image URL"
-                                            class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-lg text-sm pl-9">
+                                            :disabled="getSelected().locked" placeholder="Or paste Image URL"
+                                            class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-lg text-sm pl-9 disabled:opacity-50">
                                         <span
                                             class="material-icons-outlined absolute left-3 top-2.5 text-gray-400 text-sm">link</span>
+                                    </div>
+                                    <div>
+                                        <label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Object
+                                            Fit</label>
+                                        <select x-model="getSelected().objectFit"
+                                            class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-lg text-sm">
+                                            <option value="cover">Cover</option>
+                                            <option value="contain">Contain</option>
+                                            <option value="fill">Fill</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- Video -->
+                            <template x-if="getSelected().type === 'video'">
+                                <div class="space-y-3">
+                                    <div class="relative">
+                                        <input type="text" x-model="getSelected().content"
+                                            :disabled="getSelected().locked" placeholder="Video URL (mp4)"
+                                            class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-lg text-sm pl-9 disabled:opacity-50">
+                                        <span
+                                            class="material-icons-outlined absolute left-3 top-2.5 text-gray-400 text-sm">movie</span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <input type="checkbox" x-model="getSelected().autoplay"
+                                            class="rounded border-gray-300 text-primary focus:ring-primary">
+                                        <label class="text-sm text-gray-700 dark:text-gray-300">Autoplay</label>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <input type="checkbox" x-model="getSelected().loop"
+                                            class="rounded border-gray-300 text-primary focus:ring-primary">
+                                        <label class="text-sm text-gray-700 dark:text-gray-300">Loop</label>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <input type="checkbox" x-model="getSelected().muted"
+                                            class="rounded border-gray-300 text-primary focus:ring-primary">
+                                        <label class="text-sm text-gray-700 dark:text-gray-300">Muted</label>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- Weather -->
+                            <template x-if="getSelected().type === 'weather'">
+                                <div class="space-y-3">
+                                    <div>
+                                        <label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Location
+                                            (City)</label>
+                                        <input type="text" x-model="getSelected().city" placeholder="e.g. London"
+                                            class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-lg text-sm">
+                                    </div>
+                                    <div>
+                                        <label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Unit</label>
+                                        <select x-model="getSelected().unit"
+                                            class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-lg text-sm">
+                                            <option value="c">Celsius (°C)</option>
+                                            <option value="f">Fahrenheit (°F)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- Clock -->
+                            <template x-if="getSelected().type === 'clock'">
+                                <div class="space-y-3">
+                                    <div>
+                                        <label
+                                            class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Timezone</label>
+                                        <select x-model="getSelected().timezone"
+                                            class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-lg text-sm">
+                                            <option value="local">Local Device Time</option>
+                                            <option value="UTC">UTC</option>
+                                            <option value="America/New_York">New York</option>
+                                            <option value="Europe/London">London</option>
+                                            <option value="Asia/Tokyo">Tokyo</option>
+                                        </select>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <input type="checkbox" x-model="getSelected().showDate"
+                                            class="rounded border-gray-300 text-primary focus:ring-primary">
+                                        <label class="text-sm text-gray-700 dark:text-gray-300">Show Date</label>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <input type="checkbox" x-model="getSelected().showSeconds"
+                                            class="rounded border-gray-300 text-primary focus:ring-primary">
+                                        <label class="text-sm text-gray-700 dark:text-gray-300">Show Seconds</label>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- QR Code -->
+                            <template x-if="getSelected().type === 'qrcode'">
+                                <div class="space-y-3">
+                                    <div>
+                                        <label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Target
+                                            URL</label>
+                                        <input type="text" x-model="getSelected().url" placeholder="https://..."
+                                            class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-lg text-sm">
+                                    </div>
+                                    <div>
+                                        <label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Color</label>
+                                        <div class="flex items-center gap-2">
+                                            <input type="color" x-model="getSelected().color"
+                                                class="h-8 w-8 cursor-pointer rounded-lg border-none p-0">
+                                            <input type="text" x-model="getSelected().color"
+                                                class="flex-1 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-lg text-sm uppercase">
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- Instagram -->
+                            <template x-if="getSelected().type === 'instagram'">
+                                <div class="space-y-3">
+                                    <div>
+                                        <label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Profile /
+                                            Hashtag</label>
+                                        <input type="text" x-model="getSelected().source"
+                                            placeholder="@username or #tag"
+                                            class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-lg text-sm">
+                                    </div>
+                                    <div>
+                                        <label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Display
+                                            Mode</label>
+                                        <select x-model="getSelected().mode"
+                                            class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-lg text-sm">
+                                            <option value="grid">Grid</option>
+                                            <option value="list">List</option>
+                                            <option value="carousel">Carousel</option>
+                                        </select>
                                     </div>
                                 </div>
                             </template>
@@ -532,9 +769,11 @@
                                             :style="`background-color: ${getSelected().backgroundColor || '#ffffff'}`">
                                         </div>
                                         <input type="color" x-model="getSelected().backgroundColor"
-                                            class="h-8 w-8 cursor-pointer rounded-lg border-none p-0">
+                                            :disabled="getSelected().locked"
+                                            class="h-8 w-8 cursor-pointer rounded-lg border-none p-0 disabled:opacity-50">
                                         <input type="text" x-model="getSelected().backgroundColor"
-                                            class="flex-1 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-lg text-sm uppercase">
+                                            :disabled="getSelected().locked"
+                                            class="flex-1 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-lg text-sm uppercase disabled:opacity-50">
                                     </div>
                                 </div>
 
@@ -545,42 +784,101 @@
                                             x-text="getSelected().opacity + '%'"></span>
                                     </div>
                                     <input type="range" x-model="getSelected().opacity" min="0" max="100"
-                                        class="w-full accent-primary h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                                        :disabled="getSelected().locked"
+                                        class="w-full accent-primary h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer disabled:opacity-50">
                                 </div>
+                            </div>
+                        </div>
 
-                                <div>
-                                    <label class="text-xs text-gray-500 dark:text-gray-400 mb-2 block">Shadow</label>
-                                    <select x-model="getSelected().shadow"
-                                        class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-lg text-sm">
-                                        <option value="none">None</option>
-                                        <option value="sm">Small</option>
-                                        <option value="md">Medium</option>
-                                        <option value="lg">Large</option>
-                                        <option value="xl">Extra Large</option>
-                                    </select>
-                                </div>
+                        <!-- Arrange / Layout Section -->
+                        <div class="mt-6 pt-6 border-t border-border-light dark:border-border-dark">
+                            <h3
+                                class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+                                Arrange</h3>
+                            <div class="grid grid-cols-4 gap-2">
+                                <button @click="moveLayer(selectedElement, 'back')" title="Send to Back"
+                                    :disabled="getSelected().locked"
+                                    class="p-2 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 disabled:opacity-50">
+                                    <span class="material-symbols-outlined text-lg">flip_to_back</span>
+                                </button>
+                                <button @click="moveLayer(selectedElement, 'down')" title="Send Backward"
+                                    :disabled="getSelected().locked"
+                                    class="p-2 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 disabled:opacity-50">
+                                    <span class="material-symbols-outlined text-lg">arrow_downward</span>
+                                </button>
+                                <button @click="moveLayer(selectedElement, 'up')" title="Bring Forward"
+                                    :disabled="getSelected().locked"
+                                    class="p-2 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 disabled:opacity-50">
+                                    <span class="material-symbols-outlined text-lg">arrow_upward</span>
+                                </button>
+                                <button @click="moveLayer(selectedElement, 'front')" title="Bring to Front"
+                                    :disabled="getSelected().locked"
+                                    class="p-2 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 disabled:opacity-50">
+                                    <span class="material-symbols-outlined text-lg">flip_to_front</span>
+                                </button>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 mt-2">
+                                <button @click="toggleLock(selectedElement)"
+                                    class="py-2 px-3 border rounded-lg text-xs font-medium flex items-center justify-center gap-2 transition-colors"
+                                    :class="getSelected().locked ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-gray-50 text-gray-700 border-border-light hover:bg-gray-100'">
+                                    <span class="material-symbols-outlined text-sm"
+                                        x-text="getSelected().locked ? 'lock' : 'lock_open'"></span>
+                                    <span x-text="getSelected().locked ? 'Unlock' : 'Lock'"></span>
+                                </button>
+                                <button @click="toggleVisibility(selectedElement)"
+                                    class="py-2 px-3 border rounded-lg text-xs font-medium flex items-center justify-center gap-2 transition-colors"
+                                    :class="!getSelected().visible ? 'bg-gray-100 text-gray-400 border-gray-200' : 'bg-gray-50 text-gray-700 border-border-light hover:bg-gray-100'">
+                                    <span class="material-symbols-outlined text-sm"
+                                        x-text="getSelected().visible ? 'visibility' : 'visibility_off'"></span>
+                                    <span x-text="getSelected().visible ? 'Hide' : 'Show'"></span>
+                                </button>
                             </div>
                         </div>
 
                     </div>
 
+                    <!-- Layers List -->
                     <div class="mt-6 pt-6 border-t border-border-light dark:border-border-dark">
                         <h3 class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
                             Layers</h3>
                         <div class="space-y-1">
+                            <!-- Reverse loop to show Top layer at Top of list -->
                             <template x-for="element in elements.slice().reverse()" :key="element.id">
-                                <div class="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors group"
-                                    :class="{ 'bg-primary/5 border border-primary/20': selectedElement === element.id }"
+                                <div class="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors group border border-transparent"
+                                    :class="{ 'bg-primary/5 border-primary/20': selectedElement === element.id, 'opacity-50': !element.visible }"
                                     @click="selectElement(element.id)">
-                                    <span class="material-symbols-outlined text-sm text-gray-400">drag_handle</span>
-                                    <span class="material-symbols-outlined text-sm text-gray-500"
+
+                                    <!-- Visibility Toggle -->
+                                    <button @click.stop="toggleVisibility(element.id)"
+                                        class="text-gray-400 hover:text-gray-600">
+                                        <span class="material-symbols-outlined text-xs"
+                                            x-text="element.visible ? 'visibility' : 'visibility_off'"></span>
+                                    </button>
+
+                                    <!-- Lock Toggle -->
+                                    <button @click.stop="toggleLock(element.id)"
+                                        class="text-gray-400 hover:text-gray-600">
+                                        <span class="material-symbols-outlined text-xs"
+                                            x-text="element.locked ? 'lock' : 'lock_open'"></span>
+                                    </button>
+
+                                    <span class="material-symbols-outlined text-sm text-gray-500 ml-1"
                                         x-text="element.type === 'image' ? 'image' : 'title'"></span>
+
                                     <span class="text-xs text-gray-700 dark:text-gray-300 flex-1 truncate"
                                         x-text="element.type"></span>
-                                    <button @click.stop="deleteElement(element.id)"
-                                        class="opacity-0 group-hover:opacity-100 hover:text-red-500 text-gray-400 p-1">
-                                        <span class="material-symbols-outlined text-sm">delete</span>
-                                    </button>
+
+                                    <!-- Reorder Controls -->
+                                    <div class="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button @click.stop="moveLayer(element.id, 'up')"
+                                            class="p-0.5 text-gray-400 hover:text-primary" title="Bring Forward">
+                                            <span class="material-symbols-outlined text-xs">arrow_upward</span>
+                                        </button>
+                                        <button @click.stop="moveLayer(element.id, 'down')"
+                                            class="p-0.5 text-gray-400 hover:text-primary" title="Send Backward">
+                                            <span class="material-symbols-outlined text-xs">arrow_downward</span>
+                                        </button>
+                                    </div>
                                 </div>
                             </template>
                             <div x-show="elements.length === 0" class="text-xs text-gray-400 text-center py-2">No layers
@@ -591,12 +889,12 @@
 
                 <div class="p-4 border-t border-border-light dark:border-border-dark bg-gray-50 dark:bg-surface-dark/50 flex-shrink-0 flex gap-2"
                     x-show="selectedElement">
-                    <button @click="duplicateSelected()"
-                        class="flex-1 py-2 px-3 bg-white dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-lg text-xs font-medium text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 transition-colors">
+                    <button @click="duplicateSelected()" :disabled="getSelected().locked"
+                        class="flex-1 py-2 px-3 bg-white dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-lg text-xs font-medium text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 transition-colors disabled:opacity-50">
                         Duplicate
                     </button>
-                    <button @click="deleteSelected()"
-                        class="flex-1 py-2 px-3 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 rounded-lg text-xs font-medium text-red-600 dark:text-red-400 shadow-sm hover:bg-red-100 transition-colors">
+                    <button @click="deleteSelected()" :disabled="getSelected().locked"
+                        class="flex-1 py-2 px-3 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 rounded-lg text-xs font-medium text-red-600 dark:text-red-400 shadow-sm hover:bg-red-100 transition-colors disabled:opacity-50">
                         Delete
                     </button>
                 </div>
@@ -606,7 +904,7 @@
     </div>
 
     <!-- Media Picker Modal -->
-    <div x-show="showMediaPicker" class="fixed inset-0 z-50 flex items-center justify-center p-4"
+    <div x-show="showMediaPicker" class="fixed inset-0 z-[5000] flex items-center justify-center p-4"
         style="display: none;">
         <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showMediaPicker = false"
             x-transition.opacity></div>
@@ -640,321 +938,103 @@
 <script>
     function storeCMS() {
         return {
-            // State
+            // --- State ---
             zoom: 45,
             elements: [],
             selectedElement: null,
             hasUnsavedChanges: false,
 
-            // Interaction State
-            resizingPanel: null, // 'left' or 'right'
-            resizingElement: null, // 'nw', 'ne', 'sw', 'se'
+            // History / Undo-Redo
+            history: [],
+            historyIndex: -1,
+            isUndoing: false,
+
+            // Interaction
+            resizingPanel: null,
+            resizingElement: null,
             draggingElement: null,
             draggingOver: null,
             showMediaPicker: false,
 
-            // Metrics
+            // Snapping & Guides
+            guides: { x: [], y: [] },
+            snapThreshold: 10,
+
+            // Layout Metrics
             leftPanelWidth: 280,
             rightPanelWidth: 320,
             startMouse: { x: 0, y: 0 },
             startDims: { width: 0, height: 0, x: 0, y: 0 },
 
             init() {
-                // Empty initial state
-                this.elements = [];
-
-                // Keyboard shortcuts
-                window.addEventListener('keydown', (e) => {
-                    if (e.key === 'Delete' || e.key === 'Backspace') {
-                        if (this.selectedElement && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
-                            this.deleteSelected();
-                        }
-                    }
-                    if (e.key === 'Escape') {
-                        this.selectedElement = null;
-                    }
-                });
-                if (e.key === 'Escape') {
-                    this.selectedElement = null;
-                    this.showMediaPicker = false;
-                }
-            });
-
-            // Media Selection Listener
-            window.addEventListener('media-selected', (e) => {
-                this.handleMediaSelection(e.detail);
-            });
-        },
-
-            openMediaPicker() {
-            this.showMediaPicker = true;
-            // Trigger HTMX load
-            htmx.ajax('GET', '{% url "media_library" %}?picker=true', '#media-picker-content');
-        },
-
-        handleMediaSelection(media) {
-            const element = this.getSelected();
-            if (element && media.url) {
-                element.content = media.url;
-                this.hasUnsavedChanges = true;
-                this.showMediaPicker = false;
-            }
-        },
-
-        handleImageDrop(event, id) {
-            const file = event.dataTransfer.files[0];
-            if (!file || !file.type.startsWith('image/')) return;
-
-            const element = this.elements.find(el => el.id === id);
-            // Optimistic update or loading state could go here
-
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('media_type', 'IMAGE');
-
-            fetch('{% url "upload_media" %}', {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: formData
-            })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.status === 'success' && element) {
-                        element.content = data.url;
-                        this.hasUnsavedChanges = true;
-                    } else {
-                        alert('Upload failed: ' + (data.message || 'Unknown error'));
-                    }
-                })
-                .catch(err => {
-                    console.error('Upload error:', err);
-                    alert('Upload failed');
-                });
-        },
-
-        // --- Panel Resizing ---
-        startPanelResize(event, side) {
-            this.resizingPanel = side;
-            this.startMouse = { x: event.clientX, y: event.clientY };
-            this.startDims = {
-                width: side === 'left' ? this.leftPanelWidth : this.rightPanelWidth
-            };
-            document.body.style.cursor = 'col-resize';
-            document.body.style.userSelect = 'none';
-        },
-
-        // --- Element Interaction ---
-        startDrag(event, id) {
-            if (event.button !== 0 || this.resizingElement) return;
-
-            this.draggingElement = id;
-            this.selectElement(id);
-
-            const element = this.elements.find(el => el.id === id);
-            const scale = this.zoom / 100;
-
-            this.startMouse = { x: event.clientX, y: event.clientY };
-            this.startDims = { x: element.x, y: element.y };
-        },
-
-        startElementResize(event, handle) {
-            event.stopPropagation(); // Prevent drag start
-            this.resizingElement = handle;
-
-            const element = this.getSelected();
-            this.startMouse = { x: event.clientX, y: event.clientY };
-            this.startDims = {
-                width: element.width,
-                height: element.height,
-                x: element.x,
-                y: element.y
-            };
-        },
-
-        handleGlobalMouseMove(event) {
-            // 1. Panel Resizing
-            if (this.resizingPanel) {
-                const delta = event.clientX - this.startMouse.x;
-                if (this.resizingPanel === 'left') {
-                    const newWidth = Math.max(200, Math.min(this.startDims.width + delta, 500));
-                    this.leftPanelWidth = newWidth;
+ const savedData = {{ layout_data_json| safe } }; this.elements = Array.isArray(savedData) ? savedData : []; this.recordState(); // Initial state // Keyboard Shortcuts window.addEventListener('keydown', (e) => { // Undo: Ctrl+Z if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) { e.preventDefault(); this.undo(); } // Redo: Ctrl+Y or Ctrl+Shift+Z if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) { e.preventDefault(); this.redo(); } // Delete if (e.key === 'Delete' || e.key === 'Backspace') { if (this.selectedElement && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') { this.deleteSelected(); } } // Escape if (e.key === 'Escape') { this.selectedElement = null; this.showMediaPicker = false; } }); window.addEventListener('media-selected', (e) => this.handleMediaSelection(e.detail)); }, // --- History Management --- recordState() { if (this.isUndoing) return; // Truncate future if we're in the middle if (this.historyIndex < this.history.length - 1) { this.history = this.history.slice(0, this.historyIndex + 1); } // Push deep copy this.history.push(JSON.stringify(this.elements)); this.historyIndex++; this.hasUnsavedChanges = true; }, undo() { if (this.historyIndex > 0) { this.isUndoing = true; this.historyIndex--; this.elements = JSON.parse(this.history[this.historyIndex]); this.selectedElement = null; // Deselect to avoid ghost selection this.$nextTick(() => this.isUndoing = false); } }, redo() { if (this.historyIndex < this.history.length - 1) { this.isUndoing = true; this.historyIndex++; this.elements = JSON.parse(this.history[this.historyIndex]); this.selectedElement = null; this.$nextTick(() => this.isUndoing = false); } }, // --- Layer Management --- // Z-Index is implicitly handled by array order (last = top) moveLayer(id, direction) { const index = this.elements.findIndex(el => el.id === id); if (index === -1) return; const el = this.elements[index]; let newIndex = index; if (direction === 'up') newIndex = Math.min(index + 1, this.elements.length - 1); if (direction === 'down') newIndex = Math.max(index - 1, 0); if (direction === 'front') newIndex = this.elements.length - 1; if (direction === 'back') newIndex = 0; if (newIndex !== index) { this.elements.splice(index, 1); this.elements.splice(newIndex, 0, el); this.recordState(); } }, toggleLock(id) { const el = this.elements.find(e => e.id === id); if (el) { el.locked = !el.locked; this.recordState(); } }, toggleVisibility(id) { const el = this.elements.find(e => e.id === id); if (el) { el.visible = !el.visible; // If hiding selected, deselect if (!el.visible && this.selectedElement === id) { this.selectedElement = null; } this.recordState(); } }, // --- Drag & Snap --- handleGlobalMouseMove(event) { // 1. Panel Resizing if (this.resizingPanel) { const delta = event.clientX - this.startMouse.x; if (this.resizingPanel === 'left') { this.leftPanelWidth = Math.max(200, Math.min(this.startDims.width + delta, 500)); } else { this.rightPanelWidth = Math.max(250, Math.min(this.startDims.width - delta, 500)); } return; } // 2. Element Dragging (with Snapping) if (this.draggingElement) { const el = this.elements.find(e => e.id === this.draggingElement); if (!el || el.locked) return; const scale = this.zoom / 100; const deltaX = (event.clientX - this.startMouse.x) / scale; const deltaY = (event.clientY - this.startMouse.y) / scale; let newX = this.startDims.x + deltaX; let newY = this.startDims.y + deltaY; // Reset guides this.guides = { x: [], y: [] }; // Snapping Logic const centerX = newX + el.width / 2; const centerY = newY + el.height / 2; const rightX = newX + el.width; const bottomY = newY + el.height; const canvasW = 1920; const canvasH = 1080; // Snap to Canvas Center if (Math.abs(centerX - canvasW / 2) < this.snapThreshold) { newX = canvasW / 2 - el.width / 2; this.guides.x.push(canvasW / 2); } if (Math.abs(centerY - canvasH / 2) < this.snapThreshold) { newY = canvasH / 2 - el.height / 2; this.guides.y.push(canvasH / 2); } // Snap to other elements (simplified centers for now) /* // Expansion: Loop through other elements and check alignment this.elements.forEach(other => { if (other.id === el.id) return; // ... complex edge comparisons ... }); */ el.x = newX; el.y = newY; return; // Don't record state on every mouse move, only on Up } // 3. Element Resizing if (this.resizingElement) { const el = this.getSelected(); if (!el || el.locked) return; const scale = this.zoom / 100; const deltaX = (event.clientX - this.startMouse.x) / scale; const deltaY = (event.clientY - this.startMouse.y) / scale; const handle = this.resizingElement; if (handle.includes('e')) el.width = Math.max(20, this.startDims.width + deltaX); if (handle.includes('w')) { const newWidth = Math.max(20, this.startDims.width - deltaX); el.width = newWidth; el.x = this.startDims.x + (this.startDims.width - newWidth); } if (handle.includes('s')) el.height = Math.max(20, this.startDims.height + deltaY); if (handle.includes('n')) { const newHeight = Math.max(20, this.startDims.height - deltaY); el.height = newHeight; el.y = this.startDims.y + (this.startDims.height - newHeight); } } }, handleGlobalMouseUp() { if (this.draggingElement || this.resizingElement) { this.recordState(); // Commit change } this.resizingPanel = null; this.draggingElement = null; this.resizingElement = null; this.guides = { x: [], y: [] }; // Clear guides document.body.style.cursor = ''; document.body.style.userSelect = ''; }, // --- Standard Methods --- startDrag(event, id) { if (event.button !== 0 || this.resizingElement) return; const el = this.elements.find(e => e.id === id); if (el.locked) return; this.draggingElement = id; this.selectElement(id); this.startMouse = { x: event.clientX, y: event.clientY }; this.startDims = { x: el.x, y: el.y }; }, startElementResize(event, handle) { event.stopPropagation(); const el = this.getSelected(); if (el.locked) return; this.resizingElement = handle; this.startMouse = { x: event.clientX, y: event.clientY }; this.startDims = { width: el.width, height: el.height, x: el.x, y: el.y }; }, addElement(type) { const id = 'el_' + Date.now(); const defaults = { heading: { width: 400, height: 80, content: 'New Heading', fontSize: 36, color: '#111827', textAlign: 'center' }, paragraph: { width: 400, height: 120, content: 'Double click to edit text', fontSize: 18, color: '#374151', textAlign: 'left' }, image: { width: 300, height: 200, content: '', objectFit: 'cover' }, video: { width: 400, height: 225, content: '', autoplay: false, loop: false, muted: false }, weather: { width: 250, height: 150, city: 'London', unit: 'c' }, clock: { width: 200, height: 100, timezone: 'local', showDate: true, showSeconds: false }, qrcode: { width: 150, height: 150, url: 'https://example.com', color: '#000000' }, instagram: { width: 300, height: 350, source: '@instagram', mode: 'grid' } }; const config = defaults[type] || { width: 200, height: 100 }; this.elements.push({ id: id, type: type, x: 1920 / 2 - config.width / 2, y: 1080 / 2 - config.height / 2, width: config.width, height: config.height, content: config.content || '', backgroundColor: '', opacity: 100, shadow: 'none', locked: false, visible: true, // Specific defaults fontSize: config.fontSize, color: config.color, textAlign: config.textAlign, objectFit: config.objectFit, autoplay: config.autoplay, loop: config.loop, muted: config.muted, city: config.city, unit: config.unit, timezone: config.timezone, showDate: config.showDate, showSeconds: config.showSeconds, url: config.url, source: config.source, mode: config.mode }); this.selectedElement = id; this.recordState(); }, selectElement(id) { this.selectedElement = id; }, getSelected() { return this.elements.find(el => el.id === this.selectedElement) || {}; }, deleteElement(id) { this.elements = this.elements.filter(el => el.id !== id); if (this.selectedElement === id) this.selectedElement = null; this.recordState(); }, deleteSelected() { if (this.selectedElement) this.deleteElement(this.selectedElement); }, duplicateSelected() { const selected = this.getSelected(); if (selected && selected.id) { const newId = 'el_' + Date.now(); const newElement = { ...selected, id: newId, x: selected.x + 20, y: selected.y + 20 }; this.elements.push(newElement); this.selectedElement = newId; this.recordState(); } }, // ... (keep existing media helpers if needed or rely on previous pattern) openMediaPicker() { this.showMediaPicker = true; htmx.ajax('GET', '{% url "media_library" %}?picker=true', '#media-picker-content'); }, handleMediaSelection(media) { const element = this.getSelected(); if (element && media.url) { element.content = media.url; this.showMediaPicker = false; this.recordState(); } }, handleImageDrop(event, id) { const file = event.dataTransfer.files[0]; if (!file || !file.type.startsWith('image/')) return; const element = this.elements.find(el => el.id === id); const formData = new FormData(); formData.append('file', file); formData.append('media_type', 'IMAGE'); fetch('{% url "upload_media" %}', { method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}', 'X-Requested-With': 'XMLHttpRequest' },
+            body: formData
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success' && element) {
+                    element.content = data.url;
+                    this.recordState();
                 } else {
-                    const newWidth = Math.max(250, Math.min(this.startDims.width - delta, 500));
-                    this.rightPanelWidth = newWidth;
+                    alert('Upload failed: ' + (data.message || 'Unknown error'));
                 }
-                return;
-            }
-
-            // 2. Element Dragging
-            if (this.draggingElement) {
-                const scale = this.zoom / 100;
-                const deltaX = (event.clientX - this.startMouse.x) / scale;
-                const deltaY = (event.clientY - this.startMouse.y) / scale;
-
-                const element = this.elements.find(el => el.id === this.draggingElement);
-                if (element) {
-                    element.x = this.startDims.x + deltaX;
-                    element.y = this.startDims.y + deltaY;
-                    this.hasUnsavedChanges = true;
-                }
-                return;
-            }
-
-            // 3. Element Resizing
-            if (this.resizingElement) {
-                const scale = this.zoom / 100;
-                const deltaX = (event.clientX - this.startMouse.x) / scale;
-                const deltaY = (event.clientY - this.startMouse.y) / scale;
-
-                const element = this.getSelected();
-                const handle = this.resizingElement;
-
-                if (handle.includes('e')) element.width = Math.max(20, this.startDims.width + deltaX);
-                if (handle.includes('w')) {
-                    const newWidth = Math.max(20, this.startDims.width - deltaX);
-                    element.width = newWidth;
-                    element.x = this.startDims.x + (this.startDims.width - newWidth);
-                }
-                if (handle.includes('s')) element.height = Math.max(20, this.startDims.height + deltaY);
-                if (handle.includes('n')) {
-                    const newHeight = Math.max(20, this.startDims.height - deltaY);
-                    element.height = newHeight;
-                    element.y = this.startDims.y + (this.startDims.height - newHeight);
-                }
-
-                this.hasUnsavedChanges = true;
-            }
-        },
-
-        handleGlobalMouseUp() {
-            this.resizingPanel = null;
-            this.draggingElement = null;
-            this.resizingElement = null;
-            document.body.style.cursor = '';
-            document.body.style.userSelect = '';
-        },
-
-        // --- Helpers ---
-        addElement(type) {
-            const id = 'el_' + Date.now();
-            const defaults = {
-                heading: { width: 400, height: 80, content: 'New Heading' },
-                paragraph: { width: 400, height: 120, content: 'Double click to edit text' },
-                image: { width: 300, height: 200, content: '' },
-                video: { width: 400, height: 225 },
-                weather: { width: 250, height: 150 },
-                clock: { width: 200, height: 100 },
-                qrcode: { width: 150, height: 150 },
-            };
-
-            const config = defaults[type] || { width: 200, height: 100 };
-
-            this.elements.push({
-                id: id,
-                type: type,
-                x: 1920 / 2 - config.width / 2,
-                y: 1080 / 2 - config.height / 2,
-                width: config.width,
-                height: config.height,
-                content: config.content || '',
-                backgroundColor: '',
-                opacity: 100,
-                shadow: 'none',
-                zIndex: 10,
-                ...config
             });
+    },
 
-            this.selectedElement = id;
-            this.hasUnsavedChanges = true;
-        },
+    saveLayoutName(name) {
+        // Optional: trigger save or just update history
+    },
 
-        selectElement(id) {
-            this.selectedElement = id;
-        },
+    saveLayout() {
+        const formData = new FormData();
+        formData.append('layout_data', JSON.stringify(this.elements));
+        formData.append('canvas_width', 1920);
+        formData.append('canvas_height', 1080);
+        formData.append('status', 'PUBLISHED');
 
-        getSelected() {
-            return this.elements.find(el => el.id === this.selectedElement) || {};
-        },
+        const btn = event.currentTarget || document.querySelector('button[title="Save & Publish"]');
+        const originalText = btn ? btn.innerHTML : '';
+        if (btn) btn.innerHTML = '<span class="material-symbols-outlined text-lg">sync</span> Saving...';
 
-        deleteElement(id) {
-            this.elements = this.elements.filter(el => el.id !== id);
-            if (this.selectedElement === id) this.selectedElement = null;
-            this.hasUnsavedChanges = true;
-        },
-
-        deleteSelected() {
-            if (this.selectedElement) this.deleteElement(this.selectedElement);
-        },
-
-        duplicateSelected() {
-            const selected = this.getSelected();
-            if (selected && selected.id) {
-                const newId = 'el_' + Date.now();
-                const newElement = {
-                    ...selected,
-                    id: newId,
-                    x: selected.x + 20,
-                    y: selected.y + 20
-                };
-                this.elements.push(newElement);
-                this.selectedElement = newId;
-            }
-        },
-
-        getShadowStyle(shadowType) {
-            const shadows = {
-                'none': 'none',
-                'sm': '0 1px 2px 0 rgb(0 0 0 / 0.05)',
-                'md': '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-                'lg': '0 10px 15px -3px rgb(0 0 0 / 0.1)',
-                'xl': '0 20px 25px -5px rgb(0 0 0 / 0.1)'
-            };
-            return shadows[shadowType] || 'none';
-        },
-
-        saveLayout() {
-            const formData = new FormData();
-            formData.append('layout_data', JSON.stringify(this.elements));
-            formData.append('canvas_width', 1920);
-            formData.append('canvas_height', 1080);
-            formData.append('status', 'PUBLISHED'); // Or map from UI
-
-            // Use the button for feedback
-            const btn = event.currentTarget || document.querySelector('button[title="Save & Publish"]'); // Fallback if called programmatically
-            const originalText = btn ? btn.innerHTML : '';
-            if (btn) btn.innerHTML = '<span class="material-symbols-outlined text-lg">sync</span> Saving...';
-
-            fetch('{% url "save_layout" layout.id %}', {
-                method: 'POST',
-                headers: { 'X-CSRFToken': '{{ csrf_token }}' },
-                body: formData
-            })
-                .then(response => {
-                    if (response.ok) {
-                        this.hasUnsavedChanges = false;
-                        if (btn) {
-                            btn.innerHTML = '<span class="material-symbols-outlined text-lg">check</span> Saved!';
-                            setTimeout(() => btn.innerHTML = originalText, 1000);
-                        }
-                    } else {
-                        alert('Error saving layout');
-                        if (btn) btn.innerHTML = originalText;
+        fetch('{% url "save_layout" layout.id %}', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+            body: formData
+        })
+            .then(response => {
+                if (response.ok) {
+                    this.hasUnsavedChanges = false;
+                    if (btn) {
+                        btn.innerHTML = '<span class="material-symbols-outlined text-lg">check</span> Saved!';
+                        setTimeout(() => btn.innerHTML = originalText, 1000);
                     }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
+                } else {
                     alert('Error saving layout');
                     if (btn) btn.innerHTML = originalText;
-                });
-        },
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error saving layout');
+                if (btn) btn.innerHTML = originalText;
+            });
+    },
 
-        previewLayout() {
-            alert('Preview functionality coming soon!');
-        }
+    previewLayout() {
+        alert("Preview Mode not implemented yet.");
+    },
+
+    getShadowStyle(shadowType) {
+        const shadows = {
+            'none': 'none',
+            'sm': '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+            'md': '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+            'lg': '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+            'xl': '0 20px 25px -5px rgb(0 0 0 / 0.1)'
+        };
+        return shadows[shadowType] || 'none';
     }
+        }
     }
 </script>
 {% endblock %}

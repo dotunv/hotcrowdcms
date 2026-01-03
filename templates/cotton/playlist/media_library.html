@@ -59,27 +59,29 @@
             </div>
             {% endfor %}
         </div>
+
+        <script>
+            (function () {
+                var el = document.getElementById('media-library-sortable');
+                if (el && !el.sortable) {
+                    new Sortable(el, {
+                        group: {
+                            name: 'shared',
+                            pull: 'clone',
+                            put: false
+                        },
+                        sort: false, // Disable sorting within library
+                        animation: 150,
+                        ghostClass: 'opacity-50',
+                        draggable: '.draggable-source'
+                    });
+                    el.sortable = true;
+                }
+            })();
+        </script>
     </div>
 
-    <script>
-        (function () {
-            var el = document.getElementById('media-library-sortable');
-            if (el && !el.sortable) {
-                new Sortable(el, {
-                    group: {
-                        name: 'shared',
-                        pull: 'clone',
-                        put: false
-                    },
-                    sort: false, // Disable sorting within library
-                    animation: 150,
-                    ghostClass: 'opacity-50',
-                    draggable: '.draggable-source'
-                });
-                el.sortable = true;
-            }
-        })();
-    </script>
+
 
     <!-- Upload Button (Fixed at bottom of sidebar) -->
     <div class="p-3 border-t border-slate-100 bg-white">
