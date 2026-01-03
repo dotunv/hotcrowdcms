@@ -20,17 +20,13 @@
                 </div>
 
                 <div class="relative group">
-                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <span
-                            class="material-symbols-outlined text-gray-400 group-focus-within:text-primary transition-colors">search</span>
-                    </div>
-                    <input type="text"
-                        class="block w-full pl-12 pr-4 py-4 bg-white dark:bg-surface-dark border-0 rounded-2xl text-gray-900 dark:text-white shadow-lg shadow-gray-200/50 dark:shadow-none ring-1 ring-inset ring-gray-200 dark:ring-gray-700 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-base leading-6 transition-shadow"
-                        placeholder="Ask a question..." autocomplete="off">
-                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
-                        <kbd
-                            class="hidden sm:inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-500 bg-gray-100 dark:bg-gray-800 rounded-lg">⌘K</kbd>
-                    </div>
+                    <c-ui.input name="search" icon="search" placeholder="Ask a question..." autocomplete="off"
+                        input_class="py-4 shadow-lg shadow-gray-200/50 dark:shadow-none ring-1 ring-inset ring-gray-200 dark:ring-gray-700 sm:text-base leading-6 transition-shadow group-focus-within:ring-primary">
+                        <div slot="suffix" class="flex items-center">
+                            <kbd
+                                class="hidden sm:inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-500 bg-gray-100 dark:bg-gray-800 rounded-lg">⌘K</kbd>
+                        </div>
+                    </c-ui.input>
                 </div>
 
                 <div class="flex flex-wrap justify-center gap-2 text-sm text-gray-500 dark:text-gray-400">

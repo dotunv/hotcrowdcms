@@ -56,6 +56,17 @@ class Store(models.Model):
     def __str__(self):
         return self.business_name or self.user.username
 
+    @property
+    def initials(self):
+        """Returns initials for the store logo placeholder."""
+        name = self.business_name or self.user.username
+        if not name:
+            return "LM"
+        parts = name.strip().split()
+        if len(parts) >= 2:
+            return f"{parts[0][0]}{parts[1][0]}".upper()
+        return name[:2].upper()
+
 class MediaAsset(models.Model):
     MEDIA_TYPES = [
         ('VIDEO', 'Video'),

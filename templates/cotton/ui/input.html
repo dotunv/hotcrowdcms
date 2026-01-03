@@ -1,0 +1,70 @@
+<div class="{{ class }}" x-data="{ 
+    showPassword: false, 
+    type: '{{ type|default:'text' }}',
+    get inputType() {
+        if ('{{ type }}' === 'password') {
+            return this.showPassword ? 'text' : 'password';
+        }
+        return this.type;
+    }
+}">
+    {% if label %}
+    <label {% if id %}for="{{ id }}" {% endif %}
+        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+        {{ label }}
+    </label>
+    {% endif %}
+
+    <div class="relative">
+        <!-- Icon / Prefix Slot -->
+        {% if icon %}
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <span class="material-symbols-outlined text-gray-400 text-[20px]">{{ icon }}</span>
+        </div>
+        {% elif slot.prefix %}
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+            {{ slot.prefix }}
+        </div>
+        {% endif %}
+
+        <!-- Input Field -->
+        <input name="{{ name }}" {% if id %}id="{{ id }}" {% endif %} :type="inputType" class="block w-full 
+                {% if icon or slot.prefix %}pl-10{% else %}pl-4{% endif %} 
+                {% if type == 'password' or slot.suffix %}pr-10{% else %}pr-4{% endif %} 
+                py-2.5 
+                border-gray-300 dark:border-gray-600 
+                rounded-xl 
+                bg-gray-50 dark:bg-gray-800 
+                text-gray-900 dark:text-white 
+                placeholder-gray-400 
+                focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent 
+                transition-shadow sm:text-sm
+                disabled:opacity-60 disabled:cursor-not-allowed
+                read-only:bg-gray-100 dark:read-only:bg-gray-900 read-only:text-gray-500 read-only:cursor-not-allowed
+ {{ input_class }}" {% if placeholder %}placeholder="{{ placeholder }}" {% endif %} {% if value %}value="{{ value }}" {% endif %} {% if required %}required{% endif %} {% if readonly %}readonly{% endif %}
+            {{ attrs }}>
+
+        <!-- Suffix Slot / Password Toggle -->
+        {% if type == 'password' %}
+        <button type="button" @click="showPassword = !showPassword"
+            class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors focus:outline-none">
+            <span class="material-symbols-outlined text-[20px]"
+                x-text="showPassword ? 'visibility' : 'visibility_off'"></span>
+        </button>
+        {% elif slot.suffix %}
+        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
+            {{ slot.suffix }}
+        </div>
+        {% endif %}
+    </div>
+
+    {% if errors %}
+    {% for error in errors %}
+    <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+    {% endfor %}
+    {% endif %}
+
+    {% if help_text %}
+    <p class="mt-1 text-xs text-muted-light dark:text-muted-dark">{{ help_text|safe }}</p>
+    {% endif %}
+</div>

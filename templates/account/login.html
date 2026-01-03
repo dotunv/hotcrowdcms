@@ -24,18 +24,9 @@
             {% endif %}
 
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
-                    for="{{ form.login.id_for_label }}">Email address</label>
-                <div class="relative">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <span class="material-symbols-outlined text-gray-400 text-[20px]">mail</span>
-                    </div>
-                    <input
-                        class="block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-shadow sm:text-sm"
-                        id="{{ form.login.id_for_label }}" name="{{ form.login.name }}" type="email"
-                        placeholder="you@company.com" required {% if form.login.value %}value="{{ form.login.value }}"
-                        {% endif %}>
-                </div>
+                <c-ui.input name="{{ form.login.name }}" id="{{ form.login.id_for_label }}" type="email"
+                    label="Email address" icon="mail" placeholder="you@company.com"
+                    value="{{ form.login.value|default:'' }}" required />
             </div>
 
             <div>
@@ -45,20 +36,8 @@
                     <a class="text-xs font-semibold text-primary hover:text-secondary transition-colors"
                         href="{% url 'account_reset_password' %}">Forgot password?</a>
                 </div>
-                <div class="relative" x-data="{ show: false }">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <span class="material-symbols-outlined text-gray-400 text-[20px]">lock</span>
-                    </div>
-                    <input
-                        class="block w-full pl-10 pr-10 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-shadow sm:text-sm"
-                        id="{{ form.password.id_for_label }}" name="{{ form.password.name }}"
-                        :type="show ? 'text' : 'password'" placeholder="••••••••" required>
-                    <button type="button" @click="show = !show"
-                        class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors focus:outline-none">
-                        <span class="material-symbols-outlined text-[20px]"
-                            x-text="show ? 'visibility' : 'visibility_off'"></span>
-                    </button>
-                </div>
+                <c-ui.input name="{{ form.password.name }}" id="{{ form.password.id_for_label }}" type="password"
+                    icon="lock" placeholder="••••••••" required />
             </div>
 
             <div class="flex items-center">

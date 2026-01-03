@@ -6,15 +6,16 @@
   <component name="ChangeListManager">
     <list default="true" id="51ab4ac4-ade2-4a58-8031-1db1bb698259" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cms/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/cms/urls.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cms/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/cms/views.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/config/settings.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/core/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/assign_playlist.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/assign_playlist.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/account/login.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/account/login.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/account/signup.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/account/signup.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/configuration.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/configuration.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/templates/cotton/layouts/sidebar.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/cotton/layouts/sidebar.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/cotton/playlist/media_library.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/cotton/playlist/media_library.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/cotton/playlist/sequence_editor.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/cotton/playlist/sequence_editor.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/screens.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/screens.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/playlists.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/playlists.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/store_cms.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/store_cms.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/templates/store_cms_layout.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/store_cms_layout.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/support.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/support.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -25,7 +26,7 @@
     <option name="myCustomStartScript" value="import sys; print('Python %s on %s' % (sys.version, sys.platform))&#10;import django; print('Django %s' % django.get_version())&#10;sys.path.extend([WORKING_DIR_AND_PYTHON_PATHS])&#10;if 'setup' in dir(django): django.setup()&#10;import django_manage_shell; django_manage_shell.run(PROJECT_ROOT)" />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="99" />
+    <option name="cachedIndexableFilesCount" value="104" />
     <option name="fileBasedEmbeddingIndicesEnabled" value="true" />
   </component>
   <component name="Git.Settings">
@@ -120,7 +121,7 @@
       <option name="presentableId" value="Default" />
       <updated>1767201355222</updated>
       <workItem from="1767202438430" duration="2763000" />
-      <workItem from="1767434601383" duration="24631000" />
+      <workItem from="1767434601383" duration="26469000" />
     </task>
     <servers />
   </component>
