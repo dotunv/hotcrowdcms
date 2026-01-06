@@ -24,7 +24,8 @@
                         {{ playlist.get_status_display }}
                     </span>
                 </div>
-                <p class="text-muted-light dark:text-muted-dark text-sm">Last saved {{ playlist.updated_at|timesince }} ago</p>
+                <p class="text-muted-light dark:text-muted-dark text-sm">Last saved {{ playlist.updated_at|timesince }}
+                    ago</p>
             </div>
 
             <div class="flex items-center gap-3">
@@ -77,21 +78,11 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'js/playlist_editor.js' %}"></script>
 <script>
-    function saveOrder() {
-        const items = document.querySelectorAll('.sequence-item');
-        const itemIds = Array.from(items).map(item => item.dataset.id);
-
-        const formData = new FormData();
-        formData.append('playlist_id', '{{ playlist.id }}');
-        itemIds.forEach(id => formData.append('item', id));
-
-        fetch('{% url "reorder_playlist" %}', {
-            method: 'POST',
-            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
-            body: formData
-        });
-    }
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('playlistEditor', (config) => playlistEditor(config));
+    });
 
     function openPreviewModal() {
         document.getElementById('previewModal').classList.remove('hidden');

@@ -106,8 +106,7 @@
                                                 {% if store.logo_url %}
                                                 <img src="{{ store.logo_url }}" class="w-full h-full object-cover">
                                                 {% else %}
-                                                <span class="text-3xl font-bold text-gray-300">{{
-                                                    store.business_name|slice:":2"|upper }}</span>
+ <span class="text-3xl font-bold text-gray-300">{{ store.business_name|slice:":2"|upper }}</span>
                                                 {% endif %}
                                             </div>
                                             <button type="button"
@@ -531,8 +530,7 @@
                                                         class="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-green-200 text-green-800 dark:bg-green-800 dark:text-green-100">Connected</span>
                                                     {% endif %}
                                                 </div>
-                                                <p class="text-xs text-muted-light mt-0.5">Syncing @{{
-                                                    store.business_name|slugify }} posts daily.</p>
+ <p class="text-xs text-muted-light mt-0.5">Syncing @{{ store.business_name|slugify }} posts daily.</p>
                                             </div>
                                         </div>
                                         <button type="submit" name="toggle_instagram"

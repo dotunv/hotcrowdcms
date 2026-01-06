@@ -1,14 +1,22 @@
 <c-vars playlist />
 
 <div id="playlist-sequence-container"
-    class="flex-1 flex flex-col bg-white rounded-xl shadow-sm border border-slate-100 min-w-0">
+    class="flex-1 flex flex-col bg-white rounded-xl shadow-sm border border-slate-100 min-w-0" x-data="playlistEditor({
+        playlistId: '{{ playlist.id }}',
+        csrfToken: '{{ csrf_token }}',
+        urls: {
+            addMedia: '{% url 'add_to_playlist' '__MEDIA_ID__' %}', 
+            reorderPlaylist: '{% url 'reorder_playlist' %}'
+        }
+    })">
     <div class="px-5 py-4 border-b border-slate-100 flex justify-between items-center">
         <div class="flex items-center gap-2">
             <svg class="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" />
             </svg>
             <h3 class="font-bold text-slate-900">Sequence</h3>
- <span class="bg-slate-100 text-slate-600 text-xs font-semibold px-2 py-0.5 rounded-full">{{ playlist.items.count }} items</span>
+            <span class="bg-slate-100 text-slate-600 text-xs font-semibold px-2 py-0.5 rounded-full">{{
+                playlist.items.count }} items</span>
         </div>
         <!-- Calculate total duration approximately in template or backend -->
         <div class="text-sm font-mono text-slate-500">
@@ -51,10 +59,12 @@
                 <!-- Details -->
                 <div class="flex-1 min-w-0">
                     <h4 class="text-sm font-medium text-slate-900 truncate">
-                        {% if item.media.media_type == 'IMAGE' %}Weekly Specials Banner{% else %}Fall Collection Promo{% endif %}
+                        {% if item.media.media_type == 'IMAGE' %}Weekly Specials Banner{% else %}Fall Collection Promo{%
+                        endif %}
                     </h4>
                     <div class="flex items-center gap-2 mt-0.5">
- <span class="text-[10px] uppercase font-bold text-slate-500 bg-slate-100 px-1.5 rounded">{{ item.media.media_type }}</span>
+                        <span class="text-[10px] uppercase font-bold text-slate-500 bg-slate-100 px-1.5 rounded">{{
+                            item.media.media_type }}</span>
                         <span class="text-xs text-slate-400">1920x1080</span>
                     </div>
                 </div>
@@ -94,48 +104,5 @@
             </div>
             {% endfor %}
         </div>
-
-        <script>
-            // Re-init Sortable if needed when content is swapped? 
-            // Usually standard HTMX swap re-executes scripts in snippet.
-            // Ideally put this in a load handler or use hyperscript _="on load initSortable"
-            (function () {
-                var el = document.getElementById('playlist-sequence');
-                if (el && !el.sortable) {
-                    new Sortable(el, {
-                        group: {
-                            name: 'shared',
-                            pull: false,
-                            put: true
-                        },
-                        animation: 150,
-                        ghostClass: 'bg-slate-50',
-                        handle: '.cursor-move',
-                        onAdd: function (evt) {
-                            var itemEl = evt.item;
-                            var mediaId = itemEl.dataset.id;
-
-                            // We need to trigger the add_to_playlist endpoint.
-                            // Since HTMX is best for this, we can programmatically trigger an HTMX request
-                            // or usefetch. Let's use htmx.ajax if available or a hidden button click.
-                            // Easier: create a temporary form/button and click it, or use htmx.ajax
-
-                            // Remove the dragged element immediately as the backend will re-render the list
-                            itemEl.remove();
-
-                            htmx.ajax('POST', '/add-media/' + mediaId + '/', {
-                                target: '#playlist-sequence-container',
-                                swap: 'outerHTML',
-                                values: { playlist_id: '{{ playlist.id }}' }
-                            });
-                        },
-                        onEnd: function (evt) {
-                            saveOrder();
-                        }
-                    });
-                    el.sortable = true;
-                }
-            })();
-        </script>
     </div>
 </div>
