@@ -6,6 +6,9 @@
 {% block extra_head %}
 <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet" />
+<link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Roboto:wght@400;700&family=Montserrat:wght@400;700&family=Playfair+Display:wght@400;700&family=Open+Sans:wght@400;700&display=swap"
+    rel="stylesheet">
 <script>
     tailwind.config = {
         darkMode: "class",
@@ -149,26 +152,28 @@
             <div class="flex items-center gap-3 mx-4">
                 <div
                     class="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5 border border-border-light dark:border-border-dark">
-                    <button class="p-1 px-2 rounded-md hover:bg-white dark:hover:bg-gray-700 shadow-sm transition-all"
-                        title="Desktop">
+                    <button @click="setViewport('desktop')" class="p-1 px-2 rounded-md shadow-sm transition-all"
+                        :class="currentViewport === 'desktop' ? 'bg-white dark:bg-gray-700 text-primary' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'"
+                        title="Desktop (1920x1080)">
                         <span class="material-symbols-outlined text-sm">desktop_windows</span>
                     </button>
-                    <button
-                        class="p-1 px-2 rounded-md text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"
-                        title="Tablet">
+                    <button @click="setViewport('tablet')" class="p-1 px-2 rounded-md transition-colors"
+                        :class="currentViewport === 'tablet' ? 'bg-white dark:bg-gray-700 text-primary shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'"
+                        title="Tablet (768x1024)">
                         <span class="material-symbols-outlined text-sm">tablet</span>
                     </button>
-                    <button
-                        class="p-1 px-2 rounded-md text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"
-                        title="Mobile">
+                    <button @click="setViewport('mobile')" class="p-1 px-2 rounded-md transition-colors"
+                        :class="currentViewport === 'mobile' ? 'bg-white dark:bg-gray-700 text-primary shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'"
+                        title="Mobile (390x844)">
                         <span class="material-symbols-outlined text-sm">smartphone</span>
                     </button>
                 </div>
 
                 <div class="h-6 w-px bg-gray-200 dark:bg-gray-700"></div>
 
-                <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                    <span>1920×1080</span>
+                <div
+                    class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap font-mono">
+                    <span x-text="canvasWidth + '×' + canvasHeight">1920×1080</span>
                 </div>
 
                 <div class="h-6 w-px bg-gray-200 dark:bg-gray-700"></div>
@@ -205,6 +210,11 @@
                 <button @click="previewLayout()"
                     class="px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-primary transition-colors">
                     Preview
+                </button>
+                <div class="h-6 w-px bg-gray-200 dark:bg-gray-700 mx-2"></div>
+                <button @click="saveLayout('DRAFT')"
+                    class="px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-primary transition-colors">
+                    Save Draft
                 </button>
                 <button @click="saveLayout()"
                     class="inline-flex items-center gap-2 px-4 py-1.5 bg-primary hover:bg-secondary text-white text-sm font-bold rounded-lg shadow-sm shadow-primary/30 transition-all">
@@ -307,8 +317,17 @@
                 <div class="flex-1 overflow-auto p-12 flex items-center justify-center canvas-grid relative custom-scrollbar"
                     id="canvas-container" @click.self="selectedElement = null">
 
-                    <div class="bg-white dark:bg-surface-dark shadow-2xl relative transition-transform duration-75 origin-center group ring-1 ring-border-light dark:ring-border-dark"
-                        :style="{ width: '1920px', height: '1080px', transform: `scale(${zoom / 100})` }">
+                    <div class="bg-white dark:bg-surface-dark shadow-2xl relative transition-all duration-300 origin-center group ring-1 ring-border-light dark:ring-border-dark"
+                        :style="{ 
+                            width: canvasWidth + 'px', 
+                            height: canvasHeight + 'px', 
+                            transform: `scale(${zoom / 100})`,
+                            backgroundColor: canvasBackground.color,
+                            backgroundImage: canvasBackground.image ? `url(${canvasBackground.image})` : 'none',
+                            backgroundSize: canvasBackground.size,
+                            backgroundPosition: canvasBackground.position,
+                            backgroundRepeat: 'no-repeat'
+                        }">
 
                         <!-- Grid Overlay -->
                         <div class="absolute inset-0 pointer-events-none opacity-20"
@@ -327,14 +346,24 @@
 
                         <!-- Elements -->
                         <template x-for="(element, index) in elements" :key="element.id">
-                            <div class="absolute group/element select-none" x-show="element.visible"
-                                :class="{'cursor-move': !element.locked, 'cursor-not-allowed': element.locked}" :style="{ 
+                            <div class="absolute group/element select-none transition-all duration-200"
+                                x-show="element.visible" :class="{
+                                    'cursor-move': !element.locked, 
+                                    'cursor-not-allowed': element.locked,
+                                    'shadow-none': element.shadow === 'none',
+                                    'shadow-sm': element.shadow === 'sm',
+                                    'shadow-md': element.shadow === 'md',
+                                    'shadow-lg': element.shadow === 'lg',
+                                    'shadow-xl': element.shadow === 'xl'
+                                }" :style="{ 
                                      left: element.x + 'px', 
                                      top: element.y + 'px',
                                      width: element.width + 'px',
                                      height: element.height + 'px',
                                      zIndex: selectedElement === element.id ? 1000 : index,
-                                     opacity: element.opacity / 100
+                                     opacity: (element.opacity !== undefined ? element.opacity : 100) / 100,
+                                     borderRadius: (element.borderRadius || 0) + 'px',
+                                     backgroundColor: element.backgroundColor
                                  }" @mousedown.stop="startDrag($event, element.id)"
                                 @click.stop="selectElement(element.id)">
 
@@ -366,15 +395,18 @@
                                     :class="{'ring-1 ring-gray-200 dark:ring-gray-700': selectedElement !== element.id && !element.backgroundColor}">
 
                                     <!-- Heading -->
-                                    <div x-show="element.type === 'heading'"
-                                        class="w-full h-full flex items-center justify-center p-4">
-                                        <h2 class="text-4xl font-bold text-gray-900 dark:text-white text-center break-words leading-tight"
+                                    <!-- Heading -->
+                                    <div x-show="element.type === 'heading'" class="w-full h-full flex items-center p-4"
+                                        :class="{'justify-start': element.textAlign === 'left', 'justify-center': element.textAlign === 'center', 'justify-end': element.textAlign === 'right'}">
+                                        <h2 class="font-bold break-words leading-tight"
+                                            :style="{ fontSize: element.fontSize + 'px', color: element.color, textAlign: element.textAlign }"
                                             x-text="element.content || 'Heading Text'"></h2>
                                     </div>
 
                                     <!-- Paragraph -->
                                     <div x-show="element.type === 'paragraph'" class="w-full h-full p-4">
-                                        <p class="text-lg text-gray-700 dark:text-gray-300 leading-normal"
+                                        <p class="leading-normal h-full w-full break-words"
+                                            :style="{ fontSize: element.fontSize + 'px', color: element.color, textAlign: element.textAlign }"
                                             x-text="element.content || 'Lorem ipsum dolor sit amet.'"></p>
                                     </div>
 
@@ -387,8 +419,8 @@
                                         @dragleave.prevent="draggingOver = null">
 
                                         <template x-if="element.content">
-                                            <img :src="element.content"
-                                                class="w-full h-full object-cover pointer-events-none">
+                                            <img :src="element.content" class="w-full h-full pointer-events-none"
+                                                :style="{ objectFit: element.objectFit || 'cover' }">
                                         </template>
                                         <template x-if="!element.content">
                                             <div class="flex flex-col items-center text-gray-400 pointer-events-none">
@@ -419,19 +451,23 @@
 
                                     <!-- Weather -->
                                     <div x-show="element.type === 'weather'"
-                                        class="w-full h-full bg-gradient-to-br from-blue-400 to-blue-600 text-white p-4 flex flex-col justify-between rounded shadow-inner">
+                                        class="w-full h-full p-4 flex flex-col justify-between rounded shadow-inner"
+                                        :style="{ color: element.color }">
                                         <div class="flex justify-between items-start">
                                             <div>
                                                 <span class="text-lg font-bold block leading-tight"
                                                     x-text="element.city || 'City'"></span>
-                                                <span class="text-xs opacity-80">Sunny</span>
+                                                <span class="text-xs opacity-80"
+                                                    x-text="element.description || 'Sunny'"></span>
                                             </div>
-                                            <span class="material-symbols-outlined text-4xl">partly_cloudy_day</span>
+                                            <span class="material-symbols-outlined text-4xl"
+                                                x-text="element.condition || 'partly_cloudy_day'"></span>
                                         </div>
                                         <div class="flex items-end justify-between">
                                             <div class="text-4xl font-bold"
-                                                x-text="'24°' + (element.unit === 'f' ? 'F' : 'C')"></div>
-                                            <span class="text-xs opacity-75">H:28° L:18°</span>
+                                                x-text="Math.round(element.unit === 'f' ? ((element.temp || 20) * 9/5 + 32) : (element.temp || 20)) + '°' + (element.unit === 'f' ? 'F' : 'C')">
+                                            </div>
+                                            <span class="text-xs opacity-75">Live</span>
                                         </div>
                                     </div>
 
@@ -502,17 +538,83 @@
                 :style="`width: ${rightPanelWidth}px`">
 
                 <div
-                    class="h-12 flex items-center justify-between px-4 border-b border-border-light dark:border-border-dark flex-shrink-0">
-                    <h2 class="font-semibold text-gray-900 dark:text-white">Properties</h2>
-                    <span x-show="selectedElement"
-                        class="px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-bold uppercase rounded tracking-wide">Selected</span>
+                    class="flex border-b border-border-light dark:border-border-dark bg-gray-50 dark:bg-surface-dark/50 flex-shrink-0">
+                    <button @click="activeTab = 'properties'"
+                        class="flex-1 w-1/2 py-3 text-sm font-bold border-b-2 transition-colors relative"
+                        :class="activeTab === 'properties' ? 'border-primary text-primary bg-white dark:bg-surface-dark' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'">
+                        Properties
+                    </button>
+                    <button @click="activeTab = 'layers'"
+                        class="flex-1 w-1/2 py-3 text-sm font-bold border-b-2 transition-colors relative"
+                        :class="activeTab === 'layers' ? 'border-primary text-primary bg-white dark:bg-surface-dark' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'">
+                        Layers
+                    </button>
                 </div>
 
-                <div class="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
+                <div x-show="activeTab === 'properties'" class="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
 
-                    <div x-show="!selectedElement" class="text-center py-10 text-gray-400">
-                        <span class="material-symbols-outlined text-4xl mb-2">touch_app</span>
-                        <p class="text-sm">Select an element to edit properties</p>
+                    <div x-show="!selectedElement">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                Canvas Background</h3>
+                        </div>
+
+                        <div class="space-y-4">
+                            <!-- Background Color -->
+                            <div>
+                                <label
+                                    class="text-[10px] text-gray-500 dark:text-gray-400 mb-1.5 block uppercase">Color</label>
+                                <div class="flex items-center gap-2">
+                                    <input type="color" x-model="canvasBackground.color" @change="recordState()"
+                                        class="h-8 w-8 rounded overflow-hidden border-0 cursor-pointer">
+                                    <input type="text" x-model="canvasBackground.color" @change="recordState()"
+                                        class="flex-1 px-2 py-1.5 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-md text-sm">
+                                </div>
+                            </div>
+
+                            <!-- Background Image -->
+                            <div>
+                                <label class="text-[10px] text-gray-500 dark:text-gray-400 mb-1.5 block uppercase">Image
+                                    URL</label>
+                                <div class="flex gap-2">
+                                    <input type="text" x-model="canvasBackground.image" @change="recordState()"
+                                        placeholder="https://..."
+                                        class="w-full px-2 py-1.5 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-md text-sm">
+                                    <button
+                                        @click="showMediaPicker = true; currentMediaType = 'image'; activeTab = 'properties'"
+                                        class="px-2 py-1.5 bg-gray-100 dark:bg-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                                        <span class="material-symbols-outlined text-sm">image</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Image Controls (Only if image is set) -->
+                            <div x-show="canvasBackground.image"
+                                class="grid grid-cols-2 gap-3 pt-2 border-t border-border-light dark:border-border-dark">
+                                <div>
+                                    <label
+                                        class="text-[10px] text-gray-500 dark:text-gray-400 mb-1 block uppercase">Size</label>
+                                    <select x-model="canvasBackground.size" @change="recordState()"
+                                        class="w-full px-2 py-1.5 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-md text-sm">
+                                        <option value="cover">Cover</option>
+                                        <option value="contain">Contain</option>
+                                        <option value="auto">Auto</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label
+                                        class="text-[10px] text-gray-500 dark:text-gray-400 mb-1 block uppercase">Position</label>
+                                    <select x-model="canvasBackground.position" @change="recordState()"
+                                        class="w-full px-2 py-1.5 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-md text-sm">
+                                        <option value="center">Center</option>
+                                        <option value="top">Top</option>
+                                        <option value="bottom">Bottom</option>
+                                        <option value="left">Left</option>
+                                        <option value="right">Right</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div x-show="selectedElement">
@@ -586,6 +688,19 @@
                                         </div>
                                     </div>
                                     <div>
+                                        <label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Font
+                                            Family</label>
+                                        <select x-model="getSelected().fontFamily" :disabled="getSelected().locked"
+                                            class="w-full px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-lg text-sm disabled:opacity-50">
+                                            <option value="Inter">Inter</option>
+                                            <option value="Roboto">Roboto</option>
+                                            <option value="Montserrat">Montserrat</option>
+                                            <option value="Playfair Display">Playfair Display</option>
+                                            <option value="Open Sans">Open Sans</option>
+                                            <option value="system-ui">System Default</option>
+                                        </select>
+                                    </div>
+                                    <div>
                                         <label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Font Size
                                             (px)</label>
                                         <input type="number" x-model="getSelected().fontSize"
@@ -645,6 +760,11 @@
                             <!-- Video -->
                             <template x-if="getSelected().type === 'video'">
                                 <div class="space-y-3">
+                                    <button @click="openMediaPicker()" :disabled="getSelected().locked"
+                                        class="w-full py-2.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors disabled:opacity-50">
+                                        <span class="material-icons-outlined text-lg">movie</span>
+                                        Choose from Library
+                                    </button>
                                     <div class="relative">
                                         <input type="text" x-model="getSelected().content"
                                             :disabled="getSelected().locked" placeholder="Video URL (mp4)"
@@ -671,21 +791,36 @@
                             </template>
 
                             <!-- Weather -->
+                            <!-- Weather -->
                             <template x-if="getSelected().type === 'weather'">
                                 <div class="space-y-3">
                                     <div>
-                                        <label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Location
-                                            (City)</label>
-                                        <input type="text" x-model="getSelected().city" placeholder="e.g. London"
-                                            class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-lg text-sm">
+                                        <label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">City (Live
+                                            Data)</label>
+                                        <div class="flex gap-2">
+                                            <input type="text" x-model="getSelected().city"
+                                                :disabled="getSelected().locked"
+                                                @keyup.enter="fetchWeather(getSelected().id, getSelected().city)"
+                                                @blur="fetchWeather(getSelected().id, getSelected().city)"
+                                                placeholder="e.g. London"
+                                                class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-lg text-sm disabled:opacity-50">
+                                            <button @click="fetchWeather(getSelected().id, getSelected().city)"
+                                                class="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                                                <span class="material-symbols-outlined text-sm">refresh</span>
+                                            </button>
+                                        </div>
                                     </div>
                                     <div>
                                         <label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Unit</label>
-                                        <select x-model="getSelected().unit"
-                                            class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-lg text-sm">
-                                            <option value="c">Celsius (°C)</option>
-                                            <option value="f">Fahrenheit (°F)</option>
-                                        </select>
+                                        <div
+                                            class="flex bg-gray-50 dark:bg-gray-800 rounded-lg p-1 border border-border-light dark:border-border-dark">
+                                            <button @click="getSelected().unit = 'c'"
+                                                :class="{'bg-white dark:bg-gray-700 shadow-sm': getSelected().unit === 'c'}"
+                                                class="flex-1 px-3 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm">°C</button>
+                                            <button @click="getSelected().unit = 'f'"
+                                                :class="{'bg-white dark:bg-gray-700 shadow-sm': getSelected().unit === 'f'}"
+                                                class="flex-1 px-3 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm">°F</button>
+                                        </div>
                                     </div>
                                 </div>
                             </template>
@@ -845,52 +980,60 @@
 
                     </div>
 
-                    <!-- Layers List -->
-                    <div class="mt-6 pt-6 border-t border-border-light dark:border-border-dark">
-                        <h3 class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
-                            Layers</h3>
-                        <div class="space-y-1">
-                            <!-- Reverse loop to show Top layer at Top of list -->
-                            <template x-for="element in elements.slice().reverse()" :key="element.id">
-                                <div class="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors group border border-transparent"
-                                    :class="{ 'bg-primary/5 border-primary/20': selectedElement === element.id, 'opacity-50': !element.visible }"
-                                    @click="selectElement(element.id)">
+                </div>
 
-                                    <!-- Visibility Toggle -->
-                                    <button @click.stop="toggleVisibility(element.id)"
-                                        class="text-gray-400 hover:text-gray-600">
-                                        <span class="material-symbols-outlined text-xs"
-                                            x-text="element.visible ? 'visibility' : 'visibility_off'"></span>
-                                    </button>
+                <div x-show="activeTab === 'layers'" class="flex-1 overflow-y-auto p-4 custom-scrollbar">
+                    <div class="space-y-2">
+                        <!-- Layers List -->
+                        <template x-for="element in layers" :key="element.id">
+                            <div class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-all group border"
+                                :class="selectedElement === element.id ? 'bg-primary/10 border-primary shadow-sm' : 'border-transparent opacity-50 hover:opacity-100'"
+                                @click="selectElement(element.id)">
 
-                                    <!-- Lock Toggle -->
-                                    <button @click.stop="toggleLock(element.id)"
-                                        class="text-gray-400 hover:text-gray-600">
-                                        <span class="material-symbols-outlined text-xs"
-                                            x-text="element.locked ? 'lock' : 'lock_open'"></span>
-                                    </button>
+                                <!-- Lock/Unlock -->
+                                <button @click.stop="toggleLock(element.id)"
+                                    class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                                    :title="element.locked ? 'Unlock' : 'Lock'">
+                                    <span class="material-symbols-outlined text-sm"
+                                        x-text="element.locked ? 'lock' : 'lock_open'"></span>
+                                </button>
 
-                                    <span class="material-symbols-outlined text-sm text-gray-500 ml-1"
-                                        x-text="element.type === 'image' ? 'image' : 'title'"></span>
+                                <!-- Type Icon -->
+                                <span class="material-symbols-outlined text-gray-500"
+                                    x-text="element.type === 'image' ? 'image' : (element.type === 'video' ? 'movie' : (element.type === 'heading' ? 'title' : 'text_fields'))"></span>
 
-                                    <span class="text-xs text-gray-700 dark:text-gray-300 flex-1 truncate"
-                                        x-text="element.type"></span>
-
-                                    <!-- Reorder Controls -->
-                                    <div class="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button @click.stop="moveLayer(element.id, 'up')"
-                                            class="p-0.5 text-gray-400 hover:text-primary" title="Bring Forward">
-                                            <span class="material-symbols-outlined text-xs">arrow_upward</span>
-                                        </button>
-                                        <button @click.stop="moveLayer(element.id, 'down')"
-                                            class="p-0.5 text-gray-400 hover:text-primary" title="Send Backward">
-                                            <span class="material-symbols-outlined text-xs">arrow_downward</span>
-                                        </button>
-                                    </div>
+                                <!-- Label -->
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-medium text-gray-700 dark:text-gray-200 truncate"
+                                        x-text="element.content || element.type"></p>
+                                    <p class="text-[10px] text-gray-400 uppercase" x-text="element.type"></p>
                                 </div>
-                            </template>
-                            <div x-show="elements.length === 0" class="text-xs text-gray-400 text-center py-2">No layers
+
+                                <!-- Visibility -->
+                                <button @click.stop="toggleVisibility(element.id)"
+                                    class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                                    :title="element.visible ? 'Hide' : 'Show'">
+                                    <span class="material-symbols-outlined text-sm"
+                                        x-text="element.visible ? 'visibility' : 'visibility_off'"></span>
+                                </button>
+
+                                <!-- Reorder (Only visible on hover) -->
+                                <div class="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button @click.stop="moveLayer(element.id, 'up')"
+                                        class="text-gray-400 hover:text-primary" title="Bring Forward">
+                                        <span class="material-symbols-outlined text-[10px]">arrow_drop_up</span>
+                                    </button>
+                                    <button @click.stop="moveLayer(element.id, 'down')"
+                                        class="text-gray-400 hover:text-primary" title="Send Backward">
+                                        <span class="material-symbols-outlined text-[10px]">arrow_drop_down</span>
+                                    </button>
+                                </div>
                             </div>
+                        </template>
+
+                        <div x-show="elements.length === 0" class="text-center py-12 text-gray-400 opacity-60">
+                            <span class="material-symbols-outlined text-4xl mb-2">layers</span>
+                            <p class="text-xs">No layers yet</p>
                         </div>
                     </div>
                 </div>
@@ -908,37 +1051,146 @@
                 </div>
             </div>
 
-        </div>
-    </div>
 
-    <!-- Media Picker Modal -->
-    <div x-show="showMediaPicker" class="fixed inset-0 z-[5000] flex items-center justify-center p-4"
-        style="display: none;">
-        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showMediaPicker = false"
-            x-transition.opacity></div>
-        <div class="relative bg-white dark:bg-surface-dark rounded-2xl shadow-2xl w-full max-w-4xl max-h-[80vh] flex flex-col overflow-hidden"
-            x-transition.scale>
-            <div
-                class="p-4 border-b border-border-light dark:border-border-dark flex justify-between items-center bg-white dark:bg-surface-dark z-10">
-                <h3 class="font-bold text-lg text-gray-900 dark:text-white flex items-center gap-2">
-                    <span class="material-icons-outlined text-primary">perm_media</span>
-                    Media Library
-                </h3>
-                <button @click="showMediaPicker = false"
-                    class="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
-                    <span class="material-icons-outlined text-gray-500">close</span>
-                </button>
-            </div>
-            <div class="flex-1 overflow-y-auto bg-gray-50 dark:bg-black/20" id="media-picker-content">
-                <!-- Content loads via HTMX -->
-                <div class="flex items-center justify-center h-64">
-                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+
+            <!-- Media Picker Modal -->
+            <div x-show="showMediaPicker" class="fixed inset-0 z-[5000] flex items-center justify-center p-4"
+                style="display: none;">
+                <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showMediaPicker = false"
+                    x-transition.opacity></div>
+                <div class="relative bg-white dark:bg-surface-dark rounded-2xl shadow-2xl w-full max-w-4xl max-h-[80vh] flex flex-col overflow-hidden"
+                    x-transition.scale>
+                    <div
+                        class="p-4 border-b border-border-light dark:border-border-dark flex justify-between items-center bg-white dark:bg-surface-dark z-10">
+                        <h3 class="font-bold text-lg text-gray-900 dark:text-white flex items-center gap-2">
+                            <span class="material-icons-outlined text-primary">perm_media</span>
+                            Media Library
+                        </h3>
+                        <button @click="showMediaPicker = false"
+                            class="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
+                            <span class="material-icons-outlined text-gray-500">close</span>
+                        </button>
+                    </div>
+                    <div class="flex-1 overflow-y-auto bg-gray-50 dark:bg-black/20" id="media-picker-content">
+                        <!-- Content loads via HTMX -->
+                        <div class="flex items-center justify-center h-64">
+                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-    </div>
 
-    </div>
+            <!-- Preview Modal (Fullscreen) -->
+            <div x-show="isPreviewing"
+                class="fixed inset-0 z-[9999] bg-black flex items-center justify-center p-8 backdrop-blur-xl"
+                style="display: none;" x-transition.opacity.duration.300ms>
+
+                <!-- Close Button -->
+                <button @click="isPreviewing = false"
+                    class="absolute top-6 right-6 z-50 bg-white/10 hover:bg-white/20 text-white rounded-full p-3 backdrop-blur-md transition-all group">
+                    <span
+                        class="material-symbols-outlined text-3xl group-hover:rotate-90 transition-transform">close</span>
+                </button>
+
+                <!-- Preview Container -->
+                <div class="relative shadow-2xl overflow-hidden ring-1 ring-white/10" :style="{ 
+                         width: canvasWidth + 'px', 
+                         height: canvasHeight + 'px', 
+                         transform: `scale(${Math.min((window.innerWidth - 64) / canvasWidth, (window.innerHeight - 64) / canvasHeight)})`,
+                         backgroundColor: canvasBackground.color,
+                         backgroundImage: canvasBackground.image ? `url(${canvasBackground.image})` : 'none',
+                         backgroundSize: canvasBackground.size,
+                         backgroundPosition: canvasBackground.position,
+                         backgroundRepeat: 'no-repeat'
+                     }">
+
+                    <!-- Render Elements (Read-Only) -->
+                    <template x-for="(element, index) in elements" :key="'preview-' + element.id">
+                        <div class="absolute overflow-hidden" x-show="element.visible" :style="{ 
+                                left: element.x + 'px', 
+                                top: element.y + 'px',
+                                width: element.width + 'px',
+                                height: element.height + 'px',
+                                zIndex: index,
+                                opacity: (element.opacity !== undefined ? element.opacity : 100) / 100,
+                                borderRadius: (element.borderRadius || 0) + 'px',
+                                backgroundColor: element.backgroundColor,
+                                boxShadow: getShadowStyle(element.shadow)
+                            }">
+
+                            <!-- Heading -->
+                            <div x-show="element.type === 'heading'" class="w-full h-full flex items-center p-4"
+                                :class="{'justify-start': element.textAlign === 'left', 'justify-center': element.textAlign === 'center', 'justify-end': element.textAlign === 'right'}">
+                                <h2 class="font-bold break-words leading-tight"
+                                    :style="{ fontSize: element.fontSize + 'px', color: element.color, fontFamily: element.fontFamily, textAlign: element.textAlign }"
+                                    x-text="element.content || 'Heading Text'"></h2>
+                            </div>
+
+                            <!-- Paragraph -->
+                            <div x-show="element.type === 'paragraph'" class="w-full h-full p-4">
+                                <p class="leading-normal h-full w-full break-words"
+                                    :style="{ fontSize: element.fontSize + 'px', color: element.color, fontFamily: element.fontFamily, textAlign: element.textAlign }"
+                                    x-text="element.content || 'Lorem ipsum dolor sit amet.'"></p>
+                            </div>
+
+                            <!-- Image -->
+                            <div x-show="element.type === 'image'" class="w-full h-full">
+                                <img x-show="element.content" :src="element.content" class="w-full h-full"
+                                    :style="{ objectFit: element.objectFit || 'cover' }">
+                            </div>
+
+                            <!-- Video -->
+                            <div x-show="element.type === 'video'" class="w-full h-full bg-black">
+                                <video x-show="element.content" :src="element.content"
+                                    class="w-full h-full object-cover" :autoplay="element.autoplay" :loop="element.loop"
+                                    :muted="element.muted"></video>
+                            </div>
+
+                            <!-- Weather -->
+                            <div x-show="element.type === 'weather'"
+                                class="w-full h-full bg-gradient-to-br from-blue-400 to-blue-600 text-white p-4 flex flex-col justify-between rounded shadow-inner">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <span class="text-lg font-bold block leading-tight"
+                                            x-text="element.city || 'City'"></span>
+                                        <span class="text-xs opacity-80" x-text="element.description || 'Sunny'"></span>
+                                    </div>
+                                    <span class="material-symbols-outlined text-4xl"
+                                        x-text="element.condition || 'partly_cloudy_day'"></span>
+                                </div>
+                                <div class="flex items-end justify-between">
+                                    <div class="text-4xl font-bold"
+                                        x-text="(element.temp || 20) + '°' + (element.unit === 'f' ? 'F' : 'C')"></div>
+                                    <span class="text-xs opacity-75">Live</span>
+                                </div>
+                            </div>
+
+                            <!-- Clock -->
+                            <div x-show="element.type === 'clock'"
+                                class="w-full h-full flex flex-col items-center justify-center p-4 bg-white text-gray-900 border border-gray-200 rounded">
+                                <div class="text-3xl font-mono font-bold tracking-widest">
+                                    12:30<span x-show="element.showSeconds" class="text-xl opacity-70">:45</span>
+                                </div>
+                                <div x-show="element.showDate"
+                                    class="text-sm text-gray-500 mt-1 uppercase tracking-wide">
+                                    Monday, Jan 1
+                                </div>
+                            </div>
+
+                            <!-- QR Code -->
+                            <div x-show="element.type === 'qrcode'"
+                                class="w-full h-full flex items-center justify-center bg-white p-2">
+                                <div class="w-full h-full bg-contain bg-center bg-no-repeat"
+                                    :style="`background-image: url('https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(element.url || 'https://example.com')}&color=${(element.color || '#000000').replace('#', '')}');`">
+                                </div>
+                            </div>
+
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+        </div>
 </c-layouts.sidebar>
 {% endblock %}
 

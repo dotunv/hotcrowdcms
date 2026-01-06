@@ -55,7 +55,11 @@
 
 {% block body %}
 <c-layouts.sidebar>
-    <div class="h-full overflow-y-auto" x-data="contentEditor()">
+    <div class="h-full overflow-y-auto" x-data="contentEditor({
+        title: '{{ content.title|escapejs }}',
+        csrfToken: '{{ csrf_token }}',
+        {% if content %}saveUrl: '{% url 'save_content' content.id %}'{% endif %}
+    })">
         <div class="max-w-7xl mx-auto p-8">
             <!-- Header -->
             <div class="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
@@ -325,55 +329,10 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'js/store_editor.js' %}"></script>
 <script>
-    function contentEditor() {
-        return {
-            title: '{{ content.title|escapejs }}',
-            contentHtml: '',
-            wordCount: 42,
-            charCount: 315,
-            lastSaved: null,
-
-            init() {
-                this.updateCounts();
-            },
-
-            updateCounts() {
-                const text = this.contentHtml.replace(/<[^>]*>/g, '');
-                this.charCount = text.length;
-                this.wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
-            },
-
-            saveDraft() {
-                this.save('DRAFT');
-            },
-
-            publish() {
-                this.save('PUBLISHED');
-            },
-
-            save(status) {
-                const formData = new FormData();
-                formData.append('title', this.title);
-                formData.append('content_html', this.contentHtml);
-                formData.append('status', status);
-
-                {% if content %}
-                fetch('{% url "save_content" content.id %}', {
-                    method: 'POST',
-                    headers: { 'X-CSRFToken': '{{ csrf_token }}' },
-                    body: formData
-                }).then(() => {
-                    this.lastSaved = new Date().toLocaleTimeString();
-                });
-                {% endif %}
-            },
-
-            insertMedia(url) {
-                document.execCommand('insertImage', false, url);
-                this.updateCounts();
-            }
-        }
-    }
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('contentEditor', (config) => contentEditor(config));
+    });
 </script>
 {% endblock %}

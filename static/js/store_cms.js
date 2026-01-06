@@ -5,6 +5,7 @@ function storeCMS(config) {
         elements: [],
         selectedElement: null,
         hasUnsavedChanges: false,
+        isPreviewing: false,
 
         // History / Undo-Redo
         history: [],
@@ -28,9 +29,62 @@ function storeCMS(config) {
         startMouse: { x: 0, y: 0 },
         startDims: { width: 0, height: 0, x: 0, y: 0 },
 
+        // Viewport Settings
+        currentViewport: 'desktop',
+        viewports: {
+            desktop: { width: 1920, height: 1080, label: 'Desktop (1920x1080)' },
+            tablet: { width: 768, height: 1024, label: 'Tablet (768x1024)' },
+            mobile: { width: 390, height: 844, label: 'Mobile (390x844)' }
+        },
+
+        get canvasWidth() {
+            return this.viewports[this.currentViewport].width;
+        },
+
+        get canvasHeight() {
+            return this.viewports[this.currentViewport].height;
+        },
+
+        setViewport(mode) {
+            if (this.viewports[mode]) {
+                this.currentViewport = mode;
+                // Auto-fit zoom?
+                // this.zoom = 45; 
+            }
+        },
+
+        // Layers Helpers
+        get layers() {
+            // Return copy reversed for UI (Top layer first)
+            return [...this.elements].reverse().map(el => ({
+                ...el,
+                originalIndex: this.elements.findIndex(e => e.id === el.id)
+            }));
+        },
+
+        // Canvas State
+        canvasBackground: {
+            color: '#ffffff',
+            image: '',
+            size: 'cover',
+            position: 'center'
+        },
+
+        // UI State
+        activeTab: 'properties',
+
         init() {
-            const savedData = config.savedData || [];
-            this.elements = Array.isArray(savedData) ? savedData : [];
+            const savedData = config.savedData || {};
+
+            // Handle legacy data (array of elements) vs new format (object with elements & background)
+            if (Array.isArray(savedData)) {
+                this.elements = savedData;
+            } else {
+                this.elements = savedData.elements || [];
+                // Merge defaults with saved background to ensure all properties exist
+                this.canvasBackground = { ...this.canvasBackground, ...savedData.background };
+            }
+
             this.recordState();
 
             // Keyboard Shortcuts
@@ -68,8 +122,12 @@ function storeCMS(config) {
             if (this.historyIndex < this.history.length - 1) {
                 this.history = this.history.slice(0, this.historyIndex + 1);
             }
-            // Push deep copy
-            this.history.push(JSON.stringify(this.elements));
+            // Push deep copy of both elements and background
+            const state = {
+                elements: this.elements,
+                background: this.canvasBackground
+            };
+            this.history.push(JSON.stringify(state));
             this.historyIndex++;
             this.hasUnsavedChanges = true;
         },
@@ -78,7 +136,10 @@ function storeCMS(config) {
             if (this.historyIndex > 0) {
                 this.isUndoing = true;
                 this.historyIndex--;
-                this.elements = JSON.parse(this.history[this.historyIndex]);
+                const state = JSON.parse(this.history[this.historyIndex]);
+                this.elements = state.elements || state; // Handle legacy history if any
+                if (state.background) this.canvasBackground = state.background;
+
                 this.selectedElement = null; // Deselect to avoid ghost selection
                 this.$nextTick(() => this.isUndoing = false);
             }
@@ -88,7 +149,10 @@ function storeCMS(config) {
             if (this.historyIndex < this.history.length - 1) {
                 this.isUndoing = true;
                 this.historyIndex++;
-                this.elements = JSON.parse(this.history[this.historyIndex]);
+                const state = JSON.parse(this.history[this.historyIndex]);
+                this.elements = state.elements || state;
+                if (state.background) this.canvasBackground = state.background;
+
                 this.selectedElement = null;
                 this.$nextTick(() => this.isUndoing = false);
             }
@@ -168,8 +232,8 @@ function storeCMS(config) {
                 const centerY = newY + el.height / 2;
                 const rightX = newX + el.width;
                 const bottomY = newY + el.height;
-                const canvasW = 1920;
-                const canvasH = 1080;
+                const canvasW = this.canvasWidth; // Use dynamic canvas width
+                const canvasH = this.canvasHeight; // Use dynamic canvas height
 
                 // Snap to Canvas Center
                 if (Math.abs(centerX - canvasW / 2) < this.snapThreshold) {
@@ -260,11 +324,11 @@ function storeCMS(config) {
         addElement(type) {
             const id = 'el_' + Date.now();
             const defaults = {
-                heading: { width: 400, height: 80, content: 'New Heading', fontSize: 36, color: '#111827', textAlign: 'center' },
-                paragraph: { width: 400, height: 120, content: 'Double click to edit text', fontSize: 18, color: '#374151', textAlign: 'left' },
+                heading: { width: 400, height: 80, content: 'New Heading', fontSize: 36, fontFamily: 'Inter', color: '#111827', textAlign: 'center' },
+                paragraph: { width: 400, height: 120, content: 'Double click to edit text', fontSize: 18, fontFamily: 'Inter', color: '#374151', textAlign: 'left' },
                 image: { width: 300, height: 200, content: '', objectFit: 'cover' },
                 video: { width: 400, height: 225, content: '', autoplay: false, loop: false, muted: false },
-                weather: { width: 250, height: 150, city: 'London', unit: 'c' },
+                weather: { width: 300, height: 160, city: 'London', unit: 'c', temp: 20, condition: 'Sunny', description: 'Clear sky', backgroundColor: '#000000', color: '#ffffff' },
                 clock: { width: 200, height: 100, timezone: 'local', showDate: true, showSeconds: false },
                 qrcode: { width: 150, height: 150, url: 'https://example.com', color: '#000000' },
                 instagram: { width: 300, height: 350, source: '@instagram', mode: 'grid' }
@@ -275,19 +339,22 @@ function storeCMS(config) {
             this.elements.push({
                 id: id,
                 type: type,
-                x: 1920 / 2 - config.width / 2,
-                y: 1080 / 2 - config.height / 2,
+                x: this.canvasWidth / 2 - config.width / 2,
+                y: this.canvasHeight / 2 - config.height / 2,
                 width: config.width,
                 height: config.height,
                 content: config.content || '',
-                backgroundColor: '',
+                backgroundColor: config.backgroundColor || '',
+                color: config.color || (config.type === 'heading' || config.type === 'paragraph' ? '#000000' : ''),
                 opacity: 100,
+                borderRadius: 0,
                 shadow: 'none',
                 locked: false,
                 visible: true,
 
                 // Specific defaults
                 fontSize: config.fontSize,
+                fontFamily: config.fontFamily,
                 color: config.color,
                 textAlign: config.textAlign,
                 objectFit: config.objectFit,
@@ -296,6 +363,9 @@ function storeCMS(config) {
                 muted: config.muted,
                 city: config.city,
                 unit: config.unit,
+                temp: config.temp,
+                condition: config.condition,
+                description: config.description,
                 timezone: config.timezone,
                 showDate: config.showDate,
                 showSeconds: config.showSeconds,
@@ -305,11 +375,60 @@ function storeCMS(config) {
             });
 
             this.selectedElement = id;
+            this.activeTab = 'properties';
+
+            if (type === 'weather') {
+                this.fetchWeather(id, config.city);
+            }
+
             this.recordState();
+        },
+
+        async fetchWeather(id, city) {
+            if (!city) return;
+            try {
+                // 1. Geocoding
+                const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${city}&count=1&language=en&format=json`);
+                const geoData = await geoRes.json();
+
+                if (!geoData.results || geoData.results.length === 0) return;
+
+                const { latitude, longitude, name } = geoData.results[0];
+
+                // 2. Weather Data
+                const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code,is_day`);
+                const weatherData = await weatherRes.json();
+
+                const code = weatherData.current.weather_code;
+                const isDay = weatherData.current.is_day;
+
+                // Map WMO codes to simple conditions
+                let condition = 'Sunny';
+                let icon = 'sunny';
+                if (code <= 3) { condition = 'Cloudy'; icon = 'partly_cloudy_day'; }
+                else if (code <= 48) { condition = 'Foggy'; icon = 'foggy'; }
+                else if (code <= 67) { condition = 'Rainy'; icon = 'rainy'; }
+                else if (code <= 77) { condition = 'Snowy'; icon = 'ac_unit'; }
+                else if (code <= 82) { condition = 'Showers'; icon = 'rainy'; }
+                else if (code <= 99) { condition = 'Stormy'; icon = 'thunderstorm'; }
+
+                // Update Element
+                const index = this.elements.findIndex(e => e.id === id);
+                if (index !== -1) {
+                    this.elements[index].city = name; // Corrected name
+                    this.elements[index].temp = Math.round(weatherData.current.temperature_2m);
+                    this.elements[index].condition = icon; // Store icon name
+                    this.elements[index].description = condition;
+                    this.recordState();
+                }
+            } catch (error) {
+                console.error('Weather fetch failed', error);
+            }
         },
 
         selectElement(id) {
             this.selectedElement = id;
+            // this.activeTab = 'properties'; // Keep current tab
         },
 
         getSelected() {
@@ -338,10 +457,14 @@ function storeCMS(config) {
         },
 
         // ... (keep existing media helpers if needed or rely on previous pattern)
-        openMediaPicker() {
+        openMediaPicker(type = null) {
             this.showMediaPicker = true;
             if (window.htmx) {
-                htmx.ajax('GET', config.urls.mediaLibrary + '?picker=true', '#media-picker-content');
+                let url = config.urls.mediaLibrary + '?picker=true';
+                if (type) {
+                    url += '&type=' + type;
+                }
+                htmx.ajax('GET', url, '#media-picker-content');
             }
         },
 
@@ -386,16 +509,23 @@ function storeCMS(config) {
             // Optional: trigger save or just update history
         },
 
-        saveLayout() {
+        saveLayout(status = 'PUBLISHED') {
             const formData = new FormData();
-            formData.append('layout_data', JSON.stringify(this.elements));
-            formData.append('canvas_width', 1920);
-            formData.append('canvas_height', 1080);
-            formData.append('status', 'PUBLISHED');
 
-            const btn = event.currentTarget || document.querySelector('button[title="Save & Publish"]');
+            // Construct payload with background
+            const payload = {
+                elements: this.elements,
+                background: this.canvasBackground
+            };
+
+            formData.append('layout_data', JSON.stringify(payload));
+            formData.append('canvas_width', this.canvasWidth || 1920);
+            formData.append('canvas_height', this.canvasHeight || 1080);
+            formData.append('status', status);
+
+            const btn = event.currentTarget;
             const originalText = btn ? btn.innerHTML : '';
-            if (btn) btn.innerHTML = '<span class="material-symbols-outlined text-lg">sync</span> Saving...';
+            if (btn) btn.innerHTML = '<span class="material-symbols-outlined text-lg animate-spin">sync</span>';
 
             fetch(config.urls.saveLayout, {
                 method: 'POST',
@@ -422,7 +552,8 @@ function storeCMS(config) {
         },
 
         previewLayout() {
-            alert("Preview Mode not implemented yet.");
+            this.isPreviewing = true;
+            this.selectedElement = null; // Deselect to hide handles
         },
 
         getShadowStyle(shadowType) {
