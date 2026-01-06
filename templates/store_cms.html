@@ -191,7 +191,7 @@
                                         class="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
                                         {{ layout.owner.email|make_list|first|upper }}
                                     </div>
- <span class="text-sm text-gray-700 dark:text-gray-300">{{ layout.owner.first_name|default:"User" }}</span>
+ <span class="text-sm text-gray-700 dark:text-gray-300">{{ layout.owner.username|default:"User" }}</span>
                                 </div>
                             </td>
                             <td class="px-6 py-4 text-right">

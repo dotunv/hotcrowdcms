@@ -666,7 +666,7 @@ def save_layout(request, layout_id):
     if request.method == "POST":
         layout = get_object_or_404(StoreLayout, id=layout_id, owner=request.user)
 
-        name = request.POST.get('name')
+        name = request.POST.get('name') or request.POST.get('layout_name')
         if name:
             layout.name = name
 

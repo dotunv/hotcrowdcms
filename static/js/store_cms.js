@@ -6,6 +6,7 @@ function storeCMS(config) {
         selectedElement: null,
         hasUnsavedChanges: false,
         isPreviewing: false,
+        layoutName: config.layoutName || 'Untitled Layout',
 
         // History / Undo-Redo
         history: [],
@@ -77,6 +78,15 @@ function storeCMS(config) {
             const savedData = config.savedData || {};
 
             // Handle legacy data (array of elements) vs new format (object with elements & background)
+            if (typeof savedData === 'string') {
+                try {
+                    savedData = JSON.parse(savedData);
+                } catch (e) {
+                    console.error('Failed to parse savedData', e);
+                    savedData = {};
+                }
+            }
+
             if (Array.isArray(savedData)) {
                 this.elements = savedData;
             } else {
@@ -506,7 +516,8 @@ function storeCMS(config) {
         },
 
         saveLayoutName(name) {
-            // Optional: trigger save or just update history
+            this.layoutName = name;
+            this.hasUnsavedChanges = true;
         },
 
         saveLayout(status = 'PUBLISHED') {
@@ -521,6 +532,7 @@ function storeCMS(config) {
             formData.append('layout_data', JSON.stringify(payload));
             formData.append('canvas_width', this.canvasWidth || 1920);
             formData.append('canvas_height', this.canvasHeight || 1080);
+            formData.append('layout_name', this.layoutName);
             formData.append('status', status);
 
             const btn = event.currentTarget;

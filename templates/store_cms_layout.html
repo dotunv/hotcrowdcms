@@ -108,14 +108,16 @@
 
 {% block body %}
 <c-layouts.sidebar>
+    {{ layout.layout_data|json_script:"layout-data" }}
     <div class="flex flex-col h-full overflow-hidden" x-data="storeCMS({
-        savedData: {{ layout_data_json|safe }},
+        savedData: JSON.parse(document.getElementById('layout-data').textContent),
         csrfToken: '{{ csrf_token }}',
         urls: {
             mediaLibrary: '{% url 'media_library' %}',
             uploadMedia: '{% url 'upload_media' %}',
             saveLayout: '{% url 'save_layout' layout.id %}'
-        }
+        },
+        layoutName: '{{ layout.name|escapejs }}'
     })">
 
         <!-- Top Toolbar -->
@@ -127,25 +129,25 @@
                         CMS</a>
                     <span class="text-gray-400">&gt;</span>
                     {% if layout %}
-                    <input type="text" value="{{ layout.name }}"
-                        class="font-semibold text-gray-900 dark:text-white bg-transparent border-none outline-none focus:ring-0 p-0 max-w-[150px]"
-                        @blur="saveLayoutName($el.value)">
+                    <div x-data="{ isEditingName: false }" class="flex items-center">
+                        <span x-show="!isEditingName"
+                            @click="isEditingName = true; $nextTick(() => $refs.nameInput.focus())" x-text="layoutName"
+                            class="font-semibold text-gray-900 dark:text-white cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 px-1 rounded transition-colors"
+                            title="Click to rename">
+                        </span>
+                        <input x-ref="nameInput" x-show="isEditingName" x-model="layoutName"
+                            @blur="saveLayoutName($el.value); isEditingName = false" @keydown.enter="$el.blur()"
+                            type="text"
+                            class="font-semibold text-gray-900 dark:text-white bg-transparent border-none outline-none focus:ring-0 p-0 px-1 max-w-[200px]"
+                            style="display: none;">
+                    </div>
                     {% else %}
                     <span class="font-semibold text-gray-900 dark:text-white">New Layout</span>
                     {% endif %}
 
-                    <span x-show="hasUnsavedChanges"
-                        class="ml-2 px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 text-xs font-bold rounded">Unsaved
-                        Changes</span>
-                </div>
-
-                <div class="h-6 w-px bg-gray-200 dark:bg-gray-700 mx-2"></div>
-
-                <div class="relative max-w-md w-full hidden md:block">
-                    <span
-                        class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">search</span>
-                    <input type="text" placeholder="Search components..."
-                        class="w-full pl-9 pr-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-1 focus:ring-primary focus:border-primary">
+                    <div x-show="hasUnsavedChanges"
+                        class="ml-2 w-3 h-3 rounded-full bg-amber-500 shadow-sm animate-pulse" title="Unsaved Changes">
+                    </div>
                 </div>
             </div>
 
