@@ -8,7 +8,6 @@ urlpatterns = [
     path('configuration/', views.configuration, name='configuration'),
     path('support/', views.support, name='support'),
     path('setup-screen/', views.setup_screen, name='setup_screen'),
-    path('notifications/', views.notifications, name='notifications'),
     path('builder/', views.playlist_builder, name='playlist_builder'),
     path('sync-ig/', views.sync_instagram, name='sync_instagram'),
     path('add-media/<uuid:media_id>/', views.add_to_playlist, name='add_to_playlist'),

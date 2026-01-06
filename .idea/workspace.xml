@@ -6,17 +6,12 @@
   <component name="ChangeListManager">
     <list default="true" id="51ab4ac4-ade2-4a58-8031-1db1bb698259" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/api/api.py" beforeDir="false" afterPath="$PROJECT_DIR$/api/api.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cms/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/cms/urls.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cms/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/cms/views.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/config/urls.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/core/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/static/js/store_cms.js" beforeDir="false" afterPath="$PROJECT_DIR$/static/js/store_cms.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/templates/cotton/layouts/navbar.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/cotton/layouts/navbar.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/cotton/playlist/sequence_editor.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/cotton/playlist/sequence_editor.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/templates/media_library.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/media_library.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/playlist_builder.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/playlist_builder.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/store_cms.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/store_cms.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/notifications.html" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/templates/store_cms_layout.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/store_cms_layout.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -124,7 +119,7 @@
       <updated>1767201355222</updated>
       <workItem from="1767202438430" duration="2763000" />
       <workItem from="1767434601383" duration="26469000" />
-      <workItem from="1767711926998" duration="2841000" />
+      <workItem from="1767711926998" duration="3702000" />
     </task>
     <servers />
   </component>

@@ -15,7 +15,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 
 from core.models import (
     Screen, Playlist, MediaAsset, PlaylistItem,
-    Store, StoreLayout, StoreContent, PairingCode, SupportTicket, Notification
+    Store, StoreLayout, StoreContent, PairingCode, SupportTicket
 )
 from services.instagram import sync_hashtag_media
 
@@ -92,22 +92,6 @@ def dashboard(request):
         return render(request, 'partials/dashboard_stats.html', context)
 
     return render(request, 'dashboard.html', context)
-
-
-# =============================================================================
-# Notifications
-# =============================================================================
-
-@login_required
-def notifications(request):
-    """Display user notifications."""
-    notifications_list = Notification.objects.filter(user=request.user).order_by('-created_at')
-
-    context = {
-        'notifications': notifications_list,
-        'unread_count': notifications_list.filter(is_read=False).count(),
-    }
-    return render(request, 'notifications.html', context)
 
 
 # =============================================================================

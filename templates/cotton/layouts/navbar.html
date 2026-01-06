@@ -37,14 +37,6 @@
                 </div>
             </div>
             <div class="flex items-center gap-3">
-                <a href="{% url 'notifications' %}"
-                    class="p-2 text-gray-400 hover:text-white transition-colors relative">
-                    <span class="material-symbols-outlined">notifications</span>
-                    <span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
-                </a>
-
-                <div class="h-6 w-px bg-slate-700/50 mx-2"></div>
-
                 <!-- Theme Toggle -->
                 <button @click="$root.darkMode = !$root.darkMode"
                     class="p-2 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200"
