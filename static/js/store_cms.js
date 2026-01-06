@@ -568,6 +568,69 @@ function storeCMS(config) {
             this.selectedElement = null; // Deselect to hide handles
         },
 
+        async exportSnapshot() {
+            const canvasContainer = document.querySelector('#canvas-container > div'); // The scalable div
+            if (!canvasContainer) return;
+
+            const btn = event.currentTarget;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="material-symbols-outlined text-sm animate-spin">sync</span> Saving...';
+            btn.disabled = true;
+
+            try {
+                // Temporarily remove zoom for clean capture
+                const currentZoom = this.zoom;
+                const currentTransform = canvasContainer.style.transform;
+                canvasContainer.style.transform = 'scale(1)';
+
+                // Hide guides/tools if any
+                this.selectedElement = null;
+
+                const canvas = await html2canvas(canvasContainer, {
+                    useCORS: true,
+                    scale: 2, // Better quality
+                    backgroundColor: null
+                });
+
+                // Restore zoom
+                canvasContainer.style.transform = currentTransform;
+
+                canvas.toBlob((blob) => {
+                    const formData = new FormData();
+                    formData.append('image', blob, `snapshot_${Date.now()}.png`);
+                    formData.append('layout_name', this.layoutName);
+
+                    fetch(config.urls.saveSnapshot, {
+                        method: 'POST',
+                        headers: { 'X-CSRFToken': config.csrfToken },
+                        body: formData
+                    })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.status === 'success') {
+                                alert('Snapshot saved to Media Library!');
+                            } else {
+                                alert('Failed to save snapshot: ' + data.message);
+                            }
+                        })
+                        .catch(err => {
+                            console.error(err);
+                            alert('Error saving snapshot.');
+                        })
+                        .finally(() => {
+                            btn.innerHTML = originalText;
+                            btn.disabled = false;
+                        });
+                }, 'image/png');
+
+            } catch (err) {
+                console.error('Snapshot failed', err);
+                alert('Could not create snapshot.');
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        },
+
         getShadowStyle(shadowType) {
             const shadows = {
                 'none': 'none',

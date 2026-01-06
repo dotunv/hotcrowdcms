@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Preview Layout - {{ layout.name }}{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet" />
+<link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Roboto:wght@400;700&family=Montserrat:wght@400;700&family=Playfair+Display:wght@400;700&family=Open+Sans:wght@400;700&display=swap"
+    rel="stylesheet">
+<script>
+    tailwind.config = {
+        darkMode: "class",
+        theme: {
+            extend: {
+                colors: {
+                    primary: "#057A43",
+                    secondary: "#045e33",
+                    accent: "#b2f2bb",
+                    "background-light": "#F9F9F7",
+                    "background-dark": "#18181b",
+                    "surface-light": "#FFFFFF",
+                    "surface-dark": "#27272a",
+                    "text-light": "#1f2937",
+                    "text-dark": "#f3f4f6",
+                    "muted-light": "#6b7280",
+                    "muted-dark": "#9ca3af",
+                    "border-light": "#e5e7eb",
+                    "border-dark": "#3f3f46"
+                },
+                fontFamily: {
+                    display: ["'Plus Jakarta Sans'", "sans-serif"],
+                    body: ["'Plus Jakarta Sans'", "sans-serif"],
+                },
+            },
+        },
+    };
+</script>
+<style>
+    body {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        overscroll-behavior: none;
+    }
+
+    ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #d1d5db;
+        border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #9ca3af;
+    }
+
+    .dark ::-webkit-scrollbar-thumb {
+        background: #4b5563;
+    }
+
+    .dark ::-webkit-scrollbar-thumb:hover {
+        background: #6b7280;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<!-- Top Toolbar -->
+<div
+    class="h-14 flex-shrink-0 bg-white dark:bg-surface-dark border-b border-border-light dark:border-border-dark flex items-center justify-between px-4 z-20 sticky top-0">
+    <div class="flex items-center gap-4 flex-1 min-w-0">
+        <div class="flex items-center gap-2 text-sm whitespace-nowrap">
+            <a href="{% url 'store_cms' %}" class="text-gray-500 hover:text-primary transition-colors">Store CMS</a>
+            <span class="text-gray-400">&gt;</span>
+            <span class="text-gray-500">Preview</span>
+            <span class="text-gray-400">&gt;</span>
+            <span class="font-semibold text-gray-900 dark:text-white">{{ layout.name }}</span>
+        </div>
+    </div>
+
+    <div class="flex items-center gap-3">
+        <a href="{% url 'store_cms_editor_edit' layout.id %}"
+            class="px-4 py-1.5 bg-primary hover:bg-secondary text-white text-sm font-bold rounded-lg shadow-sm shadow-primary/30 transition-all flex items-center gap-2">
+            <span class="material-icons-outlined text-lg">edit</span>
+            Edit Layout
+        </a>
+    </div>
+</div>
+
+<!-- Main Canvas -->
+{{ layout.layout_data|json_script:"layout-data" }}
+
+<div class="w-full h-[calc(100vh-3.5rem)] flex items-center justify-center bg-gray-100 dark:bg-black/30 overflow-auto p-8 custom-scrollbar"
+    x-data="{
+        elements: [],
+        canvasBackground: { color: '#ffffff', image: '', size: 'cover', position: 'center' },
+        canvasWidth: {{ layout.canvas_width|default:1920 }},
+        canvasHeight: {{ layout.canvas_height|default:1080 }},
+        zoom: 100,
+        
+        init() {
+            try {
+                const savedData = JSON.parse(document.getElementById('layout-data').textContent);
+                if (Array.isArray(savedData)) {
+                    this.elements = savedData;
+                } else {
+                    this.elements = savedData.elements || [];
+                    this.canvasBackground = { ...this.canvasBackground, ...savedData.background };
+                }
+                
+                // Auto-fit zoom
+                this.fitToScreen();
+                window.addEventListener('resize', () => this.fitToScreen());
+            } catch (e) {
+                console.error('Error loading layout data', e);
+            }
+        },
+        
+        fitToScreen() {
+            const container = this.$el;
+            const padding = 64; // 32px padding on each side
+            const availableWidth = container.clientWidth - padding;
+            const availableHeight = container.clientHeight - padding;
+            
+            const scaleX = availableWidth / this.canvasWidth;
+            const scaleY = availableHeight / this.canvasHeight;
+            
+            // Choose the smaller scale to fit entirely, max 100% (or allow >100% if desired)
+            let scale = Math.min(scaleX, scaleY);
+            this.zoom = Math.floor(scale * 100);
+        },
+        
+        getShadowStyle(shadowType) {
+            const shadows = {
+                'none': 'none',
+                'sm': '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+                'md': '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                'lg': '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                'xl': '0 20px 25px -5px rgb(0 0 0 / 0.1)'
+            };
+            return shadows[shadowType] || 'none';
+        }
+    }">
+
+    <div class="bg-white dark:bg-surface-dark shadow-2xl relative transition-transform duration-300 origin-center"
+        :style="{ 
+            width: canvasWidth + 'px', 
+            height: canvasHeight + 'px', 
+            transform: `scale(${zoom / 100})`,
+            backgroundColor: canvasBackground.color,
+            backgroundImage: canvasBackground.image ? `url(${canvasBackground.image})` : 'none',
+            backgroundSize: canvasBackground.size,
+            backgroundPosition: canvasBackground.position,
+            backgroundRepeat: 'no-repeat'
+        }">
+
+        <!-- Elements Loop -->
+        <template x-for="element in elements" :key="element.id">
+            <div class="absolute overflow-hidden" x-show="element.visible" :style="{ 
+                     left: element.x + 'px', 
+                     top: element.y + 'px',
+                     width: element.width + 'px',
+                     height: element.height + 'px',
+                     zIndex: element.id === 'selected' ? 1000 : 1,
+                     opacity: (element.opacity !== undefined ? element.opacity : 100) / 100,
+                     borderRadius: (element.borderRadius || 0) + 'px',
+                     backgroundColor: element.backgroundColor,
+                     boxShadow: getShadowStyle(element.shadow)
+                 }">
+
+                <!-- Element Content Logic (Mirrored from Editor) -->
+
+                <!-- Heading -->
+                <div x-show="element.type === 'heading'" class="w-full h-full flex items-center p-4"
+                    :class="{'justify-start': element.textAlign === 'left', 'justify-center': element.textAlign === 'center', 'justify-end': element.textAlign === 'right'}">
+                    <h2 class="font-bold break-words leading-tight"
+                        :style="{ fontSize: element.fontSize + 'px', color: element.color, textAlign: element.textAlign }"
+                        x-text="element.content"></h2>
+                </div>
+
+                <!-- Paragraph -->
+                <div x-show="element.type === 'paragraph'" class="w-full h-full p-4">
+                    <p class="leading-normal h-full w-full break-words"
+                        :style="{ fontSize: element.fontSize + 'px', color: element.color, textAlign: element.textAlign }"
+                        x-text="element.content"></p>
+                </div>
+
+                <!-- Image -->
+                <div x-show="element.type === 'image'" class="w-full h-full">
+                    <template x-if="element.content">
+                        <img :src="element.content" class="w-full h-full"
+                            :style="{ objectFit: element.objectFit || 'cover' }">
+                    </template>
+                </div>
+
+                <!-- Video -->
+                <div x-show="element.type === 'video'" class="w-full h-full bg-black flex items-center justify-center">
+                    <template x-if="element.content">
+                        <video :src="element.content" class="w-full h-full object-cover" :autoplay="element.autoplay"
+                            :loop="element.loop" :muted="element.muted"></video>
+                    </template>
+                </div>
+
+                <!-- Weather -->
+                <div x-show="element.type === 'weather'" class="w-full h-full p-4 flex flex-col justify-between"
+                    :style="{ color: element.color }">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <span class="text-lg font-bold block leading-tight" x-text="element.city"></span>
+                            <span class="text-xs opacity-80" x-text="element.description"></span>
+                        </div>
+                        <span class="material-icons-outlined text-4xl" x-text="element.condition"></span>
+                    </div>
+                    <div class="flex items-end justify-between">
+                        <div class="text-4xl font-bold"
+                            x-text="Math.round(element.unit === 'f' ? ((element.temp || 20) * 9/5 + 32) : (element.temp || 20)) + '°' + (element.unit === 'f' ? 'F' : 'C')">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Clock -->
+                <div x-show="element.type === 'clock'"
+                    class="w-full h-full flex flex-col items-center justify-center p-4 bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded">
+                    <div class="text-3xl font-mono font-bold tracking-widest">12:30</div>
+                    <div x-show="element.showDate" class="text-sm text-gray-500 mt-1 uppercase">MON, JAN 1</div>
+                </div>
+
+                <!-- QR Code -->
+                <div x-show="element.type === 'qrcode'"
+                    class="w-full h-full flex items-center justify-center bg-white p-2">
+                    <div class="w-full h-full bg-contain bg-center bg-no-repeat"
+                        :style="`background-image: url('https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(element.url || 'https://example.com')}&color=${(element.color || '#000000').replace('#', '')}');`">
+                    </div>
+                </div>
+
+                <!-- Instagram -->
+                <div x-show="element.type === 'instagram'"
+                    class="w-full h-full bg-white flex flex-col p-2 overflow-hidden">
+                    <div class="flex items-center gap-2 mb-2 pb-2 border-b border-gray-100">
+                        <span class="material-icons-outlined text-pink-600">photo_camera</span>
+                        <span class="text-xs font-bold truncate" x-text="element.source"></span>
+                    </div>
+                    <div class="flex-1 grid grid-cols-2 gap-1 overflow-hidden">
+                        <div class="bg-gray-200 aspect-square rounded-sm"></div>
+                        <div class="bg-gray-200 aspect-square rounded-sm"></div>
+                        <div class="bg-gray-200 aspect-square rounded-sm"></div>
+                        <div class="bg-gray-200 aspect-square rounded-sm"></div>
+                    </div>
+                </div>
+
+            </div>
+        </template>
+    </div>
+</div>
+{% endblock %}

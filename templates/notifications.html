@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Notifications - HotCrowd CMS{% endblock %}
+
+{% block body %}
+<c-layouts.navbar />
+
+<div class="pt-24 pb-12 min-h-screen bg-slate-50 dark:bg-background-dark">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between mb-8">
+            <div>
+                <h1 class="text-3xl font-display font-bold text-gray-900 dark:text-white">Notifications</h1>
+                <p class="text-muted-light dark:text-muted-dark mt-1">Updates and alerts for your store.</p>
+            </div>
+        </div>
+
+        <div class="space-y-4">
+            {% for note in notifications %}
+            <div class="bg-white dark:bg-surface-dark rounded-xl p-4 shadow-soft border-l-4 border-border-light dark:border-border-dark flex items-start gap-4 transition-colors
+                {% if note.category == 'SUCCESS' %}border-l-green-500{% elif note.category == 'WARNING' %}border-l-amber-500{% elif note.category == 'ERROR' %}border-l-red-500{% else %}border-l-blue-500{% endif %}
+                {% if not note.is_read %}bg-blue-50/50 dark:bg-blue-900/10{% endif %}">
+
+                <div class="p-2 rounded-full bg-gray-100 dark:bg-gray-800 flex-shrink-0">
+                    <span
+                        class="material-symbols-outlined 
+                        {% if note.category == 'SUCCESS' %}text-green-600{% elif note.category == 'WARNING' %}text-amber-600{% elif note.category == 'ERROR' %}text-red-600{% else %}text-blue-600{% endif %}">
+                        {% if note.category == 'SUCCESS' %}check_circle{% elif note.category == 'WARNING' %}warning{%
+                        elif note.category == 'ERROR' %}error{% else %}info{% endif %}
+                    </span>
+                </div>
+
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between mb-1">
+                        <h4 class="text-sm font-bold text-gray-900 dark:text-white">{{ note.title }}</h4>
+                        <span class="text-xs text-gray-500">{{ note.created_at|timesince }} ago</span>
+                    </div>
+                    <p class="text-sm text-gray-600 dark:text-gray-300">{{ note.message }}</p>
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center py-12">
+                <div
+                    class="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span class="material-symbols-outlined text-3xl text-gray-400">notifications_off</span>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white">No notifications</h3>
+                <p class="text-sm text-muted-light dark:text-muted-dark mt-1">You're all caught up!</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

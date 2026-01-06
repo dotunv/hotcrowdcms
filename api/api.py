@@ -13,7 +13,8 @@ from .api_auth import screen_auth, generate_api_token
 api = NinjaAPI(
     title="HotCrowd Player API",
     description="API for digital signage player devices",
-    version="1.0.0"
+    version="1.0.0",
+    urls_namespace="player_api"
 )
 
 

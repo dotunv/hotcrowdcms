@@ -202,11 +202,7 @@
                                         title="Edit">
                                         <span class="material-icons-outlined text-lg">edit</span>
                                     </a>
-                                    <a href="{% url 'store_cms_editor_edit' layout.id %}"
-                                        class="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-                                        title="Preview">
-                                        <span class="material-icons-outlined text-lg">visibility</span>
-                                    </a>
+
                                     <button
                                         @click="deleteUrl = '{% url 'delete_layout' layout.id %}'; showDeleteModal = true"
                                         class="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-gray-400 hover:text-red-500 transition-colors"

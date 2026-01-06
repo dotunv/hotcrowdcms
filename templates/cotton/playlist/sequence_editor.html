@@ -5,7 +5,7 @@
         playlistId: '{{ playlist.id }}',
         csrfToken: '{{ csrf_token }}',
         urls: {
-            addMedia: '{% url 'add_to_playlist' '__MEDIA_ID__' %}', 
+            addMedia: '/add-media/__MEDIA_ID__/',
             reorderPlaylist: '{% url 'reorder_playlist' %}'
         }
     })">
@@ -17,9 +17,11 @@
             <h3 class="font-bold text-slate-900">Sequence</h3>
  <span class="bg-slate-100 text-slate-600 text-xs font-semibold px-2 py-0.5 rounded-full">{{ playlist.items.count }} items</span>
         </div>
-        <!-- Calculate total duration approximately in template or backend -->
+        <!-- Total duration -->
         <div class="text-sm font-mono text-slate-500">
-            Total: <span class="text-slate-900 font-bold">00:45</span>
+            Total: <span class="text-slate-900 font-bold" x-text="`${Math.floor({{ total_duration|default:0 }} / 60)}:${({{ total_duration|default:0 }} % 60).toString().padStart(2, '0')}`">
+                {{ total_duration|default:0 }}s
+            </span>
         </div>
     </div>
 
@@ -58,8 +60,7 @@
                 <!-- Details -->
                 <div class="flex-1 min-w-0">
                     <h4 class="text-sm font-medium text-slate-900 truncate">
-                        {% if item.media.media_type == 'IMAGE' %}Weekly Specials Banner{% else %}Fall Collection Promo{%
-                        endif %}
+                        {% if item.media.media_type == 'IMAGE' %}Weekly Specials Banner{% else %}Fall Collection Promo{% endif %}
                     </h4>
                     <div class="flex items-center gap-2 mt-0.5">
  <span class="text-[10px] uppercase font-bold text-slate-500 bg-slate-100 px-1.5 rounded">{{ item.media.media_type }}</span>

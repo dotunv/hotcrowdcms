@@ -99,11 +99,11 @@
         right: -2px;
     }
 
-    .resizer:hover,
     .resizer.resizing {
         background-color: #057A43;
     }
 </style>
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 {% endblock %}
 
 {% block body %}
@@ -115,6 +115,7 @@
         urls: {
             mediaLibrary: '{% url 'media_library' %}',
             uploadMedia: '{% url 'upload_media' %}',
+            saveSnapshot: '{% url 'save_layout_snapshot' layout.id %}',
             saveLayout: '{% url 'save_layout' layout.id %}'
         },
         layoutName: '{{ layout.name|escapejs }}'
@@ -212,6 +213,11 @@
                 <button @click="previewLayout()"
                     class="px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-primary transition-colors">
                     Preview
+                </button>
+                <button @click="exportSnapshot()"
+                    class="px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-primary transition-colors flex items-center gap-1">
+                    <span class="material-icons-outlined text-sm">photo_camera</span>
+                    Snapshot
                 </button>
                 <div class="h-6 w-px bg-gray-200 dark:bg-gray-700 mx-2"></div>
                 <button @click="saveLayout('DRAFT')"

@@ -15,7 +15,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 
 from core.models import (
     Screen, Playlist, MediaAsset, PlaylistItem,
-    Store, StoreLayout, StoreContent, PairingCode, SupportTicket
+    Store, StoreLayout, StoreContent, PairingCode, SupportTicket, Notification
 )
 from services.instagram import sync_hashtag_media
 
@@ -92,6 +92,22 @@ def dashboard(request):
         return render(request, 'partials/dashboard_stats.html', context)
 
     return render(request, 'dashboard.html', context)
+
+
+# =============================================================================
+# Notifications
+# =============================================================================
+
+@login_required
+def notifications(request):
+    """Display user notifications."""
+    notifications_list = Notification.objects.filter(user=request.user).order_by('-created_at')
+
+    context = {
+        'notifications': notifications_list,
+        'unread_count': notifications_list.filter(is_read=False).count(),
+    }
+    return render(request, 'notifications.html', context)
 
 
 # =============================================================================
@@ -222,16 +238,23 @@ def playlist_builder(request):
     if search_query:
         media_items = media_items.filter(name__icontains=search_query)
 
+    # Calculate total duration
+    total_duration = sum(
+        item.custom_duration if item.custom_duration else item.media.duration
+        for item in playlist.items.all()
+    )
+
     context = {
         'media_items': media_items,
         'playlist': playlist,
         'playlists': playlists,
         'all_screens': Screen.objects.filter(owner=request.user),
-        'saved': request.GET.get('saved') == 'true'
+        'saved': request.GET.get('saved') == 'true',
+        'total_duration': total_duration
     }
 
     if request.htmx and request.headers.get('HX-Target') == 'media-grid':
-        return render(request, 'components/playlist/media_library.html', context)
+        return render(request, 'cotton/playlist/media_library.html', context)
 
     return render(request, 'playlist_builder.html', context)
 
@@ -321,7 +344,15 @@ def add_to_playlist(request, media_id):
             )
 
         if request.htmx:
-            return render(request, 'components/playlist/sequence_editor.html', {'playlist': playlist})
+            # Calculate total duration
+            total_duration = sum(
+                item.custom_duration if item.custom_duration else item.media.duration
+                for item in playlist.items.all()
+            )
+            return render(request, 'cotton/playlist/sequence_editor.html', {
+                'playlist': playlist,
+                'total_duration': total_duration
+            })
 
     return redirect('playlist_builder')
 
@@ -335,7 +366,15 @@ def remove_from_playlist(request, item_id):
         item.delete()
 
         if request.htmx:
-            return render(request, 'components/playlist/sequence_editor.html', {'playlist': playlist})
+            # Calculate total duration
+            total_duration = sum(
+                item.custom_duration if item.custom_duration else item.media.duration
+                for item in playlist.items.all()
+            )
+            return render(request, 'cotton/playlist/sequence_editor.html', {
+                'playlist': playlist,
+                'total_duration': total_duration
+            })
 
     return redirect('playlist_builder')
 
@@ -356,7 +395,15 @@ def reorder_playlist(request):
                 except PlaylistItem.DoesNotExist:
                     continue
 
-        return render(request, 'components/playlist/sequence_editor.html', {'playlist': playlist})
+        # Calculate total duration
+        total_duration = sum(
+            item.custom_duration if item.custom_duration else item.media.duration
+            for item in playlist.items.all()
+        )
+        return render(request, 'cotton/playlist/sequence_editor.html', {
+            'playlist': playlist,
+            'total_duration': total_duration
+        })
 
     return HttpResponse(status=204)
 
@@ -370,6 +417,17 @@ def update_playlist_item(request, item_id):
         if duration:
             item.custom_duration = int(duration)
             item.save()
+
+            if request.htmx:
+                playlist = item.playlist
+                total_duration = sum(
+                    i.custom_duration if i.custom_duration else i.media.duration
+                    for i in playlist.items.all()
+                )
+                return render(request, 'cotton/playlist/sequence_editor.html', {
+                    'playlist': playlist,
+                    'total_duration': total_duration
+                })
 
     return HttpResponse(status=204)
 
@@ -499,8 +557,9 @@ def upload_media(request):
 def delete_media(request, media_id):
     """Delete a media asset."""
     if request.method == "POST":
-        get_object_or_404(MediaAsset, id=media_id, owner=request.user).delete()
-        messages.success(request, 'Media deleted successfully')
+        media = get_object_or_404(MediaAsset, id=media_id, owner=request.user)
+        media.delete()
+        # messages.success(request, 'Media deleted successfully') # Silenced
     return redirect('media_library')
 
 
@@ -743,3 +802,58 @@ def delete_content(request, content_id):
         get_object_or_404(StoreContent, id=content_id, owner=request.user).delete()
         messages.success(request, 'Content deleted.')
     return redirect('store_cms')
+
+
+import base64
+from django.core.files.base import ContentFile
+from datetime import datetime
+
+@login_required
+def save_layout_snapshot(request, layout_id):
+    if request.method == "POST":
+        layout = get_object_or_404(StoreLayout, id=layout_id, owner=request.user)
+        image_data = request.FILES.get('image')
+        
+        if not image_data:
+            return JsonResponse({'status': 'error', 'message': 'No image data provided'})
+
+        try:
+            # Generate filename
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            filename = f"media/{request.user.id}/snapshots/{layout.id}_{timestamp}.png"
+            
+            # Save file
+            path = default_storage.save(filename, ContentFile(image_data.read()))
+            file_url = default_storage.url(path)
+
+            # Create MediaAsset
+            media = MediaAsset.objects.create(
+                owner=request.user,
+                name=f"Snapshot - {layout.name} - {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+                media_type='IMAGE',
+                source='UPLOAD',
+                file_url=file_url,
+                duration=10 # Default duration for images
+            )
+            
+            return JsonResponse({
+                'status': 'success', 
+                'message': 'Snapshot saved to Media Library',
+                'media_id': str(media.id),
+                'url': file_url
+            })
+            
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)})
+
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+
+@login_required
+def preview_layout(request, layout_id):
+    layout = get_object_or_404(StoreLayout, id=layout_id, owner=request.user)
+    
+    context = {
+        'layout': layout,
+        'layout_data_json': json.dumps(layout.layout_data, cls=DjangoJSONEncoder)
+    }
+    return render(request, 'store_cms_preview.html', context)
