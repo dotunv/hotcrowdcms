@@ -24,8 +24,14 @@ urlpatterns = [
     path('accounts/', include('allauth.urls')),  # django-allauth auth URLs
     path("api/", include("api.urls")),
     path("", include("cms.urls")),
-    path("__reload__/", include("django_browser_reload.urls")),
+    # path("__reload__/", include("django_browser_reload.urls")),
 ]
+
+if settings.DEBUG:
+    try:
+        urlpatterns += [path("__reload__/", include("django_browser_reload.urls"))]
+    except ImportError:
+        pass
 
 # Serve media files in development
 if settings.DEBUG and not settings.USE_S3:
