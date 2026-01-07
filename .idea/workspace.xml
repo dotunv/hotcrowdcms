@@ -4,21 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="51ab4ac4-ade2-4a58-8031-1db1bb698259" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cms/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/cms/urls.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cms/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/cms/views.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/config/settings.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/static/js/store_editor.js" beforeDir="false" afterPath="$PROJECT_DIR$/static/js/store_editor.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/cotton/modals/confirm_delete.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/cotton/modals/confirm_delete.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/cotton/playlist/sequence_editor.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/cotton/playlist/sequence_editor.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/cotton/playlist/upload_modal.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/cotton/playlist/upload_modal.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/media_library.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/media_library.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/playlist_builder.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/playlist_builder.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/playlists.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/playlists.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/store_cms_editor.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/store_cms_editor.html" afterDir="false" />
-    </list>
+    <list default="true" id="51ab4ac4-ade2-4a58-8031-1db1bb698259" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -124,7 +110,7 @@
       <updated>1767201355222</updated>
       <workItem from="1767202438430" duration="2763000" />
       <workItem from="1767434601383" duration="26469000" />
-      <workItem from="1767711926998" duration="8233000" />
+      <workItem from="1767711926998" duration="8814000" />
     </task>
     <servers />
   </component>

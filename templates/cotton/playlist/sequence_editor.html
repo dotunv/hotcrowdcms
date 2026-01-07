@@ -62,10 +62,15 @@
                 </div>
 
                 <!-- Thumbnail -->
-                <div class="h-12 w-12 bg-slate-100 rounded-lg overflow-hidden flex-shrink-0 relative">
+                <div class="h-12 w-12 bg-slate-100 rounded-lg overflow-hidden flex-shrink-0 relative group/thumb">
                     {% if item.store_content %}
-                    <div class="w-full h-full grid place-items-center bg-indigo-50 text-indigo-500">
+                    <div class="w-full h-full grid place-items-center bg-gray-50 text-primary">
                         <span class="material-symbols-outlined text-xl">article</span>
+                    </div>
+                    <!-- CMS Badge -->
+                    <div
+                        class="absolute top-0.5 left-0.5 bg-primary text-white text-[9px] font-bold px-1 rounded-sm shadow-sm">
+                        CMS
                     </div>
                     {% elif item.media.media_type == 'IMAGE' %}
                     <img src="{{ item.media.file_url }}" class="w-full h-full object-cover">
@@ -77,6 +82,12 @@
                         </svg>
                     </div>
                     {% endif %}
+
+                    <!-- Duration Pill -->
+                    <div
+                        class="absolute bottom-0.5 right-0.5 bg-black/70 text-white text-[9px] font-mono font-bold px-1 rounded-sm backdrop-blur-[1px]">
+                        {{ item.custom_duration|default:item.store_content.duration|default:item.media.duration }}s
+                    </div>
                 </div>
 
                 <!-- Details -->
@@ -90,11 +101,9 @@
                     </h4>
                     <div class="flex items-center gap-2 mt-0.5">
                         {% if item.store_content %}
-                        <span class="text-[10px] uppercase font-bold text-indigo-500 bg-indigo-50 px-1.5 rounded">CMS
-                            Content • Dynamic</span>
+                        <span class="text-[10px] uppercase font-bold text-gray-500">CMS Content • Dynamic</span>
                         {% else %}
-                        <span class="text-[10px] uppercase font-bold text-slate-500 bg-slate-100 px-1.5 rounded">{{
-                            item.media.media_type }}</span>
+                        <span class="text-[10px] uppercase font-bold text-gray-500">{{ item.media.media_type }}</span>
                         {% endif %}
                     </div>
                 </div>
@@ -106,7 +115,7 @@
                             d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <input type="number" name="duration_{{ item.id }}"
-                        value="{{ item.custom_duration|default:item.media.duration }}"
+                        value="{{ item.custom_duration|default:item.store_content.duration|default:item.media.duration }}"
                         hx-post="{% url 'update_playlist_item' item.id %}" hx-trigger="change delay:500ms"
                         hx-swap="none"
                         class="w-8 text-sm bg-transparent border-none p-0 text-center focus:ring-0 font-medium text-slate-700"

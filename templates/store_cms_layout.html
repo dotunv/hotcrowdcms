@@ -153,24 +153,7 @@
             </div>
 
             <div class="flex items-center gap-3 mx-4">
-                <div
-                    class="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5 border border-border-light dark:border-border-dark">
-                    <button @click="setViewport('desktop')" class="p-1 px-2 rounded-md shadow-sm transition-all"
-                        :class="currentViewport === 'desktop' ? 'bg-white dark:bg-gray-700 text-primary' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'"
-                        title="Desktop (1920x1080)">
-                        <span class="material-symbols-outlined text-sm">desktop_windows</span>
-                    </button>
-                    <button @click="setViewport('tablet')" class="p-1 px-2 rounded-md transition-colors"
-                        :class="currentViewport === 'tablet' ? 'bg-white dark:bg-gray-700 text-primary shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'"
-                        title="Tablet (768x1024)">
-                        <span class="material-symbols-outlined text-sm">tablet</span>
-                    </button>
-                    <button @click="setViewport('mobile')" class="p-1 px-2 rounded-md transition-colors"
-                        :class="currentViewport === 'mobile' ? 'bg-white dark:bg-gray-700 text-primary shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'"
-                        title="Mobile (390x844)">
-                        <span class="material-symbols-outlined text-sm">smartphone</span>
-                    </button>
-                </div>
+                <!-- Device toggles removed for free-form canvas -->
 
                 <div class="h-6 w-px bg-gray-200 dark:bg-gray-700"></div>
 
@@ -319,7 +302,7 @@
                 <div class="flex-1 overflow-auto p-12 flex items-center justify-center canvas-grid relative custom-scrollbar"
                     id="canvas-container" @click.self="selectedElement = null">
 
-                    <div class="bg-white dark:bg-surface-dark shadow-2xl relative transition-all duration-300 origin-center group ring-1 ring-border-light dark:ring-border-dark"
+                    <div class="bg-white dark:bg-surface-dark shadow-sm relative transition-all duration-300 origin-center group ring-1 ring-border-light dark:ring-border-dark"
                         :style="{ 
                             width: canvasWidth + 'px', 
                             height: canvasHeight + 'px', 
@@ -677,6 +660,63 @@
                                         <textarea x-model="getSelected().content" rows="3"
                                             :disabled="getSelected().locked"
                                             class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-lg text-sm disabled:opacity-50"></textarea>
+                                    </div>
+
+                                    <!-- Appearance Section -->
+                                    <div class="mt-6 pt-6 border-t border-border-light dark:border-border-dark">
+                                        <h3
+                                            class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+                                            Appearance</h3>
+                                        <div class="space-y-4">
+                                            <!-- Background Color -->
+                                            <div>
+                                                <label
+                                                    class="text-[10px] text-gray-500 dark:text-gray-400 mb-1.5 block uppercase">Background
+                                                    Color</label>
+                                                <div class="flex items-center gap-2">
+                                                    <input type="color" x-model="getSelected().backgroundColor"
+                                                        :disabled="getSelected().locked"
+                                                        class="h-8 w-8 rounded overflow-hidden border-0 cursor-pointer disabled:opacity-50">
+                                                    <input type="text" x-model="getSelected().backgroundColor"
+                                                        :disabled="getSelected().locked"
+                                                        class="flex-1 px-2 py-1.5 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-md text-sm disabled:opacity-50">
+                                                </div>
+                                            </div>
+
+                                            <!-- Opacity & Border Radius -->
+                                            <div class="grid grid-cols-2 gap-3">
+                                                <div>
+                                                    <label
+                                                        class="text-[10px] text-gray-500 dark:text-gray-400 mb-1 block uppercase">Opacity
+                                                        (%)</label>
+                                                    <input type="number" min="0" max="100"
+                                                        x-model="getSelected().opacity" :disabled="getSelected().locked"
+                                                        class="w-full px-2 py-1.5 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-md text-sm disabled:opacity-50">
+                                                </div>
+                                                <div>
+                                                    <label
+                                                        class="text-[10px] text-gray-500 dark:text-gray-400 mb-1 block uppercase">Radius
+                                                        (px)</label>
+                                                    <input type="number" min="0" x-model="getSelected().borderRadius"
+                                                        :disabled="getSelected().locked"
+                                                        class="w-full px-2 py-1.5 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-md text-sm disabled:opacity-50">
+                                                </div>
+                                            </div>
+
+                                            <!-- Shadow -->
+                                            <div>
+                                                <label
+                                                    class="text-[10px] text-gray-500 dark:text-gray-400 mb-1 block uppercase">Shadow</label>
+                                                <select x-model="getSelected().shadow" :disabled="getSelected().locked"
+                                                    class="w-full px-2 py-1.5 bg-gray-50 dark:bg-gray-800 border border-border-light dark:border-border-dark rounded-md text-sm disabled:opacity-50">
+                                                    <option value="none">None</option>
+                                                    <option value="sm">Small</option>
+                                                    <option value="md">Medium</option>
+                                                    <option value="lg">Large</option>
+                                                    <option value="xl">Extra Large</option>
+                                                </select>
+                                            </div>
+                                        </div>
                                     </div>
                                     <div>
                                         <label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Color</label>
