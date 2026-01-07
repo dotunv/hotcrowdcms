@@ -38,53 +38,68 @@
         <!-- Stat Cards -->
         {% include "partials/dashboard_stats.html" %}
 
-        <!-- Audience Engagement Chart Placeholder -->
+        <!-- Quick Actions (Operator Efficiency) -->
         <div
             class="bg-white dark:bg-surface-dark p-6 rounded-2xl shadow-card border border-border-light dark:border-border-dark">
-            <div class="flex justify-between items-center mb-6">
-                <div>
-                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Audience Engagement</h3>
-                    <p class="text-sm text-gray-500">Daily interaction estimation based on foot traffic.</p>
-                </div>
-                <div class="flex items-center text-sm font-medium text-green-600">
-                    <span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                    Engagement
-                </div>
+            <div class="mb-6">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white">Quick Actions</h3>
+                <p class="text-sm text-gray-500">Common tasks and shortcuts</p>
             </div>
 
-            <!-- CSS Chart Visual -->
-            <div class="relative h-64 w-full">
-                <!-- Grid Lines -->
-                <div class="absolute inset-0 flex flex-col justify-between text-xs text-gray-400">
-                    <div class="border-b border-gray-100 dark:border-gray-700 w-full h-0"></div>
-                    <div class="border-b border-gray-100 dark:border-gray-700 w-full h-0"></div>
-                    <div class="border-b border-gray-100 dark:border-gray-700 w-full h-0"></div>
-                    <div class="border-b border-gray-100 dark:border-gray-700 w-full h-0"></div>
-                    <div class="border-b border-gray-100 dark:border-gray-700 w-full h-0"></div>
+            <div class="grid grid-cols-2 gap-4">
+                <!-- Upload Content -->
+                <a href="{% url 'media_library' %}"
+                    class="flex flex-col items-center justify-center p-4 rounded-xl border border-border-light dark:border-border-dark hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors group">
+                    <div
+                        class="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                        <span class="material-symbols-outlined">cloud_upload</span>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Upload Media</span>
+                </a>
+
+                <!-- Create Playlist -->
+                <a href="{% url 'playlist_builder' %}"
+                    class="flex flex-col items-center justify-center p-4 rounded-xl border border-border-light dark:border-border-dark hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors group">
+                    <div
+                        class="w-10 h-10 rounded-full bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                        <span class="material-symbols-outlined">playlist_add</span>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">New Playlist</span>
+                </a>
+
+                <!-- Schedule Content -->
+                <a href="{% url 'playlists_list' %}"
+                    class="flex flex-col items-center justify-center p-4 rounded-xl border border-border-light dark:border-border-dark hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors group">
+                    <div
+                        class="w-10 h-10 rounded-full bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                        <span class="material-symbols-outlined">calendar_month</span>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Schedule</span>
+                </a>
+
+                <!-- Add Screen -->
+                <a href="{% url 'setup_screen' %}"
+                    class="flex flex-col items-center justify-center p-4 rounded-xl border border-border-light dark:border-border-dark hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors group">
+                    <div
+                        class="w-10 h-10 rounded-full bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                        <span class="material-symbols-outlined">add_to_queue</span>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Add Screen</span>
+                </a>
+            </div>
+
+            <!-- Assign Screen Full Width -->
+            <a href="{% url 'screens' %}"
+                class="mt-4 flex items-center justify-between p-4 rounded-xl border border-border-light dark:border-border-dark hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors group w-full">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 flex items-center justify-center group-hover:bg-gray-200 dark:group-hover:bg-gray-700 transition-colors">
+                        <span class="material-symbols-outlined text-lg">cast_connected</span>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Assign Screen to Location</span>
                 </div>
-
-                <!-- Graph Curve (SVG) -->
-                <svg class="absolute inset-0 w-full h-full overflow-visible" preserveAspectRatio="none">
-                    <defs>
-                        <linearGradient id="gradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stop-color="#057A43" stop-opacity="0.2" />
-                            <stop offset="100%" stop-color="#057A43" stop-opacity="0" />
-                        </linearGradient>
-                    </defs>
-                    <path
-                        d="M0,180 C100,160 200,120 300,120 C400,120 500,60 600,40 C700,20 800,40 1000,100 L1000,256 L0,256 Z"
-                        fill="url(#gradient)" />
-                    <path d="M0,180 C100,160 200,120 300,120 C400,120 500,60 600,40 C700,20 800,40 1000,100" fill="none"
-                        stroke="#057A43" stroke-width="3" />
-
-                    <!-- Data Points -->
-                    <circle cx="300" cy="120" r="4" fill="#F9F9F7" stroke="#057A43" stroke-width="2" />
-                    <circle cx="600" cy="40" r="4" fill="#F9F9F7" stroke="#057A43" stroke-width="2" />
-                </svg>
-            </div>
-            <div class="flex justify-between text-xs text-gray-400 mt-2 px-2">
-                <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
-            </div>
+                <span class="material-symbols-outlined text-gray-400 text-sm">chevron_right</span>
+            </a>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -96,8 +111,8 @@
                         <h3 class="font-bold text-gray-900 dark:text-white">Screen Network Status</h3>
                         <p class="text-xs text-gray-500">Real-time device monitoring</p>
                     </div>
-                    <a href="{% url 'screens' %}"
-                        class="text-sm font-medium text-primary hover:text-secondary">View All</a>
+                    <a href="{% url 'screens' %}" class="text-sm font-medium text-primary hover:text-secondary">View
+                        All</a>
                 </div>
                 <div class="divide-y divide-gray-100 dark:divide-gray-700">
                     {% for screen in screens|slice:":3" %}
@@ -111,14 +126,16 @@
                             <div>
                                 <h4 class="text-sm font-bold text-gray-900 dark:text-white">{{ screen.name }}</h4>
                                 <p class="text-xs text-gray-500">
- {% if screen.assigned_playlist %}Playing: {{ screen.assigned_playlist.name }}{% else %}No Content{% endif %}
+                                    {% if screen.assigned_playlist %}Playing: {{ screen.assigned_playlist.name }}{% else
+                                    %}No Content{% endif %}
                                 </p>
                             </div>
                         </div>
                         <div class="flex items-center gap-2">
                             <span
                                 class="w-2 h-2 rounded-full {% if screen.is_online %}bg-green-500{% else %}bg-red-500{% endif %}"></span>
- <span class="text-xs font-medium text-gray-600">{% if screen.is_online %}Online{% else %}Offline{% endif %}</span>
+                            <span class="text-xs font-medium text-gray-600">{% if screen.is_online %}Online{% else
+                                %}Offline{% endif %}</span>
                         </div>
                     </div>
                     {% empty %}
@@ -135,43 +152,54 @@
                         <h3 class="font-bold text-gray-900 dark:text-white">Recent Media & Content</h3>
                         <p class="text-xs text-gray-500">Latest uploads from CMS & Social</p>
                     </div>
-                    <a href="{% url 'media_library' %}" class="text-sm font-medium text-primary hover:text-secondary">View All</a>
+                    <a href="{% url 'media_library' %}"
+                        class="text-sm font-medium text-primary hover:text-secondary">View All</a>
                 </div>
                 <div class="divide-y divide-gray-100 dark:divide-gray-700">
                     {% for media in recent_media %}
-                    <div class="p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                    <div
+                        class="p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                         <div class="flex items-center gap-4">
                             {% if media.media_type == 'IMAGE' or media.media_type == 'VIDEO' %}
-                                {% if media.thumbnail_url %}
-                                <img class="w-10 h-10 rounded-lg object-cover" src="{{ media.thumbnail_url }}" alt="{{ media.name|default:'Media' }}">
-                                {% elif media.file_url %}
-                                <img class="w-10 h-10 rounded-lg object-cover" src="{{ media.file_url }}" alt="{{ media.name|default:'Media' }}">
-                                {% else %}
-                                <div class="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400">
-                                    <span class="material-symbols-outlined">{% if media.media_type == 'VIDEO' %}videocam{% else %}image{% endif %}</span>
-                                </div>
-                                {% endif %}
+                            {% if media.thumbnail_url %}
+                            <img class="w-10 h-10 rounded-lg object-cover" src="{{ media.thumbnail_url }}"
+                                alt="{{ media.name|default:'Media' }}">
+                            {% elif media.file_url %}
+                            <img class="w-10 h-10 rounded-lg object-cover" src="{{ media.file_url }}"
+                                alt="{{ media.name|default:'Media' }}">
                             {% else %}
-                            <div class="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400">
+                            <div
+                                class="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400">
+                                <span class="material-symbols-outlined">{% if media.media_type == 'VIDEO' %}videocam{%
+                                    else %}image{% endif %}</span>
+                            </div>
+                            {% endif %}
+                            {% else %}
+                            <div
+                                class="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400">
                                 <span class="material-symbols-outlined">description</span>
                             </div>
                             {% endif %}
                             <div>
-                                <h4 class="text-sm font-bold text-gray-900 dark:text-white">{{ media.name|default:"Untitled Media" }}</h4>
+                                <h4 class="text-sm font-bold text-gray-900 dark:text-white">{{
+                                    media.name|default:"Untitled Media" }}</h4>
                                 <p class="text-xs text-gray-500">
                                     {% if media.source == 'INSTAGRAM' %}Source: Instagram{% else %}Uploaded{% endif %} •
                                     {{ media.media_type|title }}
                                 </p>
                             </div>
                         </div>
-                        <span class="px-2 py-1 rounded {% if media.source == 'INSTAGRAM' %}bg-pink-100 dark:bg-pink-900/20 text-pink-700 dark:text-pink-300{% else %}bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300{% endif %} text-xs font-bold">
+                        <span
+                            class="px-2 py-1 rounded {% if media.source == 'INSTAGRAM' %}bg-pink-100 dark:bg-pink-900/20 text-pink-700 dark:text-pink-300{% else %}bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300{% endif %} text-xs font-bold">
                             {% if media.source == 'INSTAGRAM' %}Synced{% else %}Upload{% endif %}
                         </span>
                     </div>
                     {% empty %}
                     <div class="p-8 text-center text-gray-500 text-sm">
                         <p>No media uploaded yet.</p>
-                        <a href="{% url 'media_library' %}" class="text-primary hover:text-secondary font-medium mt-2 inline-block">Upload your first media</a>
+                        <a href="{% url 'media_library' %}"
+                            class="text-primary hover:text-secondary font-medium mt-2 inline-block">Upload your first
+                            media</a>
                     </div>
                     {% endfor %}
                 </div>
