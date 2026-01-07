@@ -1,0 +1,33 @@
+<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4">
+    {% for content in contents %}
+    <div class="aspect-video bg-white rounded-lg border border-slate-200 shadow-sm cursor-pointer hover:ring-2 hover:ring-primary relative group transition-all overflow-hidden flex flex-col"
+        @click="$dispatch('cms-selected', { id: '{{ content.id }}', title: '{{ content.title|escapejs }}' })">
+
+        <!-- Preview (Mini rendering of content) -->
+        <div class="flex-1 bg-slate-50 p-2 overflow-hidden relative">
+            <div class="scale-[0.5] origin-top-left w-[200%] h-[200%] pointer-events-none select-none">
+                {{ content.content_html|safe }}
+            </div>
+            <div class="absolute inset-0 bg-transparent"></div> <!-- Interaction shield -->
+        </div>
+
+        <div class="p-3 bg-white border-t border-slate-100">
+            <h4 class="font-medium text-slate-800 text-sm truncate">{{ content.title }}</h4>
+            <div class="flex items-center justify-between mt-1">
+                <span class="text-xs text-slate-500">{{ content.get_status_display }}</span>
+                <span class="bg-indigo-100 text-indigo-700 text-[10px] font-bold px-1.5 py-0.5 rounded">CMS</span>
+            </div>
+        </div>
+
+        <!-- Overlay -->
+        <div class="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors"></div>
+    </div>
+    {% empty %}
+    <div class="col-span-full text-center py-12 text-gray-400">
+        <span class="material-icons-outlined text-4xl mb-2">article</span>
+        <p>No published CMS content found.</p>
+        <a href="{% url 'store_cms' %}" class="text-primary hover:underline text-sm mt-2 inline-block">Create
+            Content</a>
+    </div>
+    {% endfor %}
+</div>

@@ -18,6 +18,8 @@ urlpatterns = [
     path('media/', views.media_library, name='media_library'),
     path('media/upload/', views.upload_media, name='upload_media'),
     path('media/delete/<uuid:media_id>/', views.delete_media, name='delete_media'),
+    path('media/cms-content/', views.cms_content_library, name='cms_content_library'),
+    path('add-cms/<uuid:content_id>/', views.add_cms_to_playlist, name='add_cms_to_playlist'),
     # Playlist Management
     path('playlists/', views.playlist_list, name='playlists_list'),
     path('playlist/create/', views.create_playlist, name='create_playlist'),

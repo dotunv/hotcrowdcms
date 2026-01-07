@@ -161,17 +161,12 @@
             </div>
             {% endfor %}
         </div>
-    </div>
 
-    <!-- Upload Modal -->
-    <c-playlist.upload_modal show_duration="False" />
+        <!-- Upload Modal -->
+        <c-playlist.upload_modal show_duration="False" />
 
-    <!-- Upload Modal -->
-    <c-playlist.upload_modal show_duration="False" />
-
-    <!-- Delete Confirmation Modal -->
-    <!-- Delete Confirmation Modal -->
-    <div x-show="showDeleteModal"
+        <!-- Delete Confirmation Modal -->
+        <div x-show="showDeleteModal"
         class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
         style="display: none;" x-transition.opacity>
         <div class="bg-white dark:bg-surface-dark rounded-xl shadow-2xl w-full max-w-sm p-6 transform transition-all"

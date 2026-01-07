@@ -143,7 +143,8 @@ class PlaylistItem(models.Model):
     Through-model linking Playlist to MediaAsset with an order.
     """
     playlist = models.ForeignKey(Playlist, on_delete=models.CASCADE, related_name='items')
-    media = models.ForeignKey(MediaAsset, on_delete=models.CASCADE)
+    media = models.ForeignKey(MediaAsset, on_delete=models.CASCADE, null=True, blank=True)
+    store_content = models.ForeignKey('StoreContent', on_delete=models.CASCADE, null=True, blank=True)
     position = models.PositiveIntegerField(default=0)
     
     # Override constraints
@@ -263,7 +264,10 @@ class StoreContent(models.Model):
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='DRAFT')
     
     # Scheduling
-    scheduled_at = models.DateTimeField(blank=True, null=True)
+    duration = models.IntegerField(default=15, help_text="Duration in seconds")
+    start_date = models.DateTimeField(blank=True, null=True)
+    end_date = models.DateTimeField(blank=True, null=True)
+    target_screen = models.ForeignKey('Screen', on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_contents')
     
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)

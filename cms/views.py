@@ -327,10 +327,46 @@ def add_to_playlist(request, media_id):
                 position=playlist.items.count()
             )
 
+            try:
+                # Calculate total duration
+                total_duration = sum(
+                    item.custom_duration if item.custom_duration else (item.media.duration if item.media else 15)
+                    for item in playlist.items.all()
+                )
+                return render(request, 'cotton/playlist/sequence_editor.html', {
+                    'playlist': playlist,
+                    'total_duration': total_duration
+                })
+            except Exception as e:
+                pass
+
+    return redirect('playlist_builder')
+
+
+@login_required
+def add_cms_to_playlist(request, content_id):
+    """Add CMS content to playlist."""
+    if request.method == "POST":
+        playlist_id = request.POST.get('playlist_id')
+        playlist = get_object_or_404(Playlist, id=playlist_id, owner=request.user) if playlist_id else Playlist.objects.filter(owner=request.user).first()
+
+        if not playlist:
+            playlist = Playlist.objects.create(name="Default", owner=request.user)
+
+        content = get_object_or_404(StoreContent, id=content_id, owner=request.user)
+
+        if not PlaylistItem.objects.filter(playlist=playlist, store_content=content).exists():
+            PlaylistItem.objects.create(
+                playlist=playlist,
+                store_content=content,
+                position=playlist.items.count(),
+                custom_duration=15  # Default duration for CMS content
+            )
+
         if request.htmx:
             # Calculate total duration
             total_duration = sum(
-                item.custom_duration if item.custom_duration else item.media.duration
+                item.custom_duration if item.custom_duration else (item.media.duration if item.media else 15)
                 for item in playlist.items.all()
             )
             return render(request, 'cotton/playlist/sequence_editor.html', {
@@ -474,6 +510,21 @@ def media_library(request):
 
 
 @login_required
+def cms_content_library(request):
+    """Partial view for CMS content picker."""
+    contents = StoreContent.objects.filter(owner=request.user, status='PUBLISHED').order_by('-updated_at')
+    
+    context = {
+        'contents': contents,
+    }
+
+    if request.htmx:
+        return render(request, 'partials/cms_content_picker.html', context)
+        
+    return HttpResponse(status=400)
+
+
+@login_required
 def upload_media(request):
     """Handle media upload (file or URL)."""
     if request.method == "POST":
@@ -486,8 +537,8 @@ def upload_media(request):
         try:
             if uploaded_file:
                 # Validate file
-                if uploaded_file.size > 50 * 1024 * 1024:
-                    messages.error(request, 'File size must be less than 50MB.')
+                if uploaded_file.size > 200 * 1024 * 1024:
+                    messages.error(request, 'File size must be less than 200MB.')
                     return redirect('media_library')
 
                 allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'video/mp4', 'video/webm']
@@ -759,6 +810,27 @@ def save_content(request, content_id):
         if status in ['DRAFT', 'PUBLISHED', 'SCHEDULED', 'ARCHIVED']:
             content.status = status
 
+        # Scheduling
+        duration = request.POST.get('duration')
+        if duration:
+            content.duration = int(duration)
+
+        start_date = request.POST.get('start_date')
+        if start_date:
+            content.start_date = start_date
+        else:
+            content.start_date = None
+
+        end_date = request.POST.get('end_date')
+        if end_date:
+            content.end_date = end_date
+        else:
+            content.end_date = None
+
+        target_screen_id = request.POST.get('target_screen')
+        if target_screen_id:
+             content.target_screen_id = target_screen_id if target_screen_id != 'all' else None
+        
         content.save()
 
         if request.headers.get('HX-Request'):

@@ -205,8 +205,8 @@ else:
     MEDIA_ROOT = BASE_DIR / 'media'
 
 # File Upload Settings
-FILE_UPLOAD_MAX_MEMORY_SIZE = 52428800  # 50MB
-DATA_UPLOAD_MAX_MEMORY_SIZE = 52428800  # 50MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 209715200  # 200MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 209715200  # 200MB
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/6.0/ref/settings/#default-auto-field

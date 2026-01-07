@@ -82,7 +82,7 @@
 
 {% block body %}
 <c-layouts.sidebar>
-    <div class="max-w-7xl mx-auto p-8 h-full overflow-y-auto">
+    <div class="max-w-7xl mx-auto p-8 h-full overflow-y-auto" x-data="{}">
         <!-- Header -->
         <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
             <div>
@@ -451,7 +451,11 @@
     </div>
 
     <!-- Delete Confirmation Modal -->
-    <c-modals.confirm_delete title="Delete Playlist" message="Are you sure you want to delete"
-        confirm_text="Delete Playlist"></c-modals.confirm_delete>
+    <c-modals.confirm_delete
+        title="Delete Playlist"
+        message="Are you sure you want to delete"
+        confirm_text="Delete Playlist"
+        modal_id="confirmDeleteModal">
+    </c-modals.confirm_delete>
 </c-layouts.sidebar>
 {% endblock %}

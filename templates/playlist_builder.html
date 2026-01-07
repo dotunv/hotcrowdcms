@@ -4,6 +4,7 @@
 
 {% block body %}
 <c-layouts.sidebar>
+    <div x-data="{ showDeleteModal: false, deleteUrl: '', deleteItemName: '' }">
     <form id="playlistForm" method="post" action="" class="h-full flex flex-col gap-4 p-6">
         {% csrf_token %}
         <input type="hidden" name="save_settings" value="true">
@@ -71,10 +72,12 @@
 
     <!-- Modals -->
     <c-playlist.upload_modal />
+    <c-playlist.cms_modal />
     <c-playlist.preview_modal :playlist="playlist" />
     {% if saved %}
     <c-playlist.success_modal :playlist="playlist" />
     {% endif %}
+    </div>
 </c-layouts.sidebar>
 {% endblock %}
 

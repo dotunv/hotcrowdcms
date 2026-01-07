@@ -25,7 +25,7 @@
             <!-- Message -->
             <p class="text-sm text-gray-600 dark:text-gray-400 text-center mb-6">
                 <span x-text="modalMessage"></span>
-                <span x-show="itemName" x-text="' \"' + itemName + '\"?'" class="font-semibold text-gray-900 dark:text-white"></span>
+                <span x-show="itemName" class="font-semibold text-gray-900 dark:text-white"> "<span x-text="itemName"></span>"?</span>
                 <span x-show="!itemName">?</span>
             </p>
 
