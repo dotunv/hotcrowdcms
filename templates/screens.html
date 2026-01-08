@@ -3,8 +3,20 @@
 
 {% block body %}
 <c-layouts.sidebar>
-    <div class="h-full flex flex-col"
-        x-data="{ showConnectModal: false, showSuccessModal: false, pairingCode: '', screenName: '', screenLocation: '' }"
+    x-data="{
+    showConnectModal: false,
+    showSuccessModal: false,
+    pairingCode: '',
+    screenName: '',
+    screenLocation: '',
+    validationError: '',
+    isValidating: false,
+    async validateAndProceed() {
+    if (this.pairingCode.length < 6) return; this.isValidating=true; this.validationError='' ; try { const
+        response=await fetch(`/dashboard/screens/validate-code/?code=${this.pairingCode}`); const data=await
+        response.json(); if (data.valid) { this.showConnectModal=false; this.showSuccessModal=true; } else {
+        this.validationError=data.message || 'Invalid code' ; } } catch (e) {
+        this.validationError='Connection error. Please try again.' ; } finally { this.isValidating=false; } } }"
         x-cloak>
         <div class="space-y-6 p-8 h-full overflow-y-auto">
 
@@ -16,7 +28,8 @@
                     x-data="{ show: true }" x-show="show" x-transition>
                     <span
                         class="material-symbols-outlined {% if message.tags == 'success' %}text-green-600 dark:text-green-400{% elif message.tags == 'error' %}text-red-600 dark:text-red-400{% else %}text-blue-600 dark:text-blue-400{% endif %}">
- {% if message.tags == 'success' %}check_circle{% elif message.tags == 'error' %}error{% else %}info{% endif %}
+                        {% if message.tags == 'success' %}check_circle{% elif message.tags == 'error' %}error{% else
+                        %}info{% endif %}
                     </span>
                     <p
                         class="flex-1 text-sm font-medium {% if message.tags == 'success' %}text-green-800 dark:text-green-200{% elif message.tags == 'error' %}text-red-800 dark:text-red-200{% else %}text-blue-800 dark:text-blue-200{% endif %}">
@@ -140,7 +153,8 @@
                                 <td class="px-6 py-4">
                                     <div
                                         class="w-8 h-8 rounded-full {{ screen.is_online|yesno:'bg-green-50 text-green-600,bg-red-50 text-red-600' }} flex items-center justify-center">
- <span class="material-symbols-outlined text-lg">{{ screen.is_online|yesno:'check_circle,wifi_off' }}</span>
+                                        <span class="material-symbols-outlined text-lg">{{
+                                            screen.is_online|yesno:'check_circle,wifi_off' }}</span>
                                     </div>
                                 </td>
                                 <td class="px-6 py-4">
@@ -152,12 +166,14 @@
                                         <div>
                                             <p class="text-sm font-bold text-gray-900 dark:text-white">{{ screen.name }}
                                             </p>
- <p class="text-xs text-gray-500 font-mono">ID: SN-{{ screen.id|stringformat:"s"|slice:":6"|upper }}</p>
+                                            <p class="text-xs text-gray-500 font-mono">ID: SN-{{
+                                                screen.id|stringformat:"s"|slice:":6"|upper }}</p>
                                         </div>
                                     </div>
                                 </td>
                                 <td class="px-6 py-4">
- <p class="text-sm text-gray-900 dark:text-white">{{ screen.location|default:"Unknown" }}
+                                    <p class="text-sm text-gray-900 dark:text-white">{{
+                                        screen.location|default:"Unknown" }}
                                     </p>
                                     <p class="text-xs text-gray-500">{{ screen.location_detail|default:"-" }}</p>
                                 </td>
@@ -257,20 +273,24 @@
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Pairing Code</label>
                     <input type="text" x-model="pairingCode"
                         class="w-full text-center text-3xl font-mono tracking-widest py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white uppercase outline-none"
-                        placeholder="XXX-XXX" required maxlength="7" @input="pairingCode = pairingCode.toUpperCase()"
-                        @keydown.enter="if(pairingCode.length >= 6) { showConnectModal = false; showSuccessModal = true; }">
+                        placeholder="XXX-XXX" required maxlength="7"
+                        @input="pairingCode = pairingCode.toUpperCase(); validationError = ''"
+                        @keydown.enter="validateAndProceed()">
+                    <div class="text-red-500 text-sm mt-2 font-medium" x-show="validationError"
+                        x-text="validationError"></div>
                 </div>
                 <div class="flex gap-3">
                     <button type="button" @click="showConnectModal = false; pairingCode = ''"
                         class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-700 dark:text-gray-300 font-bold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                         Cancel
                     </button>
-                    <button type="button"
-                        @click="if(pairingCode.length >= 6) { showConnectModal = false; showSuccessModal = true; }"
-                        :disabled="pairingCode.length < 6"
-                        :class="pairingCode.length < 6 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-secondary'"
-                        class="flex-1 px-4 py-2 bg-primary text-white rounded-xl font-bold transition-all">
-                        Next
+                    <button type="button" @click="validateAndProceed()"
+                        :disabled="pairingCode.length < 6 || isValidating"
+                        :class="pairingCode.length < 6 || isValidating ? 'opacity-50 cursor-not-allowed' : 'hover:bg-secondary'"
+                        class="flex-1 px-4 py-2 bg-primary text-white rounded-xl font-bold transition-all flex items-center justify-center">
+                        <span x-show="!isValidating">Next</span>
+                        <span x-show="isValidating"
+                            class="material-symbols-outlined animate-spin text-sm">progress_activity</span>
                     </button>
                 </div>
             </div>
@@ -337,8 +357,8 @@
         <!-- Delete Confirmation Modal -->
         <c-modals.confirm_delete title="Delete Screen" message="Are you sure you want to delete"
             confirm_text="Delete Screen" />
-    </div>
-    </div>
+        </div>
+        </div>
 </c-layouts.sidebar>
 {% endblock %}
 

@@ -28,7 +28,8 @@ urlpatterns = [
     path('playlist/settings/', views.save_playlist_settings, name='save_playlist_settings'),
     # Screen Management
     path('screen/<uuid:screen_id>/assign/', views.assign_playlist, name='assign_playlist'),
-    path('screen/<uuid:screen_id>/delete/', views.delete_screen, name='delete_screen'),
+    path('screens/validate-code/', views.validate_pairing_code, name='validate_pairing_code'),
+    path('screens/<str:screen_id>/delete/', views.delete_screen, name='delete_screen'),
     # Store CMS
     path('store-cms/', views.store_cms, name='store_cms'),
     path('store-cms/layout/', views.store_cms_editor, name='store_cms_editor'),

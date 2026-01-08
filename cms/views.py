@@ -113,30 +113,54 @@ def screens(request):
 
 
 @login_required
+def validate_pairing_code(request):
+    """Validate a pairing code via AJAX."""
+    permission_denied_json = JsonResponse({'valid': False, 'message': 'Invalid request'}, status=400)
+    if request.method != "GET":
+        return permission_denied_json
+
+    code = request.GET.get('code', '').strip().upper()
+    if not code:
+        return JsonResponse({'valid': False, 'message': 'Please enter a code.'})
+
+    try:
+        pairing = PairingCode.objects.get(code=code)
+        
+        if timezone.now() > pairing.expires_at:
+            return JsonResponse({'valid': False, 'message': 'This code has expired.'})
+
+        if Screen.objects.filter(pairing_code=code).exists():
+            return JsonResponse({'valid': False, 'message': 'This code is already in use.'})
+            
+        return JsonResponse({'valid': True})
+
+    except PairingCode.DoesNotExist:
+        return JsonResponse({'valid': False, 'message': 'Invalid pairing code.'})
+
+
+@login_required
 def setup_screen(request):
-    """Setup a new screen via pairing code."""
+    """Handle screen creation (POST only). Redirects to dashboard on success/error."""
     if request.method == "POST":
         code = request.POST.get('pairing_code', '').strip().upper()
         name = request.POST.get('name')
         location = request.POST.get('location', '')
 
-        # Validate pairing code
+        # Re-validate to be safe
         try:
             pairing = PairingCode.objects.get(code=code)
-
             if timezone.now() > pairing.expires_at:
                 messages.error(request, 'This pairing code has expired.')
-                return render(request, 'setup_screen.html', {'pairing_code': code, 'name': name})
-
+                return redirect('screens')
+            
             if Screen.objects.filter(pairing_code=code).exists():
-                messages.error(request, 'This code is already linked to another screen.')
-                return render(request, 'setup_screen.html', {'pairing_code': code, 'name': name})
+                messages.error(request, 'This code is already linked.')
+                return redirect('screens')
 
         except PairingCode.DoesNotExist:
             messages.error(request, 'Invalid pairing code.')
-            return render(request, 'setup_screen.html', {'pairing_code': code, 'name': name})
+            return redirect('screens')
 
-        # Create screen
         Screen.objects.create(
             name=name,
             pairing_code=code,
@@ -148,7 +172,8 @@ def setup_screen(request):
         messages.success(request, f'Screen "{name}" connected successfully!')
         return redirect('screens')
 
-    return render(request, 'setup_screen.html')
+    # If GET, redirect to screens dashboard since standalone page is removed
+    return redirect('screens')
 
 
 @login_required

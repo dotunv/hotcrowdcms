@@ -5,19 +5,18 @@
     x-init="$watch('darkMode', val => {
         localStorage.setItem('theme', val ? 'dark' : 'light');
         document.documentElement.classList.toggle('dark', val);
-    })"
-    :class="{ 'dark': darkMode }"
-    x-cloak>
+    })" :class="{ 'dark': darkMode }" x-cloak>
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="{% static 'logo.svg' %}">
     <title>{% block title %}HotCrowd CMS{% endblock %}</title>
 
     <!-- Theme initialization script (must run before page render) -->
     <script>
         // Apply theme immediately to prevent flash
-        (function() {
+        (function () {
             const theme = localStorage.getItem('theme');
             const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
             const shouldBeDark = theme === 'dark' || (!theme && prefersDark);
