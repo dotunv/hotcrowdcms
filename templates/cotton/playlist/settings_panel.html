@@ -1,6 +1,7 @@
 <c-vars playlist />
 
-<div class="bg-white rounded-xl shadow-sm border border-slate-100 p-5 w-80 flex-shrink-0 space-y-6 overflow-y-auto">
+<div class="bg-white rounded-xl shadow-sm border border-slate-100 p-5 space-y-6"
+    x-data="{ scheduleType: '{{ playlist.schedule_type }}' }">
 
     <!-- Header -->
     <div>
@@ -8,34 +9,22 @@
         <p class="text-xs text-slate-500 mt-1">Configure playlist behavior</p>
     </div>
 
-    <form method="post" action="{% url 'playlist_builder' %}?playlist={{ playlist.id }}" class="space-y-6">
-        {% csrf_token %}
-        <input type="hidden" name="save_settings" value="true">
-
-        <!-- Name Input -->
-        <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Playlist Name</label>
-            <input type="text" name="name" value="{{ playlist.name }}"
-                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none">
-        </div>
+    <div class="space-y-6">
 
         <!-- Schedule Mode -->
         <div>
             <label class="block text-sm font-medium text-slate-700 mb-2">Schedule</label>
-            <select name="schedule_type"
+            <select name="schedule_type" x-model="scheduleType"
                 class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none cursor-pointer">
-                <option value="ALWAYS" {% if playlist.schedule_type == 'ALWAYS' %}selected{% endif %}>Always On</option>
-                <option value="SCHEDULED" {% if playlist.schedule_type == 'SCHEDULED' %}selected{% endif %}>Specific
-                    Date/Time
-                </option>
-                <option value="RECURRING" {% if playlist.schedule_type == 'RECURRING' %}selected{% endif %}>Recurring
-                    (Weekly)
-                </option>
+                <option value="ALWAYS">Always On</option>
+                <option value="SCHEDULED">Specific Date/Time</option>
+                <option value="RECURRING">Recurring (Weekly)</option>
             </select>
         </div>
 
         <!-- Date Range (Show if not ALWAYS) -->
-        <div class="space-y-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
+        <div class="space-y-3 p-3 bg-slate-50 rounded-lg border border-slate-100" x-show="scheduleType !== 'ALWAYS'"
+            x-transition>
             <div class="grid grid-cols-2 gap-2">
                 <div>
                     <label class="block text-xs font-medium text-slate-500 mb-1">Start Date</label>
@@ -100,7 +89,7 @@
                 <label class="block text-sm font-medium text-slate-700">Assigned Screens</label>
                 <a href="{% url 'screens' %}" class="text-xs text-primary font-medium hover:underline">Manage</a>
             </div>
-            <div class="bg-slate-50 rounded-lg border border-slate-200 p-3 max-h-40 overflow-y-auto space-y-2">
+            <div class="bg-slate-50 rounded-lg border border-slate-200 p-3 space-y-2">
                 {% for screen in all_screens %}
                 <label class="flex items-start gap-2 cursor-pointer hover:bg-slate-100 p-1 rounded transition-colors">
                     <input type="checkbox" name="assigned_screens" value="{{ screen.id }}"
@@ -122,15 +111,6 @@
             </div>
         </div>
 
-        <!-- Save Button -->
-        <div class="pt-4 border-t border-slate-100">
-            <button type="submit"
-                class="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors">
-                <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                Save Settings
-            </button>
-        </div>
-    </form>
+
+    </div>
 </div>

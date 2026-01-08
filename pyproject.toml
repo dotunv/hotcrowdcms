@@ -20,4 +20,5 @@ dependencies = [
     "uvicorn>=0.40.0",
     "whitenoise>=6.11.0",
     "django-storages[boto3]>=1.14.2",
+    "django-cors-headers>=4.9.0",
 ]

@@ -64,6 +64,7 @@ INSTALLED_APPS = [
     'core',
     'api',
     'cms',
+    'corsheaders',
 ]
 
 SIZE_ID = 1
@@ -131,6 +132,7 @@ ACCOUNT_LOGIN_ON_PASSWORD_RESET = True
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',  # Added WhiteNoise
+    'corsheaders.middleware.CorsMiddleware', # Added CORS Middleware
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -215,6 +217,13 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'static']
+
+# CORS Configuration
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+CORS_ALLOW_CREDENTIALS = True
 
 # Storage Configuration (Django 5.0+)
 STORAGES = {

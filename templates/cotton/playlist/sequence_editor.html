@@ -85,7 +85,13 @@
                     <!-- Duration Pill -->
                     <div
                         class="absolute bottom-0.5 right-0.5 bg-black/70 text-white text-[9px] font-mono font-bold px-1 rounded-sm backdrop-blur-[1px]">
-                        {{ item.custom_duration|default:item.store_content.duration|default:item.media.duration }}s
+                        {% if item.custom_duration %}
+                        {{ item.custom_duration }}s
+                        {% elif item.store_content %}
+                        {{ item.store_content.duration }}s
+                        {% else %}
+                        {{ item.media.duration }}s
+                        {% endif %}
                     </div>
                 </div>
 
@@ -114,7 +120,7 @@
                             d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <input type="number" name="duration_{{ item.id }}"
-                        value="{{ item.custom_duration|default:item.store_content.duration|default:item.media.duration }}"
+                        value="{% if item.custom_duration %}{{ item.custom_duration }}{% elif item.store_content %}{{ item.store_content.duration }}{% else %}{{ item.media.duration }}{% endif %}"
                         hx-post="{% url 'update_playlist_item' item.id %}" hx-trigger="change delay:500ms"
                         hx-swap="none"
                         class="w-8 text-sm bg-transparent border-none p-0 text-center focus:ring-0 font-medium text-slate-700"

@@ -140,7 +140,7 @@ def setup_screen(request):
         Screen.objects.create(
             name=name,
             pairing_code=code,
-            location=location if location else None,
+            location=location,
             owner=request.user,
             status='ONLINE'
         )
@@ -224,7 +224,7 @@ def playlist_builder(request):
 
     # Calculate total duration
     total_duration = sum(
-        item.custom_duration if item.custom_duration else item.media.duration
+        item.custom_duration if item.custom_duration else (item.media.duration if item.media else 15)
         for item in playlist.items.all()
     )
 
@@ -268,10 +268,12 @@ def playlist_list(request):
 
     # Calculate duration for each playlist
     for playlist in playlists:
-        total_seconds = sum(item.custom_duration or item.media.duration for item in playlist.items.all())
+        total_seconds = sum(item.custom_duration if item.custom_duration else (item.media.duration if item.media else 15) for item in playlist.items.all())
         minutes, seconds = divmod(total_seconds, 60)
         playlist.formatted_duration = f"{minutes}m {seconds:02d}s" + (" Loop" if playlist.is_loop else "")
         playlist.item_count = playlist.items.count()
+        # Get list of assigned screen IDs as strings for JS compatibility
+        playlist.assigned_screen_ids = [str(id) for id in playlist.assigned_screens.values_list('id', flat=True)]
 
     store, _ = Store.objects.get_or_create(user=request.user)
 
@@ -281,6 +283,7 @@ def playlist_list(request):
         'status_filter': status_filter,
         'sort_by': sort_by,
         'store': store,
+        'all_screens': Screen.objects.filter(owner=request.user),
     })
 
 
@@ -307,6 +310,27 @@ def delete_playlist(request, playlist_id):
 # =============================================================================
 # Playlist Items
 # =============================================================================
+
+@login_required
+def assign_playlist_screens(request):
+    """Assign screens to a playlist from the modal."""
+    if request.method == "POST":
+        playlist_id = request.POST.get('playlist_id')
+        playlist = get_object_or_404(Playlist, id=playlist_id, owner=request.user)
+        
+        assigned_screen_ids = request.POST.getlist('assigned_screens')
+        
+        # Unassign this playlist from screens not in the selected list
+        Screen.objects.filter(owner=request.user, assigned_playlist=playlist).exclude(id__in=assigned_screen_ids).update(assigned_playlist=None)
+        
+        # Assign this playlist to selected screens
+        if assigned_screen_ids:
+            Screen.objects.filter(owner=request.user, id__in=assigned_screen_ids).update(assigned_playlist=playlist)
+            
+        messages.success(request, f'Screens assigned to {playlist.name} successfully.')
+        return redirect('playlists_list')
+    
+    return redirect('playlists_list')
 
 @login_required
 def add_to_playlist(request, media_id):
@@ -388,7 +412,7 @@ def remove_from_playlist(request, item_id):
         if request.htmx:
             # Calculate total duration
             total_duration = sum(
-                item.custom_duration if item.custom_duration else item.media.duration
+                item.custom_duration if item.custom_duration else (item.media.duration if item.media else 15)
                 for item in playlist.items.all()
             )
             return render(request, 'cotton/playlist/sequence_editor.html', {
@@ -417,7 +441,7 @@ def reorder_playlist(request):
 
         # Calculate total duration
         total_duration = sum(
-            item.custom_duration if item.custom_duration else item.media.duration
+            item.custom_duration if item.custom_duration else (item.media.duration if item.media else 15)
             for item in playlist.items.all()
         )
         return render(request, 'cotton/playlist/sequence_editor.html', {
@@ -441,7 +465,7 @@ def update_playlist_item(request, item_id):
             if request.htmx:
                 playlist = item.playlist
                 total_duration = sum(
-                    i.custom_duration if i.custom_duration else i.media.duration
+                    i.custom_duration if i.custom_duration else (i.media.duration if i.media else 15)
                     for i in playlist.items.all()
                 )
                 return render(request, 'cotton/playlist/sequence_editor.html', {

@@ -152,7 +152,8 @@
                         <select name="sort" onchange="this.form.submit()"
                             class="appearance-none h-[42px] bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl text-sm py-2.5 pl-4 pr-10 text-gray-700 dark:text-gray-200 font-medium cursor-pointer outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all hover:bg-gray-100 dark:hover:bg-gray-700">
                             <option value="-updated_at" {% if sort_by == '-updated_at' or not sort_by %}selected{% endif %}>Sort: Recent</option>
-                            <option value="name" {% if sort_by == 'name' or sort_by == 'Name' %}selected{% endif %}>Sort: Name (A-Z)</option>
+                            <option value="name" {% if sort_by == 'name' or sort_by == 'Name' %}selected{% endif %}>Sort:
+                                Name (A-Z)</option>
                             <option value="created_at" {% if sort_by == 'created_at' or sort_by == 'Oldest' %}selected{% endif %}>Sort: Oldest</option>
                         </select>
                         <div
@@ -307,6 +308,12 @@
                                         title="Edit Content">
                                         <span class="material-icons-outlined text-lg">edit</span>
                                     </a>
+                                    <button type="button"
+                                        @click="$dispatch('open-assign-modal', { id: '{{ playlist.id }}', name: '{{ playlist.name|escapejs }}', screens: {{ playlist.assigned_screen_ids|safe }} })"
+                                        class="p-2 text-muted-light hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                                        title="Assign to Screens">
+                                        <span class="material-icons-outlined text-lg">cast_connected</span>
+                                    </button>
                                     <form id="deleteForm{{ playlist.id }}"
                                         action="{% url 'delete_playlist' playlist.id %}" method="POST" class="inline">
                                         {% csrf_token %}
@@ -363,6 +370,7 @@
     </div>
 
     <!-- Playlist Settings Modal -->
+    <c-playlist.assign_modal />
     <c-playlist.settings_modal />
 
     <!-- Calendar View Modal -->
@@ -451,11 +459,8 @@
     </div>
 
     <!-- Delete Confirmation Modal -->
-    <c-modals.confirm_delete
-        title="Delete Playlist"
-        message="Are you sure you want to delete"
-        confirm_text="Delete Playlist"
-        modal_id="confirmDeleteModal">
+    <c-modals.confirm_delete title="Delete Playlist" message="Are you sure you want to delete"
+        confirm_text="Delete Playlist" modal_id="confirmDeleteModal">
     </c-modals.confirm_delete>
 </c-layouts.sidebar>
 {% endblock %}
