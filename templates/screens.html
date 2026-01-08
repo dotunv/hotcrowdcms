@@ -17,7 +17,7 @@
                 this.validationError = '';
                 
                 try {
-                    const response = await fetch(`/dashboard/screens/validate-code/?code=${this.pairingCode}`);
+                    const response = await fetch(`{% url 'validate_pairing_code' %}?code=${this.pairingCode}`);
                     const data = await response.json();
                     
                     if (data.valid) {
