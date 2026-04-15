@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -150,8 +151,23 @@ class PlaylistItem(models.Model):
     # Override constraints
     custom_duration = models.IntegerField(blank=True, null=True, help_text="Override media default duration")
 
+    def clean(self):
+        if self.media is None and self.store_content is None:
+            raise ValidationError("A PlaylistItem must have either a media asset or store content.")
+        if self.media is not None and self.store_content is not None:
+            raise ValidationError("A PlaylistItem cannot have both a media asset and store content.")
+
     class Meta:
         ordering = ['position']
+        constraints = [
+            models.CheckConstraint(
+                name="playlistitem_has_exactly_one_content",
+                condition=(
+                    models.Q(media__isnull=False, store_content__isnull=True) |
+                    models.Q(media__isnull=True, store_content__isnull=False)
+                ),
+            )
+        ]
 
     def __str__(self):
         return f"{self.playlist.name} - Item {self.position}"
@@ -306,7 +322,7 @@ class SupportTicket(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.user.username}'s Store"
+        return f"[{self.urgency.upper()}] {self.topic} - {self.user.username}"
 
 
 

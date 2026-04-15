@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Error — HotCrowd</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="h-full bg-slate-50 flex items-center justify-center font-sans">
+    <div class="text-center px-6">
+        <p class="text-5xl font-bold text-red-500">500</p>
+        <h1 class="mt-4 text-3xl font-semibold text-slate-800">Something went wrong</h1>
+        <p class="mt-3 text-slate-500">An unexpected error occurred on our end. Please try again in a moment.</p>
+        <div class="mt-8 flex items-center justify-center gap-4">
+            <a href="/dashboard/" class="inline-flex items-center gap-2 rounded-lg bg-green-500 px-5 py-2.5 text-sm font-semibold text-white shadow hover:bg-green-600 transition-colors">
+                Go to Dashboard
+            </a>
+            <button onclick="location.reload()" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-colors">
+                Try again
+            </button>
+        </div>
+    </div>
+</body>
+</html>

@@ -67,8 +67,6 @@ INSTALLED_APPS = [
     'corsheaders',
 ]
 
-SIZE_ID = 1
-
 # Social Account Providers
 SOCIALACCOUNT_PROVIDERS = {
     'google': {

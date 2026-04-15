@@ -1,12 +1,9 @@
 from ninja import NinjaAPI, Schema
 from typing import List, Optional
-from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from core.models import Screen, Playlist, PlaylistItem, PairingCode
-from django.db import transaction
+from core.models import Screen, PlaylistItem, PairingCode
 import random
 import string
-from ninja.errors import HttpError
 
 from .api_auth import screen_auth, generate_api_token
 
@@ -64,27 +61,36 @@ class ErrorResponseSchema(Schema):
 def get_playlist_authenticated(request):
     """
     Returns the playlist for the authenticated screen.
-    
+
     Requires Bearer token authentication.
     """
     screen = request.screen  # Set by ScreenTokenAuth
-    
+
     if not screen.assigned_playlist:
         return []
-    
+
     items = []
     playlist_items = PlaylistItem.objects.filter(
         playlist=screen.assigned_playlist
     ).select_related('media').order_by('position')
-    
+
     for item in playlist_items:
+        if item.media is None:
+            # store_content items are not yet renderable by the player; skip them
+            continue
+
+        url = item.media.file_url
+        # Ensure the URL is absolute so the player can fetch it regardless of environment
+        if url and not url.startswith(('http://', 'https://')):
+            url = request.build_absolute_uri(url)
+
         items.append({
-            "url": item.media.file_url,
-            "type": item.media.media_type,
+            "url": url,
+            "type": item.media.media_type.lower(),
             "duration": item.custom_duration if item.custom_duration else item.media.duration,
             "position": item.position
         })
-        
+
     return items
 
 
@@ -101,39 +107,6 @@ def heartbeat_authenticated(request):
     screen.save(update_fields=['last_heartbeat', 'status'])
     
     return {"status": "ok", "timestamp": str(screen.last_heartbeat)}
-
-
-# =============================================================================
-# Legacy Endpoints (deprecated - will be removed in v2)
-# These maintain backwards compatibility but should not be used for new integrations
-# =============================================================================
-
-@api.get("/player/playlist/{screen_id}", response=List[PlaylistItemSchema], deprecated=True)
-def get_playlist(request, screen_id: str):
-    """
-    DEPRECATED: Use authenticated /player/playlist endpoint instead.
-    
-    Returns the flat list of media items for the assigned playlist.
-    """
-    screen = get_object_or_404(Screen, id=screen_id)
-    
-    if not screen.assigned_playlist:
-        return []
-    
-    items = []
-    playlist_items = PlaylistItem.objects.filter(
-        playlist=screen.assigned_playlist
-    ).select_related('media').order_by('position')
-    
-    for item in playlist_items:
-        items.append({
-            "url": item.media.file_url,
-            "type": item.media.media_type,
-            "duration": item.custom_duration if item.custom_duration else item.media.duration,
-            "position": item.position
-        })
-        
-    return items
 
 
 # =============================================================================
