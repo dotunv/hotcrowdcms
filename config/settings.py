@@ -294,6 +294,7 @@ else:
     EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
     EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
     DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@hotcrowd.com')
+    EMAIL_TIMEOUT = 10  # Fail fast instead of hanging for 60 s on bad credentials
 
 # Production Security Settings
 if not DEBUG:
