@@ -122,7 +122,7 @@ ACCOUNT_LOGIN_ON_GET = True
 ACCOUNT_LOGOUT_ON_GET = True
 ACCOUNT_LOGIN_METHODS = {'username', 'email'}
 ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
-ACCOUNT_EMAIL_VERIFICATION = 'optional' if DEBUG else 'mandatory'
+ACCOUNT_EMAIL_VERIFICATION = os.environ.get('ACCOUNT_EMAIL_VERIFICATION', 'optional' if DEBUG else 'mandatory')
 ACCOUNT_UNIQUE_EMAIL = True
 ACCOUNT_SESSION_REMEMBER = True
 ACCOUNT_LOGIN_ON_PASSWORD_RESET = True
@@ -287,12 +287,23 @@ INTERNAL_IPS = [
 if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 else:
+    _email_user = os.environ.get('EMAIL_HOST_USER', '')
+    _email_pass = os.environ.get('EMAIL_HOST_PASSWORD', '')
+    _email_verification = ACCOUNT_EMAIL_VERIFICATION
+
+    if _email_verification == 'mandatory' and (not _email_user or not _email_pass):
+        raise ValueError(
+            "ACCOUNT_EMAIL_VERIFICATION is 'mandatory' but EMAIL_HOST_USER or "
+            "EMAIL_HOST_PASSWORD are not set. Either configure SMTP credentials "
+            "or set ACCOUNT_EMAIL_VERIFICATION=optional in your environment."
+        )
+
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
     EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
     EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
     EMAIL_USE_TLS = True
-    EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
-    EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+    EMAIL_HOST_USER = _email_user
+    EMAIL_HOST_PASSWORD = _email_pass
     DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@hotcrowd.com')
     EMAIL_TIMEOUT = 10  # Fail fast instead of hanging for 60 s on bad credentials
 
