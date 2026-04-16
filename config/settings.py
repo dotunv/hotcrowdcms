@@ -291,11 +291,11 @@ else:
     _email_pass = os.environ.get('EMAIL_HOST_PASSWORD', '')
     _email_verification = ACCOUNT_EMAIL_VERIFICATION
 
-    if _email_verification == 'mandatory' and (not _email_user or not _email_pass):
+    if _email_verification in ('mandatory', 'optional') and (not _email_user or not _email_pass):
         raise ValueError(
-            "ACCOUNT_EMAIL_VERIFICATION is 'mandatory' but EMAIL_HOST_USER or "
+            f"ACCOUNT_EMAIL_VERIFICATION is '{_email_verification}' but EMAIL_HOST_USER or "
             "EMAIL_HOST_PASSWORD are not set. Either configure SMTP credentials "
-            "or set ACCOUNT_EMAIL_VERIFICATION=optional in your environment."
+            "or set ACCOUNT_EMAIL_VERIFICATION=none in your environment."
         )
 
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'

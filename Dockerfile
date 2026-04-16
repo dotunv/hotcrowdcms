@@ -31,7 +31,7 @@ RUN SECRET_KEY=build-collect-static-dummy-key \
     DEBUG=False \
     USE_S3=False \
     ALLOWED_HOSTS=localhost \
-    ACCOUNT_EMAIL_VERIFICATION=optional \
+    ACCOUNT_EMAIL_VERIFICATION=none \
     .venv/bin/python manage.py collectstatic --noinput
 
 # Runtime startup: migrate then start gunicorn
