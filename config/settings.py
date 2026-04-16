@@ -302,9 +302,14 @@ if not DEBUG:
     X_FRAME_OPTIONS = 'DENY'
     SECURE_HSTS_SECONDS = 31536000  # 1 year
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+
+    # Trust the X-Forwarded-Proto header set by the platform's reverse proxy.
+    # This tells Django the original request was HTTPS so it won't redirect.
+    # SECURE_SSL_REDIRECT is intentionally omitted — the proxy enforces HTTPS,
+    # not Django, to avoid infinite 301 redirect loops.
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Logging Configuration
 LOGGING = {
