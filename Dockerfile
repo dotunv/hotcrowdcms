@@ -21,8 +21,8 @@ COPY . .
 
 # Build Tailwind CSS
 # (tailwind install downloads npm packages; tailwind build compiles the CSS)
-RUN .venv/bin/python manage.py tailwind install --no-input
-RUN .venv/bin/python manage.py tailwind build --no-input
+RUN .venv/bin/python manage.py tailwind install
+RUN .venv/bin/python manage.py tailwind build
 
 # Collect static files into /app/staticfiles/
 # We pass a dummy SECRET_KEY so settings.py doesn't raise during the build step.
