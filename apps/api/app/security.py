@@ -56,6 +56,10 @@ def create_refresh_token(user_id: int) -> str:
     return _encode(user_id, "refresh", timedelta(days=settings.refresh_token_days))
 
 
+def create_reset_token(user_id: int) -> str:
+    return _encode(user_id, "reset", timedelta(hours=1))
+
+
 def parse_token(token: str, expected: str) -> int | None:
     try:
         payload = jwt.decode(token, settings.secret_key, algorithms=[ALGORITHM])

@@ -77,5 +77,22 @@ export type Dashboard = {
   last_publish: string | null;
   last_heartbeat: string | null;
   screens: { id: string; name: string; online: boolean; playlist_name: string | null }[];
-  recent_media: { id: string; name: string; type: string }[];
+  recent_media: { id: string; name: string; type: string; url?: string | null }[];
+};
+
+export type StoreSettings = {
+  id: number;
+  business_name: string;
+  initials: string;
+  description: string;
+  phone_number: string;
+  timezone: string;
+  branding_color: string;
+  default_image_duration: number;
+  transition_effect: string;
+  mute_by_default: boolean;
+  default_volume: number;
+  fallback_type: string;
+  fallback_logo: string;
+  logo_url: string | null;
 };

@@ -12,11 +12,13 @@ from app.models import Store, User
 from app.security import (
     create_access_token,
     create_refresh_token,
+    create_reset_token,
     hash_password,
     parse_token,
     password_needs_rehash,
     verify_password,
 )
+from app.mail import send_mail
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
@@ -29,6 +31,15 @@ class Credentials(BaseModel):
 class RegisterBody(BaseModel):
     username: str = Field(min_length=2, max_length=150)
     email: str
+    password: str = Field(min_length=8)
+
+
+class ResetRequest(BaseModel):
+    email: str
+
+
+class ResetConfirm(BaseModel):
+    token: str
     password: str = Field(min_length=8)
 
 
@@ -178,6 +189,36 @@ def refresh(
 @router.post("/logout")
 def logout(response: Response):
     _clear_auth_cookies(response)
+    return {"ok": True}
+
+
+@router.post("/forgot")
+def forgot(body: ResetRequest, db: Session = Depends(get_db)):
+    email = body.email.strip().lower()
+    user = db.query(User).filter(func.lower(User.email) == email).first()
+    if user and user.is_active:
+        token = create_reset_token(user.id)
+        link = f"{settings.public_web_url.rstrip('/')}/reset?token={token}"
+        send_mail(
+            user.email,
+            "Reset your HotCrowd password",
+            f"Reset your password with this link (expires in 1 hour):\n{link}\n",
+        )
+        if settings.debug:
+            return {"ok": True, "reset_url": link}
+    return {"ok": True}
+
+
+@router.post("/reset")
+def reset_password(body: ResetConfirm, db: Session = Depends(get_db)):
+    user_id = parse_token(body.token, "reset")
+    if user_id is None:
+        raise HTTPException(status_code=400, detail="This reset link is invalid or expired.")
+    user = db.get(User, user_id)
+    if user is None or not user.is_active:
+        raise HTTPException(status_code=400, detail="This reset link is invalid or expired.")
+    user.password = hash_password(body.password)
+    db.commit()
     return {"ok": True}
 
 

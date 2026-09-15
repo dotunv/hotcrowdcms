@@ -4,8 +4,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { DeleteDialog } from "@/components/delete-dialog";
 import { api } from "@/lib/api";
+import { useToast } from "@/components/toast";
 
 export default function ScreensPage() {
+  const toast = useToast();
   const client = useQueryClient();
   const screens = useQuery({ queryKey: ["screens"], queryFn: api.screens, refetchInterval: 10000 });
   const [open, setOpen] = useState(false);
@@ -27,13 +29,19 @@ export default function ScreensPage() {
       setName("");
       setLocation("");
       void client.invalidateQueries({ queryKey: ["screens"] });
+      void client.invalidateQueries({ queryKey: ["dashboard"] });
+      toast("Screen connected.");
     },
     onError: (err: Error) => setError(err.message),
   });
 
   const assign = useMutation({
     mutationFn: ({ id, playlist_id }: { id: string; playlist_id: string | null }) => api.assignScreen(id, playlist_id),
-    onSuccess: () => client.invalidateQueries({ queryKey: ["screens"] }),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: ["screens"] });
+      void client.invalidateQueries({ queryKey: ["dashboard"] });
+      toast("Playlist assigned.");
+    },
   });
 
   const remove = useMutation({
@@ -41,6 +49,8 @@ export default function ScreensPage() {
     onSuccess: () => {
       setPendingDelete(null);
       void client.invalidateQueries({ queryKey: ["screens"] });
+      void client.invalidateQueries({ queryKey: ["dashboard"] });
+      toast("Screen removed.");
     },
   });
 
@@ -76,7 +86,12 @@ export default function ScreensPage() {
           <tbody>
             {(data?.results ?? []).map((screen) => (
               <tr key={screen.id} className="border-t border-border-light dark:border-border-dark">
-                <td className="px-6 py-4 text-sm">{screen.online ? "Online" : "Offline"}</td>
+                <td className="px-6 py-4 text-sm">
+                  <span className="inline-flex items-center gap-2">
+                    <span className={`h-2 w-2 rounded-full ${screen.online ? "bg-green-500" : "bg-gray-300"}`} />
+                    {screen.online ? "Online" : "Offline"}
+                  </span>
+                </td>
                 <td className="px-6 py-4 font-bold text-sm">{screen.name}</td>
                 <td className="px-6 py-4 text-sm">{screen.location || "—"}</td>
                 <td className="px-6 py-4">

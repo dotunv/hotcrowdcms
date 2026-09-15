@@ -24,6 +24,12 @@ class Settings(BaseSettings):
     cookie_secure: bool | None = None
     access_token_minutes: int = 15
     refresh_token_days: int = 14
+    public_web_url: str = "http://127.0.0.1:3000"
+    email_host: str = ""
+    email_port: int = 587
+    email_host_user: str = ""
+    email_host_password: str = ""
+    email_from: str = "noreply@hotcrowd.local"
     use_s3: bool = False
     r2_access_key_id: str = ""
     r2_secret_access_key: str = ""

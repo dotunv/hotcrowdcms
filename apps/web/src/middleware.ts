@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const PUBLIC = ["/login", "/register"];
+const PUBLIC = ["/login", "/register", "/forgot", "/reset"];
 
 export function middleware(request: NextRequest) {
   const access = request.cookies.get("hc_access")?.value;

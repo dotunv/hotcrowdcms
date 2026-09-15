@@ -1,6 +1,13 @@
-import type { Dashboard, Me, MediaItem, PlaylistPayload, ScreenRow } from "./types";
+import type { Dashboard, Me, MediaItem, PlaylistPayload, ScreenRow, StoreSettings } from "./types";
 
-const AUTH_SKIP_REFRESH = ["/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/refresh", "/api/v1/auth/logout"];
+const AUTH_SKIP_REFRESH = [
+  "/api/v1/auth/login",
+  "/api/v1/auth/register",
+  "/api/v1/auth/refresh",
+  "/api/v1/auth/logout",
+  "/api/v1/auth/forgot",
+  "/api/v1/auth/reset",
+];
 
 let refreshInFlight: Promise<boolean> | null = null;
 
@@ -77,10 +84,18 @@ export const api = {
   register: (username: string, email: string, password: string) =>
     request<Me>("/api/v1/auth/register", { method: "POST", body: JSON.stringify({ username, email, password }) }),
   logout: () => request<{ ok: boolean }>("/api/v1/auth/logout", { method: "POST" }),
+  forgotPassword: (email: string) =>
+    request<{ ok: boolean; reset_url?: string }>("/api/v1/auth/forgot", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
+  resetPassword: (token: string, password: string) =>
+    request<{ ok: boolean }>("/api/v1/auth/reset", { method: "POST", body: JSON.stringify({ token, password }) }),
   dashboard: () => request<Dashboard>("/api/v1/dashboard"),
-  store: () => request<Me["store"]>("/api/v1/store"),
+  store: () => request<StoreSettings>("/api/v1/store"),
   patchStore: (body: Record<string, unknown>) =>
-    request<Me["store"]>("/api/v1/store", { method: "PATCH", body: JSON.stringify(body) }),
+    request<StoreSettings>("/api/v1/store", { method: "PATCH", body: JSON.stringify(body) }),
+  uploadLogo: (form: FormData) => request<StoreSettings>("/api/v1/store/logo", { method: "POST", body: form }),
   screens: () =>
     request<{
       total: number;

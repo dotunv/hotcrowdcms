@@ -55,9 +55,10 @@ def test_health_and_cms_flow():
     assert client.get("/api/v1/auth/me").status_code == 200
     assert client.get("/ready").json()["ok"] is True
 
-    store = client.patch("/api/v1/store", json={"business_name": "Test Shop", "timezone": "UTC"})
+    store = client.patch("/api/v1/store", json={"business_name": "Test Shop", "timezone": "UTC", "default_volume": 40})
     assert store.status_code == 200
     assert store.json()["business_name"] == "Test Shop"
+    assert store.json()["default_volume"] == 40
 
     dash = client.get("/api/v1/dashboard")
     assert dash.status_code == 200
@@ -117,3 +118,20 @@ def test_health_and_cms_flow():
     assert beat.status_code == 200
     screens = client.get("/api/v1/screens")
     assert screens.json()["results"][0]["online"] is True
+
+    home = client.get("/api/v1/dashboard")
+    assert home.status_code == 200
+    assert home.json()["recent_media"][0]["name"] == "Loop"
+
+    forgot = client.post("/api/v1/auth/forgot", json={"email": TEST_EMAIL})
+    assert forgot.status_code == 200
+    reset_url = forgot.json()["reset_url"]
+    token_value = reset_url.split("token=", 1)[1]
+    reset = client.post("/api/v1/auth/reset", json={"token": token_value, "password": "placeholder-password2"})
+    assert reset.status_code == 200
+    unknown = client.post("/api/v1/auth/forgot", json={"email": "nobody@example.com"})
+    assert unknown.status_code == 200
+    assert "reset_url" not in unknown.json()
+    client.post("/api/v1/auth/logout")
+    assert client.post("/api/v1/auth/login", json={"login": TEST_EMAIL, "password": TEST_PASSWORD}).status_code == 400
+    assert client.post("/api/v1/auth/login", json={"login": TEST_EMAIL, "password": "placeholder-password2"}).status_code == 200

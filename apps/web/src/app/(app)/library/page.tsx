@@ -5,8 +5,10 @@ import { useState } from "react";
 import { DeleteDialog } from "@/components/delete-dialog";
 import { api } from "@/lib/api";
 import type { MediaItem } from "@/lib/types";
+import { useToast } from "@/components/toast";
 
 export default function LibraryPage() {
+  const toast = useToast();
   const client = useQueryClient();
   const [type, setType] = useState("");
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -18,6 +20,8 @@ export default function LibraryPage() {
     onSuccess: () => {
       setPending(null);
       void client.invalidateQueries({ queryKey: ["media"] });
+      void client.invalidateQueries({ queryKey: ["dashboard"] });
+      toast("File removed.");
     },
   });
 
@@ -86,6 +90,7 @@ export default function LibraryPage() {
 }
 
 function UploadModal({ onClose }: { onClose: () => void }) {
+  const toast = useToast();
   const client = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
   const [url, setUrl] = useState("");
@@ -110,6 +115,8 @@ function UploadModal({ onClose }: { onClose: () => void }) {
       form.append("duration", "10");
       await api.uploadMedia(form, setProgress);
       await client.invalidateQueries({ queryKey: ["media"] });
+      await client.invalidateQueries({ queryKey: ["dashboard"] });
+      toast("Uploaded.");
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
