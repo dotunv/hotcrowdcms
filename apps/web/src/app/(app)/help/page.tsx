@@ -12,9 +12,9 @@ export default function HelpPage() {
         <li>Assign that playlist to the screen. The player heartbeats and fetches url, type, duration, and position. Off-schedule or empty loops use the store fallback.</li>
       </ol>
       <div className="rounded-2xl border bg-white p-5 text-sm dark:border-border-dark dark:bg-surface-dark">
-        <p className="font-semibold">Password reset</p>
+        <p className="font-semibold">Stores, canvas, billing, Instagram</p>
         <p className="mt-1 text-gray-500">
-          Use Forgot password on the sign-in page. In production that email needs SMTP. In local debug, the reset link is shown on the page and printed in the API console.
+          Switch locations in the sidebar. Canvas layouts publish into the library as images the player can loop. Starter includes one store and two screens; Pro is billed through Stripe when configured. Instagram imports a media URL on any plan; Graph sync is Pro and uses an official access token, not a password.
         </p>
       </div>
     </div>

@@ -30,6 +30,11 @@ class Settings(BaseSettings):
     email_host_user: str = ""
     email_host_password: str = ""
     email_from: str = "noreply@hotcrowd.local"
+    stripe_secret_key: str = ""
+    stripe_price_pro: str = ""
+    stripe_webhook_secret: str = ""
+    instagram_app_id: str = ""
+    instagram_app_secret: str = ""
     use_s3: bool = False
     r2_access_key_id: str = ""
     r2_secret_access_key: str = ""

@@ -6,8 +6,9 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session, joinedload
 
 from app.db import get_db
-from app.deps import get_current_store
-from app.models import PairingCode, Playlist, Screen, Store
+from app.deps import get_current_store, get_current_user
+from app.models import PairingCode, Playlist, Screen, Store, User
+from app.plans import assert_can_pair_screen
 
 router = APIRouter(prefix="/api/v1/screens", tags=["screens"])
 
@@ -73,10 +74,16 @@ def validate_code(code: str, db: Session = Depends(get_db)):
 
 
 @router.post("/pair")
-def pair_screen(body: PairBody, store: Store = Depends(get_current_store), db: Session = Depends(get_db)):
+def pair_screen(
+    body: PairBody,
+    store: Store = Depends(get_current_store),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     name = body.name.strip()
     if not name:
         raise HTTPException(status_code=400, detail="Give this screen a name.")
+    assert_can_pair_screen(db, user, store)
     code = body.pairing_code.strip().upper().replace("-", "")
     pairing = db.query(PairingCode).filter(PairingCode.code == code).one_or_none()
     if pairing is None:
