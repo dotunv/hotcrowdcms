@@ -7,8 +7,9 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db import get_db
-from app.deps import get_current_store, get_current_user
+from app.deps import STORE_COOKIE, get_current_store, get_current_user, list_user_stores, set_store_cookie
 from app.models import Store, User
+from app.plans import get_or_create_account
 from app.security import (
     create_access_token,
     create_refresh_token,
@@ -58,7 +59,9 @@ class MeOut(BaseModel):
     id: int
     username: str
     email: str
+    plan: str
     store: StoreOut
+    stores: list[StoreOut]
 
 
 def _set_auth_cookies(response: Response, user_id: int) -> None:
@@ -86,6 +89,7 @@ def _set_auth_cookies(response: Response, user_id: int) -> None:
 def _clear_auth_cookies(response: Response) -> None:
     response.delete_cookie(settings.cookie_name, path="/")
     response.delete_cookie(settings.refresh_cookie_name, path="/")
+    response.delete_cookie(STORE_COOKIE, path="/")
 
 
 def _store_out(store: Store) -> StoreOut:
@@ -101,14 +105,28 @@ def _store_out(store: Store) -> StoreOut:
     )
 
 
-def _me(user: User, store: Store) -> MeOut:
-    return MeOut(id=user.id, username=user.username, email=user.email, store=_store_out(store))
+def _me(user: User, store: Store, stores: list[Store], plan: str) -> MeOut:
+    return MeOut(
+        id=user.id,
+        username=user.username,
+        email=user.email,
+        plan=plan,
+        store=_store_out(store),
+        stores=[_store_out(item) for item in stores],
+    )
 
 
-def _issue(response: Response, user: User, store: Store) -> MeOut:
+def _issue(response: Response, user: User, store: Store, db=None) -> MeOut:
     store.user = user
     _set_auth_cookies(response, user.id)
-    return _me(user, store)
+    set_store_cookie(response, store.id)
+    stores = [store]
+    plan = "starter"
+    if db is not None:
+        stores = list_user_stores(db, user)
+        plan = get_or_create_account(db, user).plan
+        db.commit()
+    return _me(user, store, stores, plan)
 
 
 @router.post("/register", response_model=MeOut)
@@ -136,7 +154,7 @@ def register(body: RegisterBody, response: Response, db: Session = Depends(get_d
     db.add(store)
     db.commit()
     db.refresh(store)
-    return _issue(response, user, store)
+    return _issue(response, user, store, db)
 
 
 @router.post("/login", response_model=MeOut)
@@ -152,13 +170,13 @@ def login(body: Credentials, response: Response, db: Session = Depends(get_db)):
     if password_needs_rehash(user.password):
         user.password = hash_password(body.password)
     user.last_login = datetime.now(timezone.utc)
-    store = db.query(Store).filter(Store.user_id == user.id).one_or_none()
+    store = db.query(Store).filter(Store.user_id == user.id).order_by(Store.id).first()
     if store is None:
         store = Store(user_id=user.id, business_name=user.username)
         db.add(store)
     db.commit()
     db.refresh(store)
-    return _issue(response, user, store)
+    return _issue(response, user, store, db)
 
 
 @router.post("/refresh", response_model=MeOut)
@@ -177,13 +195,13 @@ def refresh(
     if user is None or not user.is_active:
         _clear_auth_cookies(response)
         raise HTTPException(status_code=401, detail="Inactive user")
-    store = db.query(Store).filter(Store.user_id == user.id).one_or_none()
+    store = db.query(Store).filter(Store.user_id == user.id).order_by(Store.id).first()
     if store is None:
         store = Store(user_id=user.id, business_name=user.username)
         db.add(store)
         db.commit()
         db.refresh(store)
-    return _issue(response, user, store)
+    return _issue(response, user, store, db)
 
 
 @router.post("/logout")
@@ -223,6 +241,15 @@ def reset_password(body: ResetConfirm, db: Session = Depends(get_db)):
 
 
 @router.get("/me", response_model=MeOut)
-def me(user: User = Depends(get_current_user), store: Store = Depends(get_current_store)):
+def me(
+    response: Response,
+    user: User = Depends(get_current_user),
+    store: Store = Depends(get_current_store),
+    db: Session = Depends(get_db),
+):
     store.user = user
-    return _me(user, store)
+    stores = list_user_stores(db, user)
+    plan = get_or_create_account(db, user).plan
+    db.commit()
+    set_store_cookie(response, store.id)
+    return _me(user, store, stores, plan)

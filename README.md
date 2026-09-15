@@ -52,7 +52,8 @@ Set `DEBUG=False` on the API. Startup refuses a weak `SECRET_KEY`, sqlite `DATAB
 | `PUBLIC_WEB_URL` | CMS origin used in password-reset emails |
 | `EMAIL_HOST` (optional) | SMTP for reset mail; if empty, links print in the API log |
 | `USE_S3=True` plus `R2_*` | Cloudflare R2 for uploads (same keys Django used) |
-| `API_URL` on the Next.js host | FastAPI origin for rewrites (`https://api.example.com`) |
+| `STRIPE_SECRET_KEY` / `STRIPE_PRICE_PRO` | Pro checkout. In DEBUG without Stripe, Upgrade sets Pro locally |
+| `INSTAGRAM_APP_ID` | Optional OAuth app id; Graph token paste works without it |
 
 Auth is an httpOnly access cookie (`hc_access`, 15 minutes) plus a refresh cookie (`hc_refresh`, 14 days). The CMS retries `/api/v1/auth/refresh` on 401. Logout clears both.
 

@@ -4,6 +4,7 @@ import uuid
 from datetime import date, datetime, time, timezone
 
 from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, String, Text, Time, Uuid
+from sqlalchemy.types import JSON
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -26,14 +27,15 @@ class User(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     date_joined: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
-    store: Mapped[Store | None] = relationship(back_populates="user")
+    stores: Mapped[list[Store]] = relationship(back_populates="user")
+    account: Mapped[Account | None] = relationship(back_populates="user")
 
 
 class Store(Base):
     __tablename__ = "core_store"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("auth_user.id"), unique=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("auth_user.id"), index=True)
     business_name: Mapped[str] = mapped_column(String(255), default="")
     branding_color: Mapped[str] = mapped_column(String(7), default="#22c55e")
     description: Mapped[str] = mapped_column(Text, default="")
@@ -46,8 +48,12 @@ class Store(Base):
     default_volume: Mapped[int] = mapped_column(Integer, default=75)
     fallback_type: Mapped[str] = mapped_column(String(20), default="brand_logo")
     fallback_logo: Mapped[str | None] = mapped_column(String(1024), nullable=True)
+    instagram_connected: Mapped[bool] = mapped_column(Boolean, default=False)
+    instagram_user_id: Mapped[str] = mapped_column(String(64), default="")
+    instagram_access_token: Mapped[str] = mapped_column(Text, default="")
 
-    user: Mapped[User] = relationship(back_populates="store")
+    user: Mapped[User] = relationship(back_populates="stores")
+    layouts: Mapped[list[StoreLayout]] = relationship(back_populates="store")
     screens: Mapped[list[Screen]] = relationship(back_populates="store")
     playlists: Mapped[list[Playlist]] = relationship(back_populates="store")
     media_assets: Mapped[list[MediaAsset]] = relationship(back_populates="store")
@@ -71,6 +77,7 @@ class MediaAsset(Base):
     external_url: Mapped[str] = mapped_column(String(1024), default="")
     media_type: Mapped[str] = mapped_column(String(10))
     source: Mapped[str] = mapped_column(String(10), default="UPLOAD")
+    instagram_id: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
     duration: Mapped[int] = mapped_column(Integer, default=10)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
@@ -169,3 +176,34 @@ class PairingCode(Base):
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     token_delivered: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class Account(Base):
+    __tablename__ = "hc_account"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("auth_user.id"), unique=True)
+    plan: Mapped[str] = mapped_column(String(20), default="starter")
+    stripe_customer_id: Mapped[str] = mapped_column(String(64), default="")
+    stripe_subscription_id: Mapped[str] = mapped_column(String(64), default="")
+
+    user: Mapped[User] = relationship(back_populates="account")
+
+
+class StoreLayout(Base):
+    __tablename__ = "hc_storelayout"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    store_id: Mapped[int] = mapped_column(ForeignKey("core_store.id"))
+    name: Mapped[str] = mapped_column(String(255))
+    status: Mapped[str] = mapped_column(String(10), default="DRAFT")
+    layout_data: Mapped[dict] = mapped_column(JSON, default=dict)
+    canvas_width: Mapped[int] = mapped_column(Integer, default=1920)
+    canvas_height: Mapped[int] = mapped_column(Integer, default=1080)
+    published_media_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("core_mediaasset.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc)
+    )
+
+    store: Mapped[Store] = relationship(back_populates="layouts")

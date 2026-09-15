@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.db import engine, get_db
 from app.models import Base
-from app.routers import auth, cms, media, playlists, player, screens
+from app.routers import auth, billing, cms, instagram, layouts, media, playlists, player, screens, stores
 
 app = FastAPI(title="HotCrowd API", version="1.0.0")
 app.add_middleware(
@@ -21,9 +21,13 @@ app.add_middleware(
 
 app.include_router(auth.router)
 app.include_router(cms.router)
+app.include_router(stores.router)
 app.include_router(screens.router)
 app.include_router(media.router)
 app.include_router(playlists.router)
+app.include_router(layouts.router)
+app.include_router(billing.router)
+app.include_router(instagram.router)
 app.include_router(player.router)
 
 if settings.debug:

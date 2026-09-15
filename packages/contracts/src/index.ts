@@ -54,6 +54,7 @@ export type Me = {
   id: number;
   username: string;
   email: string;
+  plan?: string;
   store: {
     id: number;
     business_name: string;
@@ -64,6 +65,16 @@ export type Me = {
     default_image_duration: number;
     transition_effect: string;
   };
+  stores?: {
+    id: number;
+    business_name: string;
+    initials: string;
+    description: string;
+    phone_number: string;
+    timezone: string;
+    default_image_duration: number;
+    transition_effect: string;
+  }[];
 };
 
 export type Dashboard = {
@@ -95,4 +106,40 @@ export type StoreSettings = {
   fallback_type: string;
   fallback_logo: string;
   logo_url: string | null;
+};
+
+export type StoreLayout = {
+  id: string;
+  name: string;
+  status: string;
+  canvas_width: number;
+  canvas_height: number;
+  layout_data: {
+    background?: { color?: string };
+    elements?: {
+      id: string;
+      type: string;
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      text?: string;
+      fontSize?: number;
+      color?: string;
+      fill?: string;
+      src?: string;
+    }[];
+  };
+  published_media_id: string | null;
+  preview_url: string;
+};
+
+export type Billing = {
+  plan: string;
+  label: string;
+  stores: number;
+  screens: number;
+  instagram_sync: boolean;
+  stripe_configured: boolean;
+  plans: { id: string; label: string; stores: number; screens: number }[];
 };

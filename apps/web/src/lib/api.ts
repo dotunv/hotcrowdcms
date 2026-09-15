@@ -1,4 +1,4 @@
-import type { Dashboard, Me, MediaItem, PlaylistPayload, ScreenRow, StoreSettings } from "./types";
+import type { Billing, Dashboard, Me, MediaItem, PlaylistPayload, ScreenRow, StoreLayout, StoreSettings } from "./types";
 
 const AUTH_SKIP_REFRESH = [
   "/api/v1/auth/login",
@@ -146,4 +146,32 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ item_ids: itemIds }),
     }),
+  stores: () => request<{ plan: string; current_id: number; results: Me["store"][] }>("/api/v1/stores"),
+  createStore: (business_name: string) =>
+    request<Me["store"]>("/api/v1/stores", { method: "POST", body: JSON.stringify({ business_name }) }),
+  selectStore: (id: number) => request<Me["store"]>(`/api/v1/stores/${id}/select`, { method: "POST" }),
+  layouts: () => request<{ results: StoreLayout[] }>("/api/v1/layouts"),
+  createLayout: (name = "Untitled layout") =>
+    request<StoreLayout>("/api/v1/layouts", { method: "POST", body: JSON.stringify({ name }) }),
+  layout: (id: string) => request<StoreLayout>(`/api/v1/layouts/${id}`),
+  patchLayout: (id: string, body: Record<string, unknown>) =>
+    request<StoreLayout>(`/api/v1/layouts/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+  publishLayout: (id: string) => request<StoreLayout>(`/api/v1/layouts/${id}/publish`, { method: "POST" }),
+  deleteLayout: (id: string) => request<{ ok: boolean }>(`/api/v1/layouts/${id}`, { method: "DELETE" }),
+  billing: () => request<Billing>("/api/v1/billing"),
+  startCheckout: () => request<{ url: string | null; plan?: string }>("/api/v1/billing/checkout", { method: "POST", body: JSON.stringify({ plan: "pro" }) }),
+  billingPortal: () => request<{ url: string }>("/api/v1/billing/portal", { method: "POST" }),
+  instagramStatus: () =>
+    request<{ connected: boolean; user_id: string; sync_allowed: boolean; oauth_configured: boolean }>(
+      "/api/v1/instagram/status",
+    ),
+  instagramConnect: (access_token: string, user_id = "") =>
+    request<{ connected: boolean }>("/api/v1/instagram/connect", {
+      method: "POST",
+      body: JSON.stringify({ access_token, user_id }),
+    }),
+  instagramDisconnect: () => request<{ connected: boolean }>("/api/v1/instagram/disconnect", { method: "POST" }),
+  instagramImport: (url: string, name = "") =>
+    request<MediaItem>("/api/v1/instagram/import", { method: "POST", body: JSON.stringify({ url, name }) }),
+  instagramSync: () => request<{ imported: number }>("/api/v1/instagram/sync", { method: "POST" }),
 };
