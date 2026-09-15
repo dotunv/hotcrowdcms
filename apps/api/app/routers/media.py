@@ -6,11 +6,10 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from sqlalchemy.orm import Session
 
-from app.config import settings
 from app.db import get_db
 from app.deps import get_current_store, get_current_user
-from app.media_urls import absolute_media_url
 from app.models import MediaAsset, Store, User
+from app.storage import absolute_media_url, delete_key, save_bytes
 
 router = APIRouter(prefix="/api/v1/media", tags=["media"])
 
@@ -93,9 +92,7 @@ async def upload_media(
             stamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
             safe_name = Path(file.filename).name
             relative = f"media/{store.id}/{stamp}_{safe_name}"
-            dest = settings.media_root / relative
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            dest.write_bytes(data)
+            save_bytes(relative, data, content_type)
             media = MediaAsset(
                 store_id=store.id,
                 name=name.strip() or safe_name,
@@ -147,8 +144,5 @@ def delete_media(
     path = media.file
     db.delete(media)
     db.commit()
-    if path:
-        file_path = settings.media_root / path
-        if file_path.exists():
-            file_path.unlink()
+    delete_key(path)
     return {"ok": True}

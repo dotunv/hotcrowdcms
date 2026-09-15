@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Response
 from pydantic import BaseModel, Field
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -9,7 +9,14 @@ from app.config import settings
 from app.db import get_db
 from app.deps import get_current_store, get_current_user
 from app.models import Store, User
-from app.security import create_access_token, hash_password, verify_password
+from app.security import (
+    create_access_token,
+    create_refresh_token,
+    hash_password,
+    parse_token,
+    password_needs_rehash,
+    verify_password,
+)
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
@@ -43,16 +50,31 @@ class MeOut(BaseModel):
     store: StoreOut
 
 
-def _set_cookie(response: Response, token: str) -> None:
+def _set_auth_cookies(response: Response, user_id: int) -> None:
+    secure = settings.secure_cookies
     response.set_cookie(
         key=settings.cookie_name,
-        value=token,
+        value=create_access_token(user_id),
         httponly=True,
         samesite="lax",
-        secure=settings.cookie_secure,
+        secure=secure,
         max_age=settings.access_token_minutes * 60,
         path="/",
     )
+    response.set_cookie(
+        key=settings.refresh_cookie_name,
+        value=create_refresh_token(user_id),
+        httponly=True,
+        samesite="lax",
+        secure=secure,
+        max_age=settings.refresh_token_days * 24 * 60 * 60,
+        path="/",
+    )
+
+
+def _clear_auth_cookies(response: Response) -> None:
+    response.delete_cookie(settings.cookie_name, path="/")
+    response.delete_cookie(settings.refresh_cookie_name, path="/")
 
 
 def _store_out(store: Store) -> StoreOut:
@@ -70,6 +92,12 @@ def _store_out(store: Store) -> StoreOut:
 
 def _me(user: User, store: Store) -> MeOut:
     return MeOut(id=user.id, username=user.username, email=user.email, store=_store_out(store))
+
+
+def _issue(response: Response, user: User, store: Store) -> MeOut:
+    store.user = user
+    _set_auth_cookies(response, user.id)
+    return _me(user, store)
 
 
 @router.post("/register", response_model=MeOut)
@@ -97,9 +125,7 @@ def register(body: RegisterBody, response: Response, db: Session = Depends(get_d
     db.add(store)
     db.commit()
     db.refresh(store)
-    store.user = user
-    _set_cookie(response, create_access_token(user.id))
-    return _me(user, store)
+    return _issue(response, user, store)
 
 
 @router.post("/login", response_model=MeOut)
@@ -112,6 +138,8 @@ def login(body: Credentials, response: Response, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Invalid login or password")
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Account is inactive")
+    if password_needs_rehash(user.password):
+        user.password = hash_password(body.password)
     user.last_login = datetime.now(timezone.utc)
     store = db.query(Store).filter(Store.user_id == user.id).one_or_none()
     if store is None:
@@ -119,14 +147,37 @@ def login(body: Credentials, response: Response, db: Session = Depends(get_db)):
         db.add(store)
     db.commit()
     db.refresh(store)
-    store.user = user
-    _set_cookie(response, create_access_token(user.id))
-    return _me(user, store)
+    return _issue(response, user, store)
+
+
+@router.post("/refresh", response_model=MeOut)
+def refresh(
+    response: Response,
+    db: Session = Depends(get_db),
+    refresh_token: str | None = Cookie(default=None, alias=settings.refresh_cookie_name),
+):
+    if not refresh_token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    user_id = parse_token(refresh_token, "refresh")
+    if user_id is None:
+        _clear_auth_cookies(response)
+        raise HTTPException(status_code=401, detail="Invalid token")
+    user = db.get(User, user_id)
+    if user is None or not user.is_active:
+        _clear_auth_cookies(response)
+        raise HTTPException(status_code=401, detail="Inactive user")
+    store = db.query(Store).filter(Store.user_id == user.id).one_or_none()
+    if store is None:
+        store = Store(user_id=user.id, business_name=user.username)
+        db.add(store)
+        db.commit()
+        db.refresh(store)
+    return _issue(response, user, store)
 
 
 @router.post("/logout")
 def logout(response: Response):
-    response.delete_cookie(settings.cookie_name, path="/")
+    _clear_auth_cookies(response)
     return {"ok": True}
 
 

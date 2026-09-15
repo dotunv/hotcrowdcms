@@ -45,6 +45,15 @@ def test_health_and_cms_flow():
 
     login = client.post("/api/v1/auth/login", json={"login": TEST_EMAIL, "password": TEST_PASSWORD})
     assert login.status_code == 200
+    assert client.cookies.get("hc_access")
+    assert client.cookies.get("hc_refresh")
+
+    client.cookies.delete("hc_access")
+    assert client.get("/api/v1/auth/me").status_code == 401
+    refreshed = client.post("/api/v1/auth/refresh")
+    assert refreshed.status_code == 200, refreshed.text
+    assert client.get("/api/v1/auth/me").status_code == 200
+    assert client.get("/ready").json()["ok"] is True
 
     store = client.patch("/api/v1/store", json={"business_name": "Test Shop", "timezone": "UTC"})
     assert store.status_code == 200

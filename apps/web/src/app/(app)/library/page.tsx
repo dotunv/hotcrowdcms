@@ -91,11 +91,13 @@ function UploadModal({ onClose }: { onClose: () => void }) {
   const [url, setUrl] = useState("");
   const [mode, setMode] = useState<"file" | "url">("file");
   const [submitting, setSubmitting] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [error, setError] = useState("");
 
   const submit = async () => {
     if (submitting) return;
     setSubmitting(true);
+    setProgress(0);
     setError("");
     try {
       const form = new FormData();
@@ -106,7 +108,7 @@ function UploadModal({ onClose }: { onClose: () => void }) {
         form.append("file_url", url);
       }
       form.append("duration", "10");
-      await api.uploadMedia(form);
+      await api.uploadMedia(form, setProgress);
       await client.invalidateQueries({ queryKey: ["media"] });
       onClose();
     } catch (err) {
@@ -134,12 +136,17 @@ function UploadModal({ onClose }: { onClose: () => void }) {
           <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://" className="w-full px-3 py-2 rounded-xl border" />
         )}
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
+        {submitting ? (
+          <div className="h-2 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
+            <div className="h-full bg-primary transition-all" style={{ width: `${progress}%` }} />
+          </div>
+        ) : null}
         <div className="flex justify-end gap-3">
           <button type="button" onClick={onClose} className="px-4 py-2 border rounded-xl">
             Cancel
           </button>
           <button type="button" disabled={submitting} onClick={() => void submit()} className="px-6 py-2 bg-primary text-white rounded-xl font-bold disabled:opacity-50">
-            {submitting ? "Uploading…" : "Upload"}
+            {submitting ? (progress ? `Uploading ${progress}%` : "Uploading…") : "Upload"}
           </button>
         </div>
       </div>

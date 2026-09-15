@@ -8,7 +8,7 @@ apps/web          Next.js App Router CMS
 packages/contracts  Shared TS types
 ```
 
-The player keeps calling `/api/player/...` on the API origin (default `http://127.0.0.1:8000`).
+The player calls `/api/player/...` on the **API origin**, not the Next.js origin.
 
 ## Run locally
 
@@ -21,14 +21,14 @@ uv sync
 uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-Existing Django databases should be stamped, not reset:
+Existing Django/Neon databases should be stamped, not reset:
 
 ```bash
 cd apps/api
 uv run alembic stamp head
 ```
 
-3. Web (in another terminal, from the repo root):
+3. Web:
 
 ```bash
 pnpm install
@@ -37,27 +37,31 @@ pnpm dev:web
 
 Open `http://127.0.0.1:3000`. Next rewrites `/api/*` and `/media/*` to the API so CMS cookies stay first-party.
 
-From the root you can also run `pnpm dev:api`.
+## Production
 
-## Auth
+Set `DEBUG=False` on the API. Startup refuses a weak `SECRET_KEY`, sqlite `DATABASE_URL`, or a localhost `PUBLIC_API_URL`.
 
-Email or username + password. Passwords stay Django `pbkdf2_sha256` hashes on `auth_user`, so existing accounts keep working. Session is an httpOnly JWT cookie (`hc_access`). Logout is `POST /api/v1/auth/logout`.
+| Variable | Purpose |
+| --- | --- |
+| `DATABASE_URL` | Neon Postgres |
+| `SECRET_KEY` | JWT signing |
+| `PUBLIC_API_URL` | Absolute origin baked into player playlist URLs |
+| `CORS_ORIGINS` | Player web origin only |
+| `USE_S3=True` plus `R2_*` | Cloudflare R2 for uploads (same keys Django used) |
+| `API_URL` on the Next.js host | FastAPI origin for rewrites (`https://api.example.com`) |
 
-## Player contract
+Auth is an httpOnly access cookie (`hc_access`, 15 minutes) plus a refresh cookie (`hc_refresh`, 14 days). The CMS retries `/api/v1/auth/refresh` on 401. Logout clears both.
 
-Unchanged:
+Run the API image (or `uvicorn`) and host `apps/web` on Vercel or in Compose. Point the existing player at the API host, then pair a screen and confirm `/api/player/playlist` returns `{url, type, duration, position}`.
 
-- `POST` or `GET /api/player/setup`
-- `GET /api/player/setup/status/{code}`
-- `POST /api/player/heartbeat` (Bearer device token)
-- `GET /api/player/playlist` → `[{ url, type, duration, position }]`
-
-CORS is for the player origin only. Do not open CMS CORS widely.
+If an account password was ever committed in tests, change it in the database (hashes are Django `pbkdf2_sha256`; login rehashes weaker iteration counts).
 
 ## Docker
+
+Local:
 
 ```bash
 docker compose up --build
 ```
 
-API `:8000`, web `:3000`. Production can run the API image and host `apps/web` on Vercel with `API_URL` pointing at the API.
+Compose forces `DEBUG=true` for the API. Production deploys should pass `DEBUG=false` and the variables above.

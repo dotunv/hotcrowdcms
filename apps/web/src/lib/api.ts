@@ -1,16 +1,41 @@
 import type { Dashboard, Me, MediaItem, PlaylistPayload, ScreenRow } from "./types";
 
-async function request<T>(url: string, init: RequestInit = {}): Promise<T> {
+const AUTH_SKIP_REFRESH = ["/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/refresh", "/api/v1/auth/logout"];
+
+let refreshInFlight: Promise<boolean> | null = null;
+
+function readError(body: unknown, status: number): string {
+  if (body && typeof body === "object" && "detail" in body && typeof (body as { detail: unknown }).detail === "string") {
+    return (body as { detail: string }).detail;
+  }
+  return `Request failed (${status})`;
+}
+
+async function tryRefresh(): Promise<boolean> {
+  if (!refreshInFlight) {
+    refreshInFlight = fetch("/api/v1/auth/refresh", { method: "POST", credentials: "include" })
+      .then((response) => response.ok)
+      .finally(() => {
+        refreshInFlight = null;
+      });
+  }
+  return refreshInFlight;
+}
+
+async function request<T>(url: string, init: RequestInit = {}, retried = false): Promise<T> {
   const headers = new Headers(init.headers);
   if (init.body && !(init.body instanceof FormData) && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
   const response = await fetch(url, { ...init, headers, credentials: "include" });
+  if (response.status === 401 && !retried && !AUTH_SKIP_REFRESH.some((path) => url.startsWith(path))) {
+    const refreshed = await tryRefresh();
+    if (refreshed) return request<T>(url, init, true);
+  }
   if (!response.ok) {
     let detail = `Request failed (${response.status})`;
     try {
-      const body = await response.json();
-      if (typeof body.detail === "string") detail = body.detail;
+      detail = readError(await response.json(), response.status);
     } catch {
       /* ignore */
     }
@@ -18,6 +43,31 @@ async function request<T>(url: string, init: RequestInit = {}): Promise<T> {
   }
   if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
+}
+
+function uploadWithProgress(form: FormData, onProgress?: (percent: number) => void): Promise<MediaItem> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/api/v1/media");
+    xhr.withCredentials = true;
+    xhr.upload.onprogress = (event) => {
+      if (!onProgress || !event.lengthComputable) return;
+      onProgress(Math.round((event.loaded / event.total) * 100));
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve(JSON.parse(xhr.responseText) as MediaItem);
+        return;
+      }
+      try {
+        reject(new Error(readError(JSON.parse(xhr.responseText), xhr.status)));
+      } catch {
+        reject(new Error(`Request failed (${xhr.status})`));
+      }
+    };
+    xhr.onerror = () => reject(new Error("Upload failed"));
+    xhr.send(form);
+  });
 }
 
 export const api = {
@@ -52,7 +102,7 @@ export const api = {
     if (type) params.set("type", type);
     return request<{ results: MediaItem[] }>(`/api/v1/media?${params.toString()}`);
   },
-  uploadMedia: (form: FormData) => request<MediaItem>("/api/v1/media", { method: "POST", body: form }),
+  uploadMedia: (form: FormData, onProgress?: (percent: number) => void) => uploadWithProgress(form, onProgress),
   deleteMedia: (id: string) => request<{ ok: boolean }>(`/api/v1/media/${id}`, { method: "DELETE" }),
   playlists: () =>
     request<{ results: { id: string; name: string; status: string; item_count: number; total_duration: number }[] }>(

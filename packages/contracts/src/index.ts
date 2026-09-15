@@ -48,6 +48,8 @@ export type ScreenItem = {
   last_heartbeat?: string | null;
 };
 
+export type ScreenRow = ScreenItem;
+
 export type Me = {
   id: number;
   username: string;
