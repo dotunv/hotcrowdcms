@@ -5,7 +5,10 @@ __pycache__
 .env
 .git
 .gitignore
-staticfiles
+node_modules
+.next
+apps/web/.next
 media
 *.md
 .DS_Store
+apps/api/tests/test.sqlite3

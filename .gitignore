@@ -1,17 +1,22 @@
-# Python-generated files
+# Python
 __pycache__/
 *.py[oc]
-build/
-dist/
+/build/
+/dist/
 wheels/
 *.egg-info
-
-# Virtual environments
 .venv
 db.sqlite3
+apps/api/tests/test.sqlite3
 
-# Environment variables
+# Env
 .env
-node_modules
-staticfiles/
+.idea
 
+
+# Node / Next
+node_modules
+.next
+apps/web/.next
+staticfiles/
+media/
