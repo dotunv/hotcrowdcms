@@ -6,7 +6,8 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.db import get_db
+from app.db import engine, get_db
+from app.models import Base
 from app.routers import auth, cms, media, playlists, player, screens
 
 app = FastAPI(title="HotCrowd API", version="1.0.0")
@@ -24,6 +25,9 @@ app.include_router(screens.router)
 app.include_router(media.router)
 app.include_router(playlists.router)
 app.include_router(player.router)
+
+if settings.debug:
+    Base.metadata.create_all(bind=engine)
 
 settings.media_root.mkdir(parents=True, exist_ok=True)
 if not settings.use_s3:

@@ -177,7 +177,7 @@ export default function StorePage() {
             <input type="checkbox" checked={form.mute_by_default} onChange={(e) => setForm({ ...form, mute_by_default: e.target.checked })} />
             Mute videos by default
           </label>
-          <Field label="When a playlist is empty">
+          <Field label="When the loop is empty or off-schedule">
             <select className={INPUT} value={form.fallback_type} onChange={(e) => setForm({ ...form, fallback_type: e.target.value })}>
               <option value="brand_logo">Brand logo</option>
               <option value="custom_media">Custom URL</option>

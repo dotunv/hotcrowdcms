@@ -8,8 +8,8 @@ export default function HelpPage() {
       <ol className="list-decimal space-y-3 pl-5 text-sm text-gray-600 dark:text-gray-300">
         <li>Open the player and connect it with the 8-character code on Screens.</li>
         <li>Drop images and videos into the library.</li>
-        <li>Build a playlist, drag to reorder, then publish.</li>
-        <li>Assign that playlist to the screen. The player heartbeats and fetches url, type, duration, and position.</li>
+        <li>Build a playlist, drag to reorder, then publish. Drafts do not play on the TV.</li>
+        <li>Assign that playlist to the screen. The player heartbeats and fetches url, type, duration, and position. Off-schedule or empty loops use the store fallback.</li>
       </ol>
       <div className="rounded-2xl border bg-white p-5 text-sm dark:border-border-dark dark:bg-surface-dark">
         <p className="font-semibold">Password reset</p>

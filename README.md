@@ -28,6 +28,8 @@ cd apps/api
 uv run alembic stamp head
 ```
 
+In `DEBUG=True`, the API also creates missing tables on startup so a local sqlite file works without stamping.
+
 3. Web:
 
 ```bash
@@ -47,6 +49,8 @@ Set `DEBUG=False` on the API. Startup refuses a weak `SECRET_KEY`, sqlite `DATAB
 | `SECRET_KEY` | JWT signing |
 | `PUBLIC_API_URL` | Absolute origin baked into player playlist URLs |
 | `CORS_ORIGINS` | Player web origin only |
+| `PUBLIC_WEB_URL` | CMS origin used in password-reset emails |
+| `EMAIL_HOST` (optional) | SMTP for reset mail; if empty, links print in the API log |
 | `USE_S3=True` plus `R2_*` | Cloudflare R2 for uploads (same keys Django used) |
 | `API_URL` on the Next.js host | FastAPI origin for rewrites (`https://api.example.com`) |
 

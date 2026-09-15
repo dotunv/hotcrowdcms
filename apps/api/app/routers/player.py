@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 from app.db import get_db
 from app.media_urls import absolute_media_url
 from app.models import PairingCode, Playlist, PlaylistItem, Screen
+from app.playback import fallback_items, playlist_is_live
 from app.tokens import generate_device_token, generate_pairing_code, hash_device_token
 
 router = APIRouter(prefix="/api/player", tags=["player"])
@@ -52,7 +53,8 @@ def _screen_from_bearer(request: Request, db: Session) -> Screen:
     screen = (
         db.query(Screen)
         .options(
-            joinedload(Screen.assigned_playlist).selectinload(Playlist.items).joinedload(PlaylistItem.media)
+            joinedload(Screen.store),
+            joinedload(Screen.assigned_playlist).selectinload(Playlist.items).joinedload(PlaylistItem.media),
         )
         .filter(Screen.api_token_hash == token_hash)
         .one_or_none()
@@ -88,7 +90,12 @@ def _player_items(screen: Screen, request: Request) -> list[dict]:
 @router.get("/playlist")
 def get_playlist(request: Request, db: Session = Depends(get_db)):
     screen = _screen_from_bearer(request, db)
-    return _player_items(screen, request)
+    store = screen.store
+    if playlist_is_live(screen.assigned_playlist, store):
+        items = _player_items(screen, request)
+        if items:
+            return items
+    return fallback_items(store, request)
 
 
 @router.post("/heartbeat")
