@@ -89,12 +89,17 @@ export default function StorePage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 p-8">
-      <div>
-        <h1 className="text-2xl font-bold">Store</h1>
-        <p className="mt-1 text-sm text-gray-500">Branding and playback defaults for this shop.</p>
-      </div>
-      <form onSubmit={onSubmit} className="space-y-6">
+    <div className="h-full overflow-y-auto">
+      <form onSubmit={onSubmit} className="mx-auto max-w-2xl space-y-6 p-8 pb-24">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold">Store</h1>
+            <p className="mt-1 text-sm text-gray-500">Branding and playback defaults for this shop.</p>
+          </div>
+          <button className="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white" type="submit">
+            {save.isPending ? "Saving…" : "Save store"}
+          </button>
+        </div>
         <section className="space-y-4 rounded-2xl border bg-white p-6 dark:border-border-dark dark:bg-surface-dark">
           <h2 className="font-bold">Business</h2>
           <div className="flex items-center gap-4">
