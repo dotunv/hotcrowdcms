@@ -49,6 +49,11 @@ export default function LoginPage() {
         <button type="submit" disabled={mutation.isPending} className="w-full py-3 bg-primary text-white font-bold rounded-xl disabled:opacity-50">
           {mutation.isPending ? "Signing in…" : "Sign in"}
         </button>
+        <p className="text-sm text-center">
+          <Link href="/forgot" className="text-primary font-semibold">
+            Forgot password?
+          </Link>
+        </p>
         <p className="text-sm text-center text-gray-500">
           No account?{" "}
           <Link href="/register" className="text-primary font-semibold">

@@ -50,14 +50,17 @@ export function Shell({ children }: { children: ReactNode }) {
           </Link>
         </div>
         <div className="p-4">
-          <div className="w-full flex items-center gap-3 px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-xl border border-border-light dark:border-border-dark">
+          <Link
+            href="/store"
+            className="w-full flex items-center gap-3 px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-xl border border-border-light dark:border-border-dark hover:border-primary/40"
+          >
             <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
               {me.data.store.initials}
             </div>
             <span className="text-sm font-semibold text-gray-700 dark:text-gray-200 truncate">
               {me.data.store.business_name || me.data.username}
             </span>
-          </div>
+          </Link>
         </div>
         <nav className="flex-1 px-4 space-y-1">
           <p className="px-2 text-xs font-bold text-gray-400 uppercase tracking-wider mt-4 mb-2">Main</p>

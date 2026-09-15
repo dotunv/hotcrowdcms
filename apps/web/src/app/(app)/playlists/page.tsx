@@ -6,8 +6,10 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { DeleteDialog } from "@/components/delete-dialog";
 import { api } from "@/lib/api";
+import { useToast } from "@/components/toast";
 
 export default function PlaylistsPage() {
+  const toast = useToast();
   const router = useRouter();
   const client = useQueryClient();
   const list = useQuery({ queryKey: ["playlists"], queryFn: api.playlists });
@@ -21,6 +23,7 @@ export default function PlaylistsPage() {
     onSuccess: () => {
       setPending(null);
       void client.invalidateQueries({ queryKey: ["playlists"] });
+      toast("Playlist deleted.");
     },
   });
 
@@ -56,6 +59,11 @@ export default function PlaylistsPage() {
             </div>
           </div>
         ))}
+        {(list.data?.results ?? []).length === 0 ? (
+          <div className="rounded-2xl border border-dashed p-12 text-center text-sm text-gray-500">
+            No playlists yet. Create one and drop library files into the loop.
+          </div>
+        ) : null}
       </div>
       <DeleteDialog
         open={Boolean(pending)}

@@ -1,10 +1,28 @@
 "use client";
 
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import type { PlaylistItem, PlaylistPayload, PlaylistStatus, TransitionEffect } from "@/lib/types";
+import { useToast } from "@/components/toast";
 
 function formatLoop(seconds: number): string {
   const minutes = Math.floor(seconds / 60);
@@ -12,12 +30,67 @@ function formatLoop(seconds: number): string {
   return `${minutes}m ${String(rest).padStart(2, "0")}s`;
 }
 
+function SortableItem({
+  item,
+  onDuration,
+  onPreview,
+  onRemove,
+}: {
+  item: PlaylistItem;
+  onDuration: (duration: number) => void;
+  onPreview: () => void;
+  onRemove: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: String(item.id) });
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={`flex items-center gap-3 rounded-xl border border-border-light bg-white p-3 shadow-sm dark:border-border-dark dark:bg-surface-dark ${isDragging ? "z-10 opacity-80 shadow-lg" : ""}`}
+    >
+      <button type="button" className="cursor-grab touch-none px-1 text-gray-400" aria-label="Drag to reorder" {...attributes} {...listeners}>
+        ⋮⋮
+      </button>
+      {item.type === "image" && item.url ? (
+        <img src={item.url} alt="" className="h-16 w-16 rounded-lg object-cover" />
+      ) : (
+        <div className="h-16 w-16 rounded-lg bg-gray-100" />
+      )}
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold">{item.name}</p>
+        <label className="text-xs text-gray-500">
+          Duration
+          <input
+            type="number"
+            min={1}
+            value={item.duration}
+            onChange={(event) => onDuration(Number(event.target.value))}
+            className="ml-2 w-16 rounded border px-1 py-0.5 text-sm"
+          />
+          s
+        </label>
+      </div>
+      <button type="button" onClick={onPreview} className="text-sm text-primary">
+        Play
+      </button>
+      <button type="button" onClick={onRemove} className="text-sm text-red-600">
+        Remove
+      </button>
+    </div>
+  );
+}
+
 export function PlaylistBuilder({ playlistId }: { playlistId: string }) {
+  const toast = useToast();
   const client = useQueryClient();
   const [query, setQuery] = useState("");
   const [error, setError] = useState("");
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [dirty, setDirty] = useState(false);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   const playlistQuery = useQuery({
     queryKey: ["playlist", playlistId],
@@ -34,6 +107,8 @@ export function PlaylistBuilder({ playlistId }: { playlistId: string }) {
 
   const playlist = playlistQuery.data;
   const items = playlist?.items ?? [];
+  const playlistRef = useRef(playlist);
+  playlistRef.current = playlist;
 
   const replace = (next: PlaylistPayload) => {
     client.setQueryData(["playlist", playlistId], next);
@@ -45,13 +120,17 @@ export function PlaylistBuilder({ playlistId }: { playlistId: string }) {
       replace(data);
       setDirty(false);
       setError("");
+      toast("Playlist saved.");
     },
     onError: () => setError("Could not save playlist settings."),
   });
 
   const add = useMutation({
     mutationFn: (mediaId: string) => api.addItem(playlistId, mediaId),
-    onSuccess: replace,
+    onSuccess: (data) => {
+      replace(data);
+      toast("Added to the loop.");
+    },
     onError: () => setError("Could not add media."),
   });
 
@@ -60,10 +139,7 @@ export function PlaylistBuilder({ playlistId }: { playlistId: string }) {
     onMutate: async (itemId) => {
       const previous = client.getQueryData<PlaylistPayload>(["playlist", playlistId]);
       if (previous) {
-        replace({
-          ...previous,
-          items: previous.items.filter((item) => item.id !== itemId),
-        });
+        replace({ ...previous, items: previous.items.filter((item) => item.id !== itemId) });
       }
       return { previous };
     },
@@ -80,6 +156,34 @@ export function PlaylistBuilder({ playlistId }: { playlistId: string }) {
     onSuccess: replace,
   });
 
+  function persistSettings() {
+    const current = playlistRef.current;
+    if (!current) return;
+    saveSettings.mutate({
+      name: current.name,
+      status: current.status,
+      is_loop: current.is_loop,
+      assigned_screen_ids: current.assigned_screen_ids,
+      transition_effect: current.transition_effect,
+      schedule_type: current.schedule_type,
+      start_date: current.start_date,
+      end_date: current.end_date,
+      start_time: current.start_time,
+      end_time: current.end_time,
+    });
+  }
+
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if ((event.metaKey || event.ctrlKey) && event.key === "s") {
+        event.preventDefault();
+        persistSettings();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [playlistId]);
+
   const reorder = useMutation({
     mutationFn: (itemIds: number[]) => api.reorder(playlistId, itemIds),
     onError: () => {
@@ -89,27 +193,20 @@ export function PlaylistBuilder({ playlistId }: { playlistId: string }) {
     onSuccess: replace,
   });
 
-  const move = (index: number, direction: -1 | 1) => {
-    const next = [...items];
-    const target = index + direction;
-    if (target < 0 || target >= next.length) return;
-    const [row] = next.splice(index, 1);
-    next.splice(target, 0, row);
-    const optimistic: PlaylistPayload = {
-      ...playlist!,
-      items: next.map((item, position) => ({ ...item, position })),
-    };
-    replace(optimistic);
+  function onDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!playlist || !over || active.id === over.id) return;
+    const oldIndex = items.findIndex((item) => String(item.id) === String(active.id));
+    const newIndex = items.findIndex((item) => String(item.id) === String(over.id));
+    if (oldIndex < 0 || newIndex < 0) return;
+    const next = arrayMove(items, oldIndex, newIndex).map((item, position) => ({ ...item, position }));
+    replace({ ...playlist, items: next });
     reorder.mutate(next.map((item) => item.id));
-  };
+  }
 
   const assigned = new Set(playlist?.assigned_screen_ids ?? []);
   const previewItem: PlaylistItem | undefined = previewIndex === null ? undefined : items[previewIndex];
-
-  const publishLabel = useMemo(() => {
-    if (!playlist) return "Publish";
-    return playlist.status === "ACTIVE" ? "Published" : "Publish";
-  }, [playlist]);
+  const publishLabel = useMemo(() => (playlist?.status === "ACTIVE" ? "Published" : "Publish"), [playlist]);
 
   if (playlistQuery.isLoading) {
     return <div className="h-full bg-background-light dark:bg-background-dark" />;
@@ -144,7 +241,9 @@ export function PlaylistBuilder({ playlistId }: { playlistId: string }) {
           {dirty ? <span className="h-2.5 w-2.5 rounded-full bg-amber-500" title="Unsaved changes" /> : null}
         </div>
         <div className="flex items-center gap-2">
-          <p className="hidden text-xs text-gray-500 md:block">Loop {formatLoop(playlist.total_duration)}</p>
+          <p className="hidden text-xs text-gray-500 md:block">
+            Loop {formatLoop(playlist.total_duration)} · ⌘S to save
+          </p>
           <button type="button" onClick={() => setPreviewIndex(0)} disabled={items.length === 0} className="px-3 py-1.5 text-sm">
             Preview
           </button>
@@ -213,53 +312,28 @@ export function PlaylistBuilder({ playlistId }: { playlistId: string }) {
         </aside>
 
         <section className="flex-1 space-y-2 overflow-y-auto p-4">
-          {items.map((item, index) => (
-            <div key={item.id} className="flex items-center gap-3 rounded-xl border border-border-light bg-white p-3 dark:bg-surface-dark">
-              <div className="flex flex-col">
-                <button type="button" onClick={() => move(index, -1)} className="text-gray-400 hover:text-gray-700" aria-label="Move up">
-                  ↑
-                </button>
-                <button type="button" onClick={() => move(index, 1)} className="text-gray-400 hover:text-gray-700" aria-label="Move down">
-                  ↓
-                </button>
-              </div>
-              {item.type === "image" && item.url ? (
-                <img src={item.url} alt="" className="h-16 w-16 rounded-lg object-cover" />
-              ) : (
-                <div className="h-16 w-16 rounded-lg bg-gray-100" />
-              )}
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold">{item.name}</p>
-                <label className="text-xs text-gray-500">
-                  Duration
-                  <input
-                    type="number"
-                    min={1}
-                    value={item.duration}
-                    onChange={(event) => {
-                      const duration = Number(event.target.value);
-                      replace({
-                        ...playlist,
-                        items: items.map((row) => (row.id === item.id ? { ...row, duration } : row)),
-                      });
-                      durationMut.mutate({ itemId: item.id, duration });
-                    }}
-                    className="ml-2 w-16 rounded border px-1 py-0.5 text-sm"
-                  />
-                  s
-                </label>
-              </div>
-              <button type="button" onClick={() => setPreviewIndex(index)} className="text-sm text-primary">
-                Play
-              </button>
-              <button type="button" onClick={() => remove.mutate(item.id)} className="text-sm text-red-600">
-                Remove
-              </button>
-            </div>
-          ))}
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+            <SortableContext items={items.map((item) => String(item.id))} strategy={verticalListSortingStrategy}>
+              {items.map((item, index) => (
+                <SortableItem
+                  key={item.id}
+                  item={item}
+                  onDuration={(duration) => {
+                    replace({
+                      ...playlist,
+                      items: items.map((row) => (row.id === item.id ? { ...row, duration } : row)),
+                    });
+                    durationMut.mutate({ itemId: item.id, duration });
+                  }}
+                  onPreview={() => setPreviewIndex(index)}
+                  onRemove={() => remove.mutate(item.id)}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
           {items.length === 0 ? (
             <div className="flex h-full min-h-[240px] items-center justify-center rounded-2xl border border-dashed text-sm text-gray-500">
-              Click media on the left to build the loop.
+              Click media on the left to build the loop. Drag to reorder.
             </div>
           ) : null}
         </section>
@@ -292,6 +366,72 @@ export function PlaylistBuilder({ playlistId }: { playlistId: string }) {
               <option value="NONE">None</option>
             </select>
           </label>
+          <label className="block text-sm">
+            Schedule
+            <select
+              value={playlist.schedule_type}
+              onChange={(event) => {
+                setDirty(true);
+                replace({ ...playlist, schedule_type: event.target.value as PlaylistPayload["schedule_type"] });
+              }}
+              className="mt-1 w-full rounded-xl border px-2 py-2"
+            >
+              <option value="ALWAYS">Always on</option>
+              <option value="SCHEDULED">Scheduled window</option>
+            </select>
+          </label>
+          {playlist.schedule_type === "SCHEDULED" ? (
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <label>
+                Start date
+                <input
+                  type="date"
+                  className="mt-1 w-full rounded-lg border px-2 py-1"
+                  value={playlist.start_date}
+                  onChange={(event) => {
+                    setDirty(true);
+                    replace({ ...playlist, start_date: event.target.value });
+                  }}
+                />
+              </label>
+              <label>
+                End date
+                <input
+                  type="date"
+                  className="mt-1 w-full rounded-lg border px-2 py-1"
+                  value={playlist.end_date}
+                  onChange={(event) => {
+                    setDirty(true);
+                    replace({ ...playlist, end_date: event.target.value });
+                  }}
+                />
+              </label>
+              <label>
+                Start time
+                <input
+                  type="time"
+                  className="mt-1 w-full rounded-lg border px-2 py-1"
+                  value={playlist.start_time}
+                  onChange={(event) => {
+                    setDirty(true);
+                    replace({ ...playlist, start_time: event.target.value });
+                  }}
+                />
+              </label>
+              <label>
+                End time
+                <input
+                  type="time"
+                  className="mt-1 w-full rounded-lg border px-2 py-1"
+                  value={playlist.end_time}
+                  onChange={(event) => {
+                    setDirty(true);
+                    replace({ ...playlist, end_time: event.target.value });
+                  }}
+                />
+              </label>
+            </div>
+          ) : null}
           <h2 className="pt-2 font-bold">Screens</h2>
           <div className="space-y-2">
             {(screensQuery.data?.results ?? []).map((screen) => (

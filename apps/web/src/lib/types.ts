@@ -8,4 +8,5 @@ export type {
   ScreenItem,
   ScreenRow,
   TransitionEffect,
+  StoreSettings,
 } from "@hotcrowd/contracts";
