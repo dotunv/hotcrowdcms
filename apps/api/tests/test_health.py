@@ -102,6 +102,13 @@ def test_health_and_cms_flow():
     assigned = client.patch(f"/api/v1/screens/{screen_id}", json={"playlist_id": playlist_id})
     assert assigned.status_code == 200
 
+    draft_play = client.get("/api/player/playlist", headers={"Authorization": f"Bearer {token}"})
+    assert draft_play.status_code == 200
+    assert draft_play.json() == []
+
+    published = client.patch(f"/api/v1/playlists/{playlist_id}", json={"status": "ACTIVE"})
+    assert published.status_code == 200
+
     player_list = client.get("/api/player/playlist", headers={"Authorization": f"Bearer {token}"})
     assert player_list.status_code == 200
     body = player_list.json()
@@ -135,3 +142,14 @@ def test_health_and_cms_flow():
     client.post("/api/v1/auth/logout")
     assert client.post("/api/v1/auth/login", json={"login": TEST_EMAIL, "password": TEST_PASSWORD}).status_code == 400
     assert client.post("/api/v1/auth/login", json={"login": TEST_EMAIL, "password": "placeholder-password2"}).status_code == 200
+
+    client.patch("/api/v1/store", json={"fallback_type": "custom_media", "fallback_logo": "https://example.com/idle.jpg"})
+    client.patch(
+        f"/api/v1/playlists/{playlist_id}",
+        json={"schedule_type": "SCHEDULED", "start_date": "2099-01-01", "end_date": "2099-12-31", "status": "ACTIVE"},
+    )
+    idle = client.get("/api/player/playlist", headers={"Authorization": f"Bearer {token}"})
+    assert idle.json() == [{"url": "https://example.com/idle.jpg", "type": "image", "duration": 10, "position": 0}]
+    client.patch(f"/api/v1/playlists/{playlist_id}", json={"schedule_type": "ALWAYS"})
+    live = client.get("/api/player/playlist", headers={"Authorization": f"Bearer {token}"})
+    assert live.json()[0]["url"] == "https://example.com/loop.jpg"

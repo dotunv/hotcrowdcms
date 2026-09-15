@@ -271,6 +271,7 @@ export function PlaylistBuilder({ playlistId }: { playlistId: string }) {
               })
             }
             className="rounded-lg bg-primary px-4 py-1.5 text-sm font-bold text-white"
+            title="Screens only play published playlists"
           >
             {publishLabel}
           </button>
