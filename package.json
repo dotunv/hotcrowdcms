@@ -1,0 +1,10 @@
+{
+  "name": "hotcrowd",
+  "private": true,
+  "scripts": {
+    "dev:web": "pnpm --filter hotcrowd-web dev",
+    "dev:api": "uv run --directory apps/api uvicorn app.main:app --reload --host 127.0.0.1 --port 8000",
+    "build:web": "pnpm --filter hotcrowd-web build",
+    "test:api": "uv run --directory apps/api pytest"
+  }
+}

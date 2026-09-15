@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-primary: #057a43;
+  --color-secondary: #045e33;
+  --color-accent: #b2f2bb;
+  --color-background-light: #f9f9f7;
+  --color-background-dark: #18181b;
+  --color-surface-dark: #27272a;
+  --color-border-light: #e5e7eb;
+  --color-border-dark: #3f3f46;
+  --font-sans: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+html,
+body {
+  min-height: 100%;
+}
