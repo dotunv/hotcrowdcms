@@ -89,29 +89,31 @@
             </div>
 
             <!-- Filter Bar -->
-            <div
+            <form method="get" x-data @change="$el.requestSubmit()"
                 class="bg-white dark:bg-surface-dark p-4 rounded-xl border border-border-light dark:border-border-dark shadow-sm mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
                 <div class="relative w-full md:w-96">
-                    <span class="material-icons-outlined absolute left-3 top-2.5 text-gray-400">search</span>
-                    <input type="text" placeholder="Search by title..."
+                    <span class="material-icons-outlined absolute left-3 top-2.5 text-gray-400" aria-hidden="true">search</span>
+                    <input type="search" name="q" value="{{ q }}" placeholder="Search by title..." aria-label="Search by title"
+                        @input.debounce.400ms="$el.form.requestSubmit()"
                         class="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent">
                 </div>
                 <div class="flex items-center gap-3 w-full md:w-auto">
-                    <select
+                    <select name="status" aria-label="Filter by status"
                         class="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5">
-                        <option>All Statuses</option>
-                        <option>Published</option>
-                        <option>Draft</option>
-                        <option>Scheduled</option>
+                        <option value="">All Statuses</option>
+                        <option value="PUBLISHED" {% if status_filter == 'PUBLISHED' %}selected{% endif %}>Published</option>
+                        <option value="DRAFT" {% if status_filter == 'DRAFT' %}selected{% endif %}>Draft</option>
+                        <option value="SCHEDULED" {% if status_filter == 'SCHEDULED' %}selected{% endif %}>Scheduled</option>
+                        <option value="ARCHIVED" {% if status_filter == 'ARCHIVED' %}selected{% endif %}>Archived</option>
                     </select>
-                    <select
+                    <select name="sort" aria-label="Sort"
                         class="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5">
-                        <option>Newest First</option>
-                        <option>Oldest First</option>
-                        <option>Name A-Z</option>
+                        <option value="newest" {% if sort == 'newest' %}selected{% endif %}>Newest First</option>
+                        <option value="oldest" {% if sort == 'oldest' %}selected{% endif %}>Oldest First</option>
+                        <option value="name" {% if sort == 'name' %}selected{% endif %}>Name A-Z</option>
                     </select>
                 </div>
-            </div>
+            </form>
 
             <!-- Content Table -->
             <div
@@ -129,73 +131,59 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
-                        {% for layout in layouts %}
+                        {% for item in items %}
                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group">
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-4">
-                                    <div
-                                        class="w-12 h-12 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400">
-                                        <span class="material-icons-outlined">dashboard</span>
+                                    <div class="w-12 h-12 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400">
+                                        <span class="material-icons-outlined" aria-hidden="true">{{ item.icon }}</span>
                                     </div>
                                     <div>
-                                        <p class="font-bold text-gray-900 dark:text-white text-sm">{{ layout.name }}</p>
- <p class="text-xs text-gray-500">Layout • {{ layout.description|default:"No description"|truncatechars:30 }}</p>
+                                        <a href="{{ item.edit_url }}" class="font-bold text-gray-900 dark:text-white text-sm hover:text-primary">{{ item.name }}</a>
+                                        <p class="text-xs text-gray-500">{{ item.kind }}</p>
                                     </div>
                                 </div>
                             </td>
                             <td class="px-6 py-4">
-                                <span
-                                    class="px-2.5 py-1 rounded-md text-xs font-bold 
-                                    {% if layout.status == 'PUBLISHED' %}bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400
-                                    {% elif layout.status == 'DRAFT' %}bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400
-                                    {% else %}bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400{% endif %}">
-                                    {{ layout.status|title }}
+                                <span class="px-2.5 py-1 rounded-md text-xs font-bold {% if item.status == 'PUBLISHED' %}bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400{% elif item.status == 'DRAFT' %}bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400{% else %}bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400{% endif %}">
+                                    {{ item.status|title }}
                                 </span>
                             </td>
                             <td class="px-6 py-4">
-                                <p class="text-sm text-gray-700 dark:text-gray-300">{{ layout.updated_at|timesince }}
-                                    ago</p>
+                                <p class="text-sm text-gray-700 dark:text-gray-300">{{ item.updated_at|timesince }} ago</p>
                             </td>
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-2">
-                                    <div
-                                        class="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
-                                        {{ layout.owner.email|make_list|first|upper }}
+                                    <div class="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary" aria-hidden="true">
+                                        {{ item.owner|slice:":1"|upper }}
                                     </div>
- <span class="text-sm text-gray-700 dark:text-gray-300">{{ layout.owner.username|default:"User" }}</span>
+                                    <span class="text-sm text-gray-700 dark:text-gray-300">{{ item.owner }}</span>
                                 </div>
                             </td>
                             <td class="px-6 py-4 text-right">
-                                <div
-                                    class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <a href="{% url 'store_cms_editor_edit' layout.id %}"
-                                        class="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-400 hover:text-primary transition-colors"
-                                        title="Edit">
-                                        <span class="material-icons-outlined text-lg">edit</span>
+                                <div class="flex items-center justify-end gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                                    <a href="{{ item.edit_url }}" title="Edit" aria-label="Edit {{ item.name }}"
+                                        class="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-400 hover:text-primary transition-colors">
+                                        <span class="material-icons-outlined text-lg" aria-hidden="true">edit</span>
                                     </a>
-
-                                    <button
-                                        @click="deleteUrl = '{% url 'delete_layout' layout.id %}'; showDeleteModal = true"
-                                        class="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-gray-400 hover:text-red-500 transition-colors"
-                                        title="Delete">
-                                        <span class="material-icons-outlined text-lg">delete</span>
+                                    <button type="button" title="Delete" aria-label="Delete {{ item.name }}"
+                                        @click="deleteUrl = '{{ item.delete_url }}'; showDeleteModal = true"
+                                        class="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-gray-400 hover:text-red-500 transition-colors">
+                                        <span class="material-icons-outlined text-lg" aria-hidden="true">delete</span>
                                     </button>
                                 </div>
                             </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="px-6 py-10 text-center text-sm text-gray-500">No items match your filters.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
                 <div
                     class="px-6 py-4 border-t border-border-light dark:border-border-dark bg-gray-50 dark:bg-gray-800/30 flex items-center justify-between">
-                    <p class="text-xs text-gray-500">Showing 1 to {{ layouts.count }} of
-                        {{total_active|add:drafts_count|add:scheduled_count }} results</p>
-                    <div class="flex gap-2">
-                        <button
-                            class="px-3 py-1 bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-700 rounded text-xs font-medium text-gray-600 disabled:opacity-50">Previous</button>
-                        <button
-                            class="px-3 py-1 bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-700 rounded text-xs font-medium text-gray-600">Next</button>
-                    </div>
+                    <p class="text-xs text-gray-500">{{ items|length }} item{{ items|length|pluralize }}</p>
                 </div>
             </div>
 

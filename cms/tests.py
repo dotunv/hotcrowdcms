@@ -393,3 +393,30 @@ class ShellTests(CMSTestCase):
         screen = Screen.objects.create(name="S", owner=self.user)
         html = self.client_cms.get(reverse('assign_playlist', args=[screen.id])).content.decode()
         self.assertIn('id="app-sidebar"', html)
+
+
+class ContentManagerTests(CMSTestCase):
+    def setUp(self):
+        super().setUp()
+        from core.models import StoreLayout
+        self.layout = StoreLayout.objects.create(name="Window layout", owner=self.user, status='PUBLISHED')
+        self.content = StoreContent.objects.create(title="Happy hour", owner=self.user, status='DRAFT')
+        StoreContent.objects.create(title="Other user's", owner=self.other)
+
+    def items(self, **params):
+        return self.client_cms.get(reverse('store_cms'), params).context['items']
+
+    def test_lists_layouts_and_content_for_the_owner_only(self):
+        names = {i['name'] for i in self.items()}
+        self.assertEqual(names, {"Window layout", "Happy hour"})
+
+    def test_content_rows_link_to_editor_and_delete(self):
+        row = next(i for i in self.items() if i['kind'] == 'Content')
+        self.assertEqual(row['edit_url'], reverse('store_cms_content_edit', args=[self.content.id]))
+        self.assertEqual(row['delete_url'], reverse('delete_content', args=[self.content.id]))
+
+    def test_search_status_and_sort(self):
+        self.assertEqual([i['name'] for i in self.items(q='happy')], ["Happy hour"])
+        self.assertEqual([i['name'] for i in self.items(status='PUBLISHED')], ["Window layout"])
+        self.assertEqual([i['name'] for i in self.items(sort='name')], ["Happy hour", "Window layout"])
+        self.assertEqual(self.items(status='BOGUS').__len__(), 2)  # unknown filter is ignored

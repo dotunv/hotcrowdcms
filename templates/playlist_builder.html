@@ -5,16 +5,16 @@
 {% block body %}
 <c-layouts.sidebar>
     <div x-data="{ showDeleteModal: false, deleteUrl: '', deleteItemName: '', hasUnsavedChanges: false }">
-        <form id="playlistForm" method="post" action="" class="h-full flex flex-col gap-4 p-6">
+        <form id="playlistForm" method="post" action="" class="h-full flex flex-col gap-4 p-3 sm:p-6 overflow-y-auto xl:overflow-hidden">
             {% csrf_token %}
             <input type="hidden" name="save_settings" value="true">
 
             <!-- Header -->
             <!-- Top Toolbar -->
             <div
-                class="h-16 flex-shrink-0 bg-white dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-xl flex items-center justify-between px-4 z-20">
-                <div class="flex items-center gap-4 flex-1 min-w-0">
-                    <div class="flex items-center gap-2 text-sm whitespace-nowrap">
+                class="min-h-16 flex-shrink-0 bg-white dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-xl flex flex-wrap items-center justify-between gap-2 px-4 py-2 z-20">
+                <div class="flex items-center gap-4 w-full sm:w-auto sm:flex-1 min-w-0">
+                    <div class="flex items-center gap-2 text-sm whitespace-nowrap overflow-hidden">
                         <a href="{% url 'playlists_list' %}"
                             class="text-gray-500 hover:text-primary transition-colors">Playlists</a>
                         <span class="text-gray-400">&gt;</span>
@@ -45,7 +45,7 @@
                     </div>
                 </div>
 
-                <div class="flex items-center gap-2">
+                <div class="flex flex-wrap items-center gap-2">
  <p class="text-xs text-muted-light dark:text-muted-dark mr-4 hidden md:block">Last saved {{ playlist.updated_at|timesince }} ago</p>
 
                     <button type="button" onclick="openPreviewModal()"
@@ -53,7 +53,7 @@
                         Preview
                     </button>
 
-                    <div class="flex items-center gap-2 border-l border-gray-200 dark:border-gray-700 pl-4">
+                    <div class="flex items-center gap-2 sm:border-l border-gray-200 dark:border-gray-700 sm:pl-4">
                         <button type="submit" name="status" value="DRAFT"
                             class="px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
                             Save Draft
@@ -69,7 +69,7 @@
             </div>
 
             <!-- Main Content Area (3 Columns) -->
-            <div class="flex gap-4 flex-1 min-h-0">
+            <div class="flex flex-col xl:flex-row gap-4 xl:flex-1 xl:min-h-0">
 
                 <!-- Left: Media Library -->
                 <c-playlist.media_library :media_items="media_items" :playlist="playlist" />
@@ -78,11 +78,11 @@
                 <c-playlist.sequence_editor :playlist="playlist" />
 
                 <!-- Right: Settings & Preview -->
-                <div class="w-80 flex flex-col gap-4 flex-shrink-0 overflow-y-auto">
+                <div class="w-full xl:w-80 flex flex-col gap-4 flex-shrink-0 xl:overflow-y-auto">
                     <!-- Mini Preview -->
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-4 flex-shrink-0">
+                    <div class="bg-white dark:bg-surface-dark rounded-xl shadow-sm border border-slate-100 dark:border-border-dark p-4 flex-shrink-0">
                         <div class="flex justify-between items-center mb-3">
-                            <h3 class="text-sm font-bold text-slate-900">Live Preview</h3>
+                            <h3 class="text-sm font-bold text-slate-900 dark:text-white">Live Preview</h3>
                         </div>
                         <div class="aspect-video bg-black rounded-lg overflow-hidden relative group">
                             <div class="w-full h-full bg-slate-800 grid place-items-center text-white text-xs">Preview

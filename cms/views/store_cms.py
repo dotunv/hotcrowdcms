@@ -9,6 +9,7 @@ from django.core.files.storage import default_storage
 from django.core.serializers.json import DjangoJSONEncoder
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 
 from core.models import (
     MediaAsset,
@@ -28,6 +29,37 @@ from ..utils import (
 logger = logging.getLogger(__name__)
 
 
+STATUS_FILTERS = ('PUBLISHED', 'DRAFT', 'SCHEDULED', 'ARCHIVED')
+
+
+def _cms_items(user, query='', status='', sort='newest'):
+    """Layouts and rich-text content as one list for the Content Manager table."""
+    rows = []
+    for layout in StoreLayout.objects.filter(owner=user):
+        rows.append({
+            'kind': 'Layout', 'icon': 'dashboard', 'name': layout.name, 'status': layout.status,
+            'updated_at': layout.updated_at, 'owner': user.username,
+            'edit_url': reverse('store_cms_editor_edit', args=[layout.id]),
+            'delete_url': reverse('delete_layout', args=[layout.id]),
+        })
+    for content in StoreContent.objects.filter(owner=user):
+        rows.append({
+            'kind': 'Content', 'icon': 'article', 'name': content.title, 'status': content.status,
+            'updated_at': content.updated_at, 'owner': user.username,
+            'edit_url': reverse('store_cms_content_edit', args=[content.id]),
+            'delete_url': reverse('delete_content', args=[content.id]),
+        })
+    if query:
+        rows = [r for r in rows if query.lower() in r['name'].lower()]
+    if status in STATUS_FILTERS:
+        rows = [r for r in rows if r['status'] == status]
+    if sort == 'name':
+        rows.sort(key=lambda r: r['name'].lower())
+    else:
+        rows.sort(key=lambda r: r['updated_at'], reverse=(sort != 'oldest'))
+    return rows
+
+
 @login_required
 def store_cms(request):
     """Main Store CMS page."""
@@ -35,9 +67,18 @@ def store_cms(request):
     contents = StoreContent.objects.filter(owner=request.user)
     media_items = MediaAsset.objects.filter(owner=request.user).order_by('-created_at')[:6]
 
+    query = request.GET.get('q', '').strip()
+    status = request.GET.get('status', '')
+    sort = request.GET.get('sort', 'newest')
+    items = _cms_items(request.user, query, status, sort)
+
     context = {
         'layouts': layouts,
         'contents': contents,
+        'items': items,
+        'q': query,
+        'status_filter': status,
+        'sort': sort,
         'total_active': layouts.filter(status='PUBLISHED').count() + contents.filter(status='PUBLISHED').count(),
         'drafts_count': layouts.filter(status='DRAFT').count() + contents.filter(status='DRAFT').count(),
         'scheduled_count': contents.filter(status='SCHEDULED').count(),

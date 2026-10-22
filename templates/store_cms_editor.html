@@ -157,8 +157,9 @@
                         </div>
 
                         <!-- Content Area -->
-                        <div class="p-6 min-h-[400px]" contenteditable="true" @input="contentHtml = $el.innerHTML"
-                            class="prose prose-lg max-w-none focus:outline-none dark:prose-invert">
+                        <div contenteditable="true" @input="contentHtml = $el.innerHTML" role="textbox" aria-multiline="true"
+                            aria-label="Content body"
+                            class="p-6 min-h-[400px] prose prose-lg max-w-none focus:outline-none dark:prose-invert">
                             {% if content.content_html %}
                             {{ content.content_html|clean_html }}
                             {% else %}
