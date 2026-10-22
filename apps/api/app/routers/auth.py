@@ -21,11 +21,13 @@ from app.security import (
     hash_password,
     password_fingerprint,
     password_needs_rehash,
+    parse_token,
     password_problem,
     token_user_matches,
     verify_password,
 )
 from app.mail import send_mail
+from app.sessions import extend_session, revoke_session, session_is_live, start_session
 
 log = logging.getLogger("hotcrowd.auth")
 
@@ -73,12 +75,12 @@ class MeOut(BaseModel):
     stores: list[StoreOut]
 
 
-def _set_auth_cookies(response: Response, user: User) -> None:
+def _set_auth_cookies(response: Response, user: User, sid: str) -> None:
     secure = settings.secure_cookies
     fingerprint = password_fingerprint(user.password)
     response.set_cookie(
         key=settings.cookie_name,
-        value=create_access_token(user.id, fingerprint),
+        value=create_access_token(user.id, fingerprint, sid),
         httponly=True,
         samesite="lax",
         secure=secure,
@@ -87,7 +89,7 @@ def _set_auth_cookies(response: Response, user: User) -> None:
     )
     response.set_cookie(
         key=settings.refresh_cookie_name,
-        value=create_refresh_token(user.id, fingerprint),
+        value=create_refresh_token(user.id, fingerprint, sid),
         httponly=True,
         samesite="lax",
         secure=secure,
@@ -126,16 +128,18 @@ def _me(user: User, store: Store, stores: list[Store], plan: str) -> MeOut:
     )
 
 
-def _issue(response: Response, user: User, store: Store, db=None) -> MeOut:
+def _issue(response: Response, user: User, store: Store, db: Session, sid: str | None = None) -> MeOut:
+    """Set the cookies for a login. A fresh login starts a session; a refresh keeps (and extends) its own."""
     store.user = user
-    _set_auth_cookies(response, user)
+    if sid is None:
+        sid = start_session(db, user)
+    else:
+        extend_session(db, sid)
+    _set_auth_cookies(response, user, sid)
     set_store_cookie(response, store.id)
-    stores = [store]
-    plan = "starter"
-    if db is not None:
-        stores = list_user_stores(db, user)
-        plan = get_or_create_account(db, user).plan
-        db.commit()
+    stores = list_user_stores(db, user)
+    plan = get_or_create_account(db, user).plan
+    db.commit()
     return _me(user, store, stores, plan)
 
 
@@ -233,7 +237,9 @@ def refresh(
     if not refresh_token:
         raise HTTPException(status_code=401, detail="Not authenticated")
     # Also fails once the password changed since this token was issued ("log out everywhere").
-    user = token_user_matches(refresh_token, "refresh", lambda user_id: db.get(User, user_id))
+    user = token_user_matches(
+        refresh_token, "refresh", lambda user_id: db.get(User, user_id), lambda sid, user_id: session_is_live(db, sid, user_id)
+    )
     if user is None:
         _clear_auth_cookies(response)
         raise HTTPException(status_code=401, detail="Invalid token")
@@ -243,11 +249,22 @@ def refresh(
         db.add(store)
         db.commit()
         db.refresh(store)
-    return _issue(response, user, store, db)
+    return _issue(response, user, store, db, parse_token(refresh_token, "refresh")[2])
 
 
 @router.post("/logout")
-def logout(response: Response):
+def logout(
+    response: Response,
+    db: Session = Depends(get_db),
+    refresh_token: str | None = Cookie(default=None, alias=settings.refresh_cookie_name),
+    access_token: str | None = Cookie(default=None, alias=settings.cookie_name),
+):
+    # Revoke server-side too, so a copied cookie stops working instead of living out its 14 days.
+    for token, kind in ((refresh_token, "refresh"), (access_token, "access")):
+        parsed = parse_token(token, kind) if token else None
+        if parsed:
+            revoke_session(db, parsed[2])
+    db.commit()
     _clear_auth_cookies(response)
     return {"ok": True}
 

@@ -11,6 +11,7 @@ from jwt import PyJWTError
 from app.config import settings
 
 ALGORITHM = "HS256"
+SESSION_TOKENS = ("access", "refresh")
 
 
 def hash_password(password: str, iterations: int | None = None) -> str:
@@ -50,29 +51,28 @@ def password_fingerprint(encoded_password: str) -> str:
     return hmac.new(settings.secret_key.encode(), encoded_password.encode(), hashlib.sha256).hexdigest()[:16]
 
 
-def _encode(user_id: int, token_type: str, lifetime: timedelta, fingerprint: str) -> str:
+def _encode(user_id: int, token_type: str, lifetime: timedelta, fingerprint: str, sid: str | None = None) -> str:
     now = datetime.now(timezone.utc)
-    return jwt.encode(
-        {"sub": str(user_id), "typ": token_type, "pv": fingerprint, "iat": now, "exp": now + lifetime},
-        settings.secret_key,
-        algorithm=ALGORITHM,
-    )
+    claims = {"sub": str(user_id), "typ": token_type, "pv": fingerprint, "iat": now, "exp": now + lifetime}
+    if sid:
+        claims["sid"] = sid
+    return jwt.encode(claims, settings.secret_key, algorithm=ALGORITHM)
 
 
-def create_access_token(user_id: int, fingerprint: str) -> str:
-    return _encode(user_id, "access", timedelta(minutes=settings.access_token_minutes), fingerprint)
+def create_access_token(user_id: int, fingerprint: str, sid: str) -> str:
+    return _encode(user_id, "access", timedelta(minutes=settings.access_token_minutes), fingerprint, sid)
 
 
-def create_refresh_token(user_id: int, fingerprint: str) -> str:
-    return _encode(user_id, "refresh", timedelta(days=settings.refresh_token_days), fingerprint)
+def create_refresh_token(user_id: int, fingerprint: str, sid: str) -> str:
+    return _encode(user_id, "refresh", timedelta(days=settings.refresh_token_days), fingerprint, sid)
 
 
 def create_reset_token(user_id: int, fingerprint: str) -> str:
     return _encode(user_id, "reset", timedelta(hours=1), fingerprint)
 
 
-def parse_token(token: str, expected: str) -> tuple[int, str] | None:
-    """(user_id, password fingerprint) for a valid token of the expected type, else None."""
+def parse_token(token: str, expected: str) -> tuple[int, str, str | None] | None:
+    """(user_id, password fingerprint, session id) for a valid token of the expected type, else None."""
     try:
         payload = jwt.decode(token, settings.secret_key, algorithms=[ALGORITHM])
         if payload.get("typ") != expected:
@@ -81,17 +81,26 @@ def parse_token(token: str, expected: str) -> tuple[int, str] | None:
         sub = payload.get("sub")
         if not fingerprint or sub is None:  # tokens issued before fingerprints existed are not accepted
             return None
-        return int(sub), str(fingerprint)
+        sid = payload.get("sid")
+        if expected in SESSION_TOKENS and not sid:  # session tokens without a session id predate revocation
+            return None
+        return int(sub), str(fingerprint), (str(sid) if sid else None)
     except (PyJWTError, TypeError, ValueError):
         return None
 
 
-def token_user_matches(token: str, expected: str, user_loader) -> object | None:
-    """Return the user for a valid token whose fingerprint still matches their password, else None."""
+def token_user_matches(token: str, expected: str, user_loader, session_live=None) -> object | None:
+    """Return the user for a valid token whose fingerprint still matches their password, else None.
+
+    Access and refresh tokens must also pass `session_live(session_id, user_id)`, so a revoked login is dead
+    even though its tokens have not expired.
+    """
     parsed = parse_token(token, expected)
     if parsed is None:
         return None
-    user_id, fingerprint = parsed
+    user_id, fingerprint, sid = parsed
+    if expected in SESSION_TOKENS and (session_live is None or not session_live(sid, user_id)):
+        return None
     user = user_loader(user_id)
     if user is None or not user.is_active:
         return None

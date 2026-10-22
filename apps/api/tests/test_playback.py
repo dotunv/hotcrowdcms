@@ -41,3 +41,16 @@ def test_overnight_window():
     noon = datetime(2026, 9, 15, 12, 0, tzinfo=timezone.utc)
     assert playlist_is_live(playlist, store, late) is True
     assert playlist_is_live(playlist, store, noon) is False
+
+
+def test_scheduled_status_plays_inside_its_window_and_not_outside():
+    from datetime import time
+
+    playlist = Playlist(status="SCHEDULED", schedule_type="ALWAYS", start_time=time(9, 0), end_time=time(17, 0))
+    store = _store()
+    assert playlist_is_live(playlist, store, datetime(2026, 1, 5, 12, 0, tzinfo=timezone.utc)) is True
+    assert playlist_is_live(playlist, store, datetime(2026, 1, 5, 20, 0, tzinfo=timezone.utc)) is False
+
+
+def test_scheduled_status_without_a_window_plays_like_active():
+    assert playlist_is_live(Playlist(status="SCHEDULED", schedule_type="ALWAYS"), _store()) is True
