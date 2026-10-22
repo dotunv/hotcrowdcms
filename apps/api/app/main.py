@@ -1,4 +1,6 @@
-from fastapi import Depends, FastAPI
+import logging
+
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -11,6 +13,20 @@ from app.models import Base
 from app.routers import auth, billing, cms, instagram, layouts, media, playlists, player, screens, stores
 
 app = FastAPI(title="HotCrowd API", version="1.0.0")
+
+# httpx logs full request URLs at INFO, which would put Instagram access tokens (sent as a query
+# parameter) into the logs.
+logging.getLogger("httpx").setLevel(logging.WARNING)
+
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    if request.url.path.startswith("/media/"):
+        # Uploaded files are data, never documents: no scripts, no framing, even if one slips through.
+        response.headers.setdefault("Content-Security-Policy", "default-src 'none'; sandbox")
+    return response
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,

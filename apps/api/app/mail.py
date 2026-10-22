@@ -22,5 +22,9 @@ def send_mail(to_email: str, subject: str, body: str) -> None:
                 smtp.login(settings.email_host_user, settings.email_host_password)
             smtp.send_message(message)
         return
-    log.warning("Open this link:\n%s", body)
-    print(f"Open this link:\n{body}", flush=True)
+    if settings.debug:
+        log.warning("Open this link:\n%s", body)
+        print(f"Open this link:\n{body}", flush=True)
+    else:
+        # The body contains secrets (reset links); never write it to production logs.
+        log.error("EMAIL_HOST is not configured; email to %s was not sent", to_email)

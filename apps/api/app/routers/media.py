@@ -1,37 +1,20 @@
-import hashlib
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from sqlalchemy.orm import Session
 
 from app.db import get_db
-from app.deps import get_current_store, get_current_user
-from app.models import MediaAsset, Store, User
-from app.storage import absolute_media_url, delete_key, save_bytes
+from app.deps import get_current_store
+from app.models import MediaAsset, Store
+from app.storage import absolute_media_url, delete_key, save_fileobj
+from app.uploads import MAX_MEDIA_BYTES, validate_upload
 
 router = APIRouter(prefix="/api/v1/media", tags=["media"])
 
-ALLOWED = {
-    "image/jpeg": "IMAGE",
-    "image/png": "IMAGE",
-    "image/gif": "IMAGE",
-    "image/webp": "IMAGE",
-    "video/mp4": "VIDEO",
-    "video/webm": "VIDEO",
-}
-
-_UPLOAD_LOCKS: dict[str, float] = {}
-
-
-def _locked(key: str) -> bool:
-    now = datetime.now(timezone.utc).timestamp()
-    expires = _UPLOAD_LOCKS.get(key)
-    if expires and expires > now:
-        return True
-    _UPLOAD_LOCKS[key] = now + 60
-    return False
+MAX_DURATION_SECONDS = 3600
 
 
 def _media_out(media: MediaAsset, request: Request) -> dict:
@@ -63,10 +46,9 @@ def list_media(
 
 
 @router.post("")
-async def upload_media(
+def upload_media(
     request: Request,
     store: Store = Depends(get_current_store),
-    user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     file: UploadFile | None = File(default=None),
     file_url: str = Form(default=""),
@@ -74,61 +56,49 @@ async def upload_media(
     duration: int = Form(default=10),
     media_type: str = Form(default="IMAGE"),
 ):
-    duration = max(1, int(duration or 10))
+    # Plain `def`: FastAPI runs it in the threadpool, so disk/S3/DB work does not block the event loop.
+    duration = min(max(1, duration or 10), MAX_DURATION_SECONDS)
     file_url = file_url.strip()
+    name = name.strip()[:255]
+
     if file and file.filename:
-        content_type = file.content_type or ""
-        detected = ALLOWED.get(content_type)
-        if not detected:
-            raise HTTPException(status_code=400, detail="Use JPG, PNG, GIF, WebP, MP4, or WebM.")
-        data = await file.read()
-        if len(data) > 200 * 1024 * 1024:
-            raise HTTPException(status_code=400, detail="File size must be less than 200MB.")
-        digest = hashlib.sha256(data).hexdigest()
-        lock_key = f"upload:{user.id}:{digest}"
-        if _locked(lock_key):
-            raise HTTPException(status_code=409, detail="Upload already in progress.")
-        try:
-            stamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-            safe_name = Path(file.filename).name
-            relative = f"media/{store.id}/{stamp}_{safe_name}"
-            save_bytes(relative, data, content_type)
-            media = MediaAsset(
-                store_id=store.id,
-                name=name.strip() or safe_name,
-                file=relative,
-                media_type=detected,
-                source="UPLOAD",
-                duration=10 if detected == "IMAGE" else duration,
-            )
-            db.add(media)
-            db.commit()
-            db.refresh(media)
-            return _media_out(media, request)
-        finally:
-            _UPLOAD_LOCKS.pop(lock_key, None)
+        # The type is decided from the file's bytes. The client's Content-Type and filename are never
+        # trusted or used in the storage key (that is how an .html upload would be served as HTML).
+        sniffed = validate_upload(file, MAX_MEDIA_BYTES, {"IMAGE", "VIDEO"})
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        relative = f"media/{store.id}/{stamp}_{uuid.uuid4().hex[:12]}.{sniffed.ext}"
+        save_fileobj(relative, file.file, sniffed.mime)
+        media = MediaAsset(
+            store_id=store.id,
+            name=name or Path(file.filename).name[:255],
+            file=relative,
+            media_type=sniffed.kind,
+            source="UPLOAD",
+            duration=10 if sniffed.kind == "IMAGE" else duration,
+        )
+        db.add(media)
+        db.commit()
+        db.refresh(media)
+        return _media_out(media, request)
+
     if file_url:
-        if not file_url.startswith(("http://", "https://")):
+        parts = urlsplit(file_url)
+        if parts.scheme not in ("http", "https") or not parts.hostname or len(file_url) > 1024:
             raise HTTPException(status_code=400, detail="Please provide a valid URL.")
-        url_lock = f"upload-url:{user.id}:{file_url}"
-        if _locked(url_lock):
-            raise HTTPException(status_code=409, detail="Upload already in progress.")
-        try:
-            kind = media_type.upper() if media_type.upper() in ("IMAGE", "VIDEO") else "IMAGE"
-            media = MediaAsset(
-                store_id=store.id,
-                name=name.strip() or "Linked media",
-                external_url=file_url,
-                media_type=kind,
-                source="URL",
-                duration=duration,
-            )
-            db.add(media)
-            db.commit()
-            db.refresh(media)
-            return _media_out(media, request)
-        finally:
-            _UPLOAD_LOCKS.pop(url_lock, None)
+        kind = media_type.upper() if media_type.upper() in ("IMAGE", "VIDEO") else "IMAGE"
+        media = MediaAsset(
+            store_id=store.id,
+            name=name or "Linked media",
+            external_url=file_url,
+            media_type=kind,
+            source="URL",
+            duration=duration,
+        )
+        db.add(media)
+        db.commit()
+        db.refresh(media)
+        return _media_out(media, request)
+
     raise HTTPException(status_code=400, detail="Choose a file or an advanced URL.")
 
 

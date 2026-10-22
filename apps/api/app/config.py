@@ -9,7 +9,9 @@ ROOT = Path(__file__).resolve().parents[3]
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=str(ROOT / ".env"), extra="ignore")
 
-    debug: bool = True
+    # Safe by default: development conveniences (debug reset links, free checkout, auto-created tables,
+    # insecure dev secret) require an explicit DEBUG=true. Production must never rely on that.
+    debug: bool = False
     database_url: str = "sqlite+pysqlite:///./hotcrowd.db"
     secret_key: str = "django-insecure-dev-only"
     public_api_url: str = "http://127.0.0.1:8000"
@@ -35,6 +37,7 @@ class Settings(BaseSettings):
     stripe_webhook_secret: str = ""
     instagram_app_id: str = ""
     instagram_app_secret: str = ""
+    allow_private_fetch: bool = False  # dev only: let server-side fetches reach private/loopback addresses
     use_s3: bool = False
     r2_access_key_id: str = ""
     r2_secret_access_key: str = ""
@@ -77,6 +80,10 @@ class Settings(BaseSettings):
         host = self.public_api_url.lower()
         if "127.0.0.1" in host or "localhost" in host:
             raise ValueError("PUBLIC_API_URL must be the public API origin so players can fetch media")
+        if self.stripe_secret_key and not self.stripe_webhook_secret:
+            raise ValueError("STRIPE_SECRET_KEY is set but STRIPE_WEBHOOK_SECRET is not; webhooks cannot be verified")
+        if self.allow_private_fetch:
+            raise ValueError("ALLOW_PRIVATE_FETCH must not be enabled in production")
         if self.use_s3:
             missing = [
                 name

@@ -1,4 +1,6 @@
-from datetime import datetime, timezone
+import logging
+import re
+import uuid
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -10,7 +12,14 @@ from app.db import get_db
 from app.deps import get_current_store, get_current_user
 from app.models import MediaAsset, Store, User
 from app.plans import get_or_create_account, plan_limits
+from app.safe_fetch import FetchError, fetch_public
 from app.storage import absolute_media_url, save_bytes
+from app.uploads import sniff_media
+
+log = logging.getLogger("hotcrowd.instagram")
+
+MAX_IMPORT_BYTES = 100 * 1024 * 1024
+INSTAGRAM_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.\-]{0,63}$")
 
 router = APIRouter(prefix="/api/v1/instagram", tags=["instagram"])
 
@@ -89,28 +98,26 @@ def disconnect(store: Store = Depends(get_current_store), db: Session = Depends(
     return {"connected": False}
 
 
-def _save_remote_image(store: Store, url: str, name: str, instagram_id: str | None, media_type: str) -> MediaAsset:
-    response = httpx.get(url, timeout=30, follow_redirects=True)
-    response.raise_for_status()
-    content_type = response.headers.get("content-type", "image/jpeg").split(";")[0]
-    ext = "jpg"
-    kind = "IMAGE"
-    if "video" in content_type or media_type.upper() == "VIDEO":
-        ext = "mp4"
-        kind = "VIDEO"
-    elif "png" in content_type:
-        ext = "png"
-    asset_id_part = instagram_id or datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
-    key = f"stores/{store.id}/instagram/{asset_id_part}.{ext}"
-    save_bytes(key, response.content, content_type)
+def _save_remote_media(store: Store, url: str, name: str, instagram_id: str | None) -> MediaAsset:
+    """Download a public image/video and store it under a server-generated key.
+
+    The file type comes from the bytes, never from the response headers, and neither the URL nor the
+    Instagram id ever reaches the storage path.
+    """
+    fetched = fetch_public(url, max_bytes=MAX_IMPORT_BYTES)
+    sniffed = sniff_media(fetched.content[:32])
+    if sniffed is None:
+        raise FetchError("That URL is not a supported image or video.")
+    key = f"stores/{store.id}/instagram/{uuid.uuid4().hex}.{sniffed.ext}"
+    save_bytes(key, fetched.content, sniffed.mime)
     return MediaAsset(
         store_id=store.id,
-        name=name or "Instagram",
+        name=(name or "Instagram")[:255],
         file=key,
-        media_type=kind,
+        media_type=sniffed.kind,
         source="INSTAGRAM",
         instagram_id=instagram_id,
-        duration=15 if kind == "VIDEO" else 10,
+        duration=15 if sniffed.kind == "VIDEO" else 10,
     )
 
 
@@ -122,14 +129,17 @@ def import_url(
     db: Session = Depends(get_db),
 ):
     url = body.url.strip()
-    if not url.startswith(("http://", "https://")):
+    if not url.startswith(("http://", "https://")) or len(url) > 2048:
         raise HTTPException(status_code=400, detail="Provide an https media URL.")
     instagram_id = body.instagram_id.strip() or None
+    if instagram_id and not INSTAGRAM_ID_RE.match(instagram_id):
+        raise HTTPException(status_code=400, detail="Invalid Instagram id.")
     if instagram_id and db.query(MediaAsset).filter(MediaAsset.instagram_id == instagram_id).one_or_none():
         raise HTTPException(status_code=400, detail="That Instagram post is already in the library.")
     try:
-        media = _save_remote_image(store, url, body.name.strip(), instagram_id, body.media_type)
-    except Exception as exc:  # noqa: BLE001
+        media = _save_remote_media(store, url, body.name.strip(), instagram_id)
+    except (FetchError, httpx.HTTPError) as exc:
+        log.info("Instagram import rejected: %s", exc)
         raise HTTPException(status_code=400, detail="Could not download that media.") from exc
     db.add(media)
     db.commit()
@@ -167,15 +177,15 @@ def sync(
     created = 0
     for item in graph.json().get("data") or []:
         ig_id = str(item.get("id") or "")
-        if not ig_id or db.query(MediaAsset).filter(MediaAsset.instagram_id == ig_id).one_or_none():
+        if not INSTAGRAM_ID_RE.match(ig_id) or db.query(MediaAsset).filter(MediaAsset.instagram_id == ig_id).one_or_none():
             continue
         media_url = item.get("media_url")
         if not media_url:
             continue
-        media_type = "VIDEO" if item.get("media_type") == "VIDEO" else "IMAGE"
         try:
-            media = _save_remote_image(store, media_url, (item.get("caption") or "Instagram")[:255], ig_id, media_type)
-        except Exception:
+            media = _save_remote_media(store, media_url, (item.get("caption") or "Instagram")[:255], ig_id)
+        except (FetchError, httpx.HTTPError) as exc:
+            log.info("Skipping Instagram media %s: %s", ig_id, exc)
             continue
         db.add(media)
         created += 1

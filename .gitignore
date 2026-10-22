@@ -21,3 +21,4 @@ node_modules
 apps/web/.next
 staticfiles/
 media/
+apps/api/tests/test_media/

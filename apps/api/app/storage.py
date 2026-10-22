@@ -1,8 +1,24 @@
+import logging
+import shutil
+from pathlib import Path
+from typing import BinaryIO
+
 from botocore.exceptions import BotoCoreError, ClientError
 from fastapi import Request
 
 from app.config import settings
 from app.models import MediaAsset
+
+log = logging.getLogger("hotcrowd.storage")
+
+
+def local_path(key: str) -> Path:
+    """Resolve a storage key under MEDIA_ROOT, refusing anything that escapes it (e.g. '../x')."""
+    root = settings.media_root.resolve()
+    path = (root / key.lstrip("/")).resolve()
+    if path == root or root not in path.parents:
+        raise ValueError(f"Invalid storage key: {key!r}")
+    return path
 
 
 def _local_url(key: str, request: Request | None) -> str:
@@ -62,9 +78,25 @@ def save_bytes(key: str, data: bytes, content_type: str) -> None:
             ContentType=content_type or "application/octet-stream",
         )
         return
-    dest = settings.media_root / key
+    dest = local_path(key)
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_bytes(data)
+
+
+def save_fileobj(key: str, fileobj: BinaryIO, content_type: str) -> None:
+    """Stream an open file to storage without loading it into memory."""
+    if settings.use_s3:
+        _s3_client().upload_fileobj(
+            fileobj,
+            settings.r2_bucket_name,
+            key,
+            ExtraArgs={"ContentType": content_type or "application/octet-stream"},
+        )
+        return
+    dest = local_path(key)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    with dest.open("wb") as out:
+        shutil.copyfileobj(fileobj, out, 1024 * 1024)
 
 
 def delete_key(key: str | None) -> None:
@@ -76,6 +108,10 @@ def delete_key(key: str | None) -> None:
         except (BotoCoreError, ClientError):
             return
         return
-    file_path = settings.media_root / key
+    try:
+        file_path = local_path(key)
+    except ValueError:
+        log.warning("Refusing to delete invalid storage key %r", key)
+        return
     if file_path.exists():
         file_path.unlink()

@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Response
@@ -20,6 +21,8 @@ from app.security import (
     verify_password,
 )
 from app.mail import send_mail
+
+log = logging.getLogger("hotcrowd.auth")
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
@@ -217,12 +220,17 @@ def forgot(body: ResetRequest, db: Session = Depends(get_db)):
     if user and user.is_active:
         token = create_reset_token(user.id)
         link = f"{settings.public_web_url.rstrip('/')}/reset?token={token}"
-        send_mail(
-            user.email,
-            "Reset your HotCrowd password",
-            f"Reset your password with this link (expires in 1 hour):\n{link}\n",
-        )
-        if settings.debug:
+        try:
+            send_mail(
+                user.email,
+                "Reset your HotCrowd password",
+                f"Reset your password with this link (expires in 1 hour):\n{link}\n",
+            )
+        except Exception:  # noqa: BLE001 - a mail outage must not change the response (that would reveal accounts)
+            log.exception("Could not send password reset email")
+        # Local convenience only: with DEBUG on and no mail server, hand the link back to the dev UI.
+        # Never in production, where this would let anyone take over any account.
+        if settings.debug and not settings.email_host:
             return {"ok": True, "reset_url": link}
     return {"ok": True}
 
