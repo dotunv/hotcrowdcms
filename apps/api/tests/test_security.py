@@ -84,6 +84,17 @@ def test_production_rejects_cheap_password_hashing(monkeypatch):
         Settings(**{**PROD, "password_hash_iterations": 1000}, _env_file=None)
 
 
+def test_config_can_be_imported_where_the_container_puts_it():
+    from pathlib import Path
+
+    from app.config import find_root
+
+    assert find_root(Path("/home/dev/hotcrowd/apps/api/app/config.py")) == Path("/home/dev/hotcrowd")
+    # The Docker image copies the package to /app/app/: no monorepo ancestor, and it must not raise.
+    assert find_root(Path("/app/app/config.py")) == Path("/")
+    assert find_root(Path("/config.py")) == Path("/")
+
+
 def test_production_rejects_private_fetch(monkeypatch):
     clean_env(monkeypatch)
     with pytest.raises(ValidationError, match="ALLOW_PRIVATE_FETCH"):

@@ -34,6 +34,13 @@ uv run alembic stamp head
 
 In `DEBUG=True`, the API also creates missing tables on startup so a local sqlite file works without stamping.
 
+Migrations are idempotent: `uv run alembic upgrade head` builds an empty database (including a fresh Postgres in
+production mode), leaves an existing database's data alone, and does nothing when already up to date. The Docker
+image runs it on start; set `RUN_MIGRATIONS=0` on all but one replica (or run it as a release step) so replicas
+don't race on the first deploy.
+
+Tests run against SQLite by default; set `TEST_DATABASE_URL=postgresql://...` to run them on Postgres (CI does both).
+
 3. Web:
 
 ```bash

@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.deps import get_current_store
-from app.models import MediaAsset, Store
+from app.models import MediaAsset, Playlist, PlaylistItem, Store, StoreLayout
 from app.storage import absolute_media_url, delete_key, save_fileobj
 from app.uploads import MAX_MEDIA_BYTES, validate_upload
 
@@ -111,8 +111,27 @@ def delete_media(
     media = db.query(MediaAsset).filter(MediaAsset.id == media_id, MediaAsset.store_id == store.id).one_or_none()
     if media is None:
         raise HTTPException(status_code=404, detail="Media not found")
+
+    # Playlists that use this file lose that item (the library dialog says so), and the remaining items
+    # are renumbered. Without this the foreign key blocks the delete (Postgres) or leaves playlists
+    # pointing at nothing (SQLite), which then fail to load.
+    playlist_ids = [row[0] for row in db.query(PlaylistItem.playlist_id).filter(PlaylistItem.media_id == media.id).distinct()]
+    if playlist_ids:
+        db.query(PlaylistItem).filter(PlaylistItem.media_id == media.id).delete(synchronize_session=False)
+        now = datetime.now(timezone.utc)
+        for playlist_id in playlist_ids:
+            remaining = (
+                db.query(PlaylistItem).filter(PlaylistItem.playlist_id == playlist_id).order_by(PlaylistItem.position, PlaylistItem.id)
+            )
+            for index, item in enumerate(remaining):
+                item.position = index
+            db.query(Playlist).filter(Playlist.id == playlist_id).update({"updated_at": now}, synchronize_session=False)
+    # A layout's published image is this file: it goes back to a draft and must be published again.
+    db.query(StoreLayout).filter(StoreLayout.published_media_id == media.id).update(
+        {"published_media_id": None, "status": "DRAFT"}, synchronize_session=False
+    )
     path = media.file
     db.delete(media)
     db.commit()
     delete_key(path)
-    return {"ok": True}
+    return {"ok": True, "removed_from_playlists": len(playlist_ids)}

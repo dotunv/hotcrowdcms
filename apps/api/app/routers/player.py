@@ -57,6 +57,8 @@ def _player_items(screen: Screen, request: Request) -> list[dict]:
         return []
     items = []
     for item in sorted(playlist.items, key=lambda row: row.position):
+        if item.media is None:
+            continue
         url = absolute_media_url(item.media, request)
         if not url:
             continue

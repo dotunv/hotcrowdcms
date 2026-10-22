@@ -1,7 +1,9 @@
+import json
 import uuid
 from datetime import datetime, timezone
+from typing import Annotated
 
-from pydantic import BaseModel
+from pydantic import AfterValidator, BaseModel, Field
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
@@ -53,15 +55,30 @@ def _layout_out(layout: StoreLayout, request: Request) -> dict:
     }
 
 
+MAX_LAYOUT_ELEMENTS = 500
+MAX_LAYOUT_JSON_BYTES = 1_000_000
+
+
+def check_layout_data(value: dict) -> dict:
+    elements = value.get("elements", [])
+    if not isinstance(elements, list) or len(elements) > MAX_LAYOUT_ELEMENTS:
+        raise ValueError(f"A layout can have at most {MAX_LAYOUT_ELEMENTS} elements")
+    if any(not isinstance(element, dict) for element in elements):
+        raise ValueError("Every element must be an object")
+    if len(json.dumps(value)) > MAX_LAYOUT_JSON_BYTES:
+        raise ValueError("Layout is too large")
+    return value
+
+
 class LayoutCreate(BaseModel):
-    name: str = "Untitled layout"
+    name: str = Field(default="Untitled layout", max_length=255)
 
 
 class LayoutPatch(BaseModel):
-    name: str | None = None
-    layout_data: dict | None = None
-    canvas_width: int | None = None
-    canvas_height: int | None = None
+    name: str | None = Field(default=None, max_length=255)
+    layout_data: Annotated[dict, AfterValidator(check_layout_data)] | None = None
+    canvas_width: int | None = Field(default=None, ge=320, le=7680)
+    canvas_height: int | None = Field(default=None, ge=320, le=7680)
 
 
 def _load(db: Session, store: Store, layout_id: uuid.UUID) -> StoreLayout:
@@ -81,7 +98,7 @@ def list_layouts(request: Request, store: Store = Depends(get_current_store), db
 def create_layout(body: LayoutCreate, request: Request, store: Store = Depends(get_current_store), db: Session = Depends(get_db)):
     layout = StoreLayout(
         store_id=store.id,
-        name=(body.name or "Untitled layout")[:255],
+        name=body.name.strip() or "Untitled layout",
         layout_data=default_layout(),
     )
     db.add(layout)
@@ -109,9 +126,9 @@ def patch_layout(
     if body.layout_data is not None:
         layout.layout_data = body.layout_data
     if body.canvas_width:
-        layout.canvas_width = max(320, body.canvas_width)
+        layout.canvas_width = body.canvas_width
     if body.canvas_height:
-        layout.canvas_height = max(320, body.canvas_height)
+        layout.canvas_height = body.canvas_height
     layout.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(layout)

@@ -2,11 +2,21 @@ name: CI
 
 on:
   push:
+    branches: [master]
   pull_request:
 
 jobs:
   api:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: hc
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
     defaults:
       run:
         working-directory: apps/api
@@ -14,7 +24,35 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
       - run: uv sync --extra dev
-      - run: uv run pytest
+
+      # An empty database in production mode must be fully built by the migrations alone, and the result
+      # must match the models (this is what a fresh deploy does).
+      - name: Migrations build an empty Postgres and match the models
+        env:
+          DEBUG: "false"
+          SECRET_KEY: ci-only-secret-key-0123456789abcdefghijklmnopqrstuv
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/hc
+          PUBLIC_API_URL: https://api.example.com
+        run: uv run alembic upgrade head && uv run alembic check
+
+      - name: Tests (SQLite)
+        run: uv run pytest
+      - name: Tests (Postgres)
+        env:
+          TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/hc
+        run: uv run pytest
+
+  api-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: The two API Dockerfiles must stay identical
+        run: diff Dockerfile apps/api/Dockerfile
+      - name: The image builds and the app starts inside it
+        run: |
+          docker build -f apps/api/Dockerfile -t hc-api:ci .
+          docker run --rm -e RUN_MIGRATIONS=0 -e DEBUG=true -e DATABASE_URL=sqlite+pysqlite:////tmp/ci.db \
+            hc-api:ci python -c "import app.main; print('app imports inside the container')"
 
   web:
     runs-on: ubuntu-latest
@@ -27,7 +65,7 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - run: pnpm install
+      - run: pnpm install --frozen-lockfile
       - run: pnpm --filter hotcrowd-web build
         env:
           API_URL: http://127.0.0.1:8000
