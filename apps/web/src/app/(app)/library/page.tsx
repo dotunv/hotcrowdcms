@@ -23,6 +23,10 @@ export default function LibraryPage() {
       void client.invalidateQueries({ queryKey: ["dashboard"] });
       toast("File removed.");
     },
+    onError: (err: Error) => {
+      setPending(null);
+      toast(err.message || "Could not remove the file.");
+    },
   });
 
   return (

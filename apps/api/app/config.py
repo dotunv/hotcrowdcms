@@ -3,7 +3,17 @@ from pathlib import Path
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-ROOT = Path(__file__).resolve().parents[3]
+def find_root(config_file: Path) -> Path:
+    """The repo root (where .env lives) when running from the monorepo: <root>/apps/api/app/config.py.
+
+    In the container the code sits at /app/app/config.py, which has no such ancestor; fall back to the
+    top-most directory instead of crashing at import time (settings then come from real env vars).
+    """
+    parents = config_file.resolve().parents
+    return parents[3] if len(parents) > 3 else parents[-1]
+
+
+ROOT = find_root(Path(__file__))
 
 
 class Settings(BaseSettings):

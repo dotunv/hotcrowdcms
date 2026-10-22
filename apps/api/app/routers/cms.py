@@ -1,6 +1,8 @@
-from pydantic import BaseModel
+from typing import Literal
 
-from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
+from pydantic import BaseModel, Field
+
+from fastapi import APIRouter, Depends, File, Request, UploadFile
 from sqlalchemy.orm import Session, joinedload
 
 from app.db import get_db
@@ -8,25 +10,22 @@ from app.deps import get_current_store, get_current_user
 from app.models import MediaAsset, Playlist, Screen, Store, User
 from app.storage import absolute_media_url, delete_key, public_file_url, save_fileobj
 from app.uploads import MAX_LOGO_BYTES, validate_upload
+from app.validation import HexColor, MediaReference, Timezone
 
 router = APIRouter(prefix="/api/v1", tags=["cms"])
 
-STORE_TRANSITIONS = {"fade", "slide", "zoom", "none"}
-FALLBACK_TYPES = {"brand_logo", "custom_media", "black_screen"}
-
-
 class StorePatch(BaseModel):
-    business_name: str | None = None
-    description: str | None = None
-    phone_number: str | None = None
-    timezone: str | None = None
-    branding_color: str | None = None
-    default_image_duration: int | None = None
-    transition_effect: str | None = None
+    business_name: str | None = Field(default=None, max_length=255)
+    description: str | None = Field(default=None, max_length=5000)
+    phone_number: str | None = Field(default=None, max_length=20)
+    timezone: Timezone | None = None
+    branding_color: HexColor | None = None
+    default_image_duration: int | None = Field(default=None, ge=1, le=3600)
+    transition_effect: Literal["fade", "slide", "zoom", "none"] | None = None
     mute_by_default: bool | None = None
-    default_volume: int | None = None
-    fallback_type: str | None = None
-    fallback_logo: str | None = None
+    default_volume: int | None = Field(default=None, ge=0, le=100)
+    fallback_type: Literal["brand_logo", "custom_media", "black_screen"] | None = None
+    fallback_logo: MediaReference | None = Field(default=None, max_length=1024)
 
 
 def store_payload(store: Store, request: Request) -> dict:
@@ -119,17 +118,10 @@ def patch_store(
     store: Store = Depends(get_current_store),
     db: Session = Depends(get_db),
 ):
-    data = body.model_dump(exclude_unset=True)
-    if "transition_effect" in data and data["transition_effect"] not in STORE_TRANSITIONS:
-        raise HTTPException(status_code=400, detail="Invalid transition")
-    if "fallback_type" in data and data["fallback_type"] not in FALLBACK_TYPES:
-        raise HTTPException(status_code=400, detail="Invalid fallback")
-    if "default_volume" in data and data["default_volume"] is not None:
-        data["default_volume"] = max(0, min(100, int(data["default_volume"])))
-    if "default_image_duration" in data and data["default_image_duration"] is not None:
-        data["default_image_duration"] = max(1, int(data["default_image_duration"]))
-    for key, value in data.items():
-        setattr(store, key, value)
+    # Only fields the client actually sent, and never an explicit null for a required column.
+    for key, value in body.model_dump(exclude_unset=True).items():
+        if value is not None:
+            setattr(store, key, value.strip() if isinstance(value, str) and key == "business_name" else value)
     db.commit()
     db.refresh(store)
     return store_payload(store, request)

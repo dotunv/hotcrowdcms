@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import date, datetime, time, timezone
 
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, String, Text, Time, Uuid
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Index, Integer, String, Text, Time, Uuid
 from sqlalchemy.types import JSON
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -77,11 +77,14 @@ class MediaAsset(Base):
     external_url: Mapped[str] = mapped_column(String(1024), default="")
     media_type: Mapped[str] = mapped_column(String(10))
     source: Mapped[str] = mapped_column(String(10), default="UPLOAD")
-    instagram_id: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
+    instagram_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
     duration: Mapped[int] = mapped_column(Integer, default=10)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     store: Mapped[Store] = relationship(back_populates="media_assets")
+
+    # The same Instagram post may be in several stores' libraries, but only once per store.
+    __table_args__ = (Index("uq_mediaasset_store_instagram", "store_id", "instagram_id", unique=True),)
 
     def playback_path(self) -> str | None:
         if self.file:

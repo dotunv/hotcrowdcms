@@ -1,6 +1,8 @@
 import logging
 
 from fastapi import Depends, FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -17,6 +19,16 @@ app = FastAPI(title="HotCrowd API", version="1.0.0")
 # httpx logs full request URLs at INFO, which would put Instagram access tokens (sent as a query
 # parameter) into the logs.
 logging.getLogger("httpx").setLevel(logging.WARNING)
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error(request: Request, exc: RequestValidationError):
+    """422 with a one-line `detail` string (the web app shows `detail` as-is) plus the structured errors."""
+    errors = [{"loc": [str(p) for p in e.get("loc", [])], "msg": e.get("msg", "Invalid value")} for e in exc.errors()]
+    first = errors[0] if errors else {"loc": [], "msg": "Invalid request"}
+    where = ".".join(p for p in first["loc"] if p not in ("body", "query", "path"))
+    message = first["msg"].removeprefix("Value error, ")
+    return JSONResponse(status_code=422, content={"detail": f"{where}: {message}" if where else message, "errors": errors})
 
 
 @app.middleware("http")

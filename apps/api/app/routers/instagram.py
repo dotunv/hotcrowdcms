@@ -5,6 +5,7 @@ import uuid
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -13,7 +14,7 @@ from app.deps import get_current_store, get_current_user
 from app.models import MediaAsset, Store, User
 from app.plans import get_or_create_account, plan_limits
 from app.safe_fetch import FetchError, fetch_public
-from app.storage import absolute_media_url, save_bytes
+from app.storage import absolute_media_url, delete_key, save_bytes
 from app.uploads import sniff_media
 
 log = logging.getLogger("hotcrowd.instagram")
@@ -98,6 +99,13 @@ def disconnect(store: Store = Depends(get_current_store), db: Session = Depends(
     return {"connected": False}
 
 
+def already_imported(db: Session, store: Store, instagram_id: str) -> bool:
+    return (
+        db.query(MediaAsset).filter(MediaAsset.store_id == store.id, MediaAsset.instagram_id == instagram_id).one_or_none()
+        is not None
+    )
+
+
 def _save_remote_media(store: Store, url: str, name: str, instagram_id: str | None) -> MediaAsset:
     """Download a public image/video and store it under a server-generated key.
 
@@ -134,7 +142,7 @@ def import_url(
     instagram_id = body.instagram_id.strip() or None
     if instagram_id and not INSTAGRAM_ID_RE.match(instagram_id):
         raise HTTPException(status_code=400, detail="Invalid Instagram id.")
-    if instagram_id and db.query(MediaAsset).filter(MediaAsset.instagram_id == instagram_id).one_or_none():
+    if instagram_id and already_imported(db, store, instagram_id):
         raise HTTPException(status_code=400, detail="That Instagram post is already in the library.")
     try:
         media = _save_remote_media(store, url, body.name.strip(), instagram_id)
@@ -142,7 +150,12 @@ def import_url(
         log.info("Instagram import rejected: %s", exc)
         raise HTTPException(status_code=400, detail="Could not download that media.") from exc
     db.add(media)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:  # the same post imported twice at once; the unique index picked a winner
+        db.rollback()
+        delete_key(media.file)
+        raise HTTPException(status_code=400, detail="That Instagram post is already in the library.") from None
     db.refresh(media)
     return {
         "id": str(media.id),
@@ -177,7 +190,7 @@ def sync(
     created = 0
     for item in graph.json().get("data") or []:
         ig_id = str(item.get("id") or "")
-        if not INSTAGRAM_ID_RE.match(ig_id) or db.query(MediaAsset).filter(MediaAsset.instagram_id == ig_id).one_or_none():
+        if not INSTAGRAM_ID_RE.match(ig_id) or db.query(MediaAsset).filter(MediaAsset.store_id == store.id, MediaAsset.instagram_id == ig_id).one_or_none():
             continue
         media_url = item.get("media_url")
         if not media_url:
@@ -188,6 +201,11 @@ def sync(
             log.info("Skipping Instagram media %s: %s", ig_id, exc)
             continue
         db.add(media)
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            delete_key(media.file)
+            continue
         created += 1
-    db.commit()
     return {"imported": created, **_status(store, True)}

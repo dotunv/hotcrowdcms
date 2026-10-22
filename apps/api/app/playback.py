@@ -13,7 +13,7 @@ def store_now(store: Store, now: datetime | None = None) -> datetime:
         instant = instant.replace(tzinfo=timezone.utc)
     try:
         zone = ZoneInfo(store.timezone or "UTC")
-    except ZoneInfoNotFoundError:
+    except (ZoneInfoNotFoundError, ValueError, OSError):  # unknown, path-like or directory-like names
         zone = ZoneInfo("UTC")
     return instant.astimezone(zone)
 

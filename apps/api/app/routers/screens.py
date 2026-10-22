@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime, timedelta, timezone
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
@@ -12,6 +13,7 @@ from app.models import PairingCode, Playlist, Screen, Store, User
 from app.plans import assert_can_pair_screen
 from app.ratelimit import enforce
 from app.routers.player import CLAIM_GRACE_MINUTES
+from app.validation import OptionalBlank
 
 router = APIRouter(prefix="/api/v1/screens", tags=["screens"])
 
@@ -23,7 +25,7 @@ class PairBody(BaseModel):
 
 
 class AssignBody(BaseModel):
-    playlist_id: str | None = None
+    playlist_id: Annotated[uuid.UUID | None, OptionalBlank] = None
 
 
 def _screen_out(screen: Screen) -> dict:
@@ -142,7 +144,7 @@ def assign_playlist(
     if body.playlist_id:
         playlist = (
             db.query(Playlist)
-            .filter(Playlist.id == uuid.UUID(body.playlist_id), Playlist.store_id == store.id)
+            .filter(Playlist.id == body.playlist_id, Playlist.store_id == store.id)
             .one_or_none()
         )
         if playlist is None:

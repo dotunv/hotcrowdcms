@@ -1,67 +1,58 @@
 import uuid
 from datetime import date, datetime, time, timezone
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session, selectinload
 
 from app.db import get_db
 from app.deps import get_current_store
 from app.media_urls import absolute_media_url
 from app.models import MediaAsset, Playlist, PlaylistItem, Screen, Store
+from app.validation import OptionalBlank
 
 router = APIRouter(prefix="/api/v1/playlists", tags=["playlists"])
 
-STATUS_CHOICES = {"DRAFT", "ACTIVE", "SCHEDULED", "ARCHIVED"}
-SCHEDULE_TYPES = {"ALWAYS", "SCHEDULED"}
-TRANSITIONS = {"NONE", "FADE", "SLIDE"}
+MAX_ITEM_SECONDS = 3600
 
 
 class PlaylistPatch(BaseModel):
-    name: str | None = None
-    status: str | None = None
-    schedule_type: str | None = None
-    start_date: str | None = None
-    end_date: str | None = None
-    start_time: str | None = None
-    end_time: str | None = None
-    transition_effect: str | None = None
+    name: str | None = Field(default=None, max_length=255)
+    status: Literal["DRAFT", "ACTIVE", "SCHEDULED", "ARCHIVED"] | None = None
+    schedule_type: Literal["ALWAYS", "SCHEDULED"] | None = None
+    # "" means "clear it" in the UI; use model_fields_set to tell that apart from "not sent".
+    start_date: Annotated[date | None, OptionalBlank] = None
+    end_date: Annotated[date | None, OptionalBlank] = None
+    start_time: Annotated[time | None, OptionalBlank] = None
+    end_time: Annotated[time | None, OptionalBlank] = None
+    transition_effect: Literal["NONE", "FADE", "SLIDE"] | None = None
     is_loop: bool | None = None
-    assigned_screen_ids: list[str] | None = None
+    assigned_screen_ids: list[uuid.UUID] | None = Field(default=None, max_length=500)
 
 
 class AddItemBody(BaseModel):
-    media_id: str
+    media_id: uuid.UUID
 
 
 class DurationBody(BaseModel):
-    duration: int
+    duration: int = Field(ge=1, le=MAX_ITEM_SECONDS)
 
 
 class ReorderBody(BaseModel):
-    item_ids: list[int]
+    item_ids: list[int] = Field(max_length=5000)
 
 
 class CreateBody(BaseModel):
-    name: str = "Untitled playlist"
-
-
-def _parse_date(value: str | None) -> date | None:
-    if not value:
-        return None
-    return date.fromisoformat(value)
-
-
-def _parse_time(value: str | None) -> time | None:
-    if not value:
-        return None
-    return time.fromisoformat(value)
+    name: str = Field(default="Untitled playlist", max_length=255)
 
 
 def _payload(playlist: Playlist, request: Request) -> dict:
     items = []
     ordered = sorted(playlist.items, key=lambda row: row.position)
     for item in ordered:
+        if item.media is None:  # legacy rows pointing at deleted media: never let them break the whole playlist
+            continue
         url = absolute_media_url(item.media, request)
         items.append(
             {
@@ -120,8 +111,8 @@ def list_playlists(request: Request, store: Store = Depends(get_current_store), 
                 "id": str(p.id),
                 "name": p.name,
                 "status": p.status,
-                "item_count": len(p.items),
-                "total_duration": sum(i.play_duration() for i in p.items),
+                "item_count": sum(1 for i in p.items if i.media is not None),
+                "total_duration": sum(i.play_duration() for i in p.items if i.media is not None),
             }
             for p in playlists
         ]
@@ -130,7 +121,7 @@ def list_playlists(request: Request, store: Store = Depends(get_current_store), 
 
 @router.post("")
 def create_playlist(request: Request, body: CreateBody, store: Store = Depends(get_current_store), db: Session = Depends(get_db)):
-    playlist = Playlist(name=(body.name or "Untitled playlist")[:255], store_id=store.id)
+    playlist = Playlist(name=body.name.strip() or "Untitled playlist", store_id=store.id)
     db.add(playlist)
     db.commit()
     db.refresh(playlist)
@@ -155,32 +146,24 @@ def patch_playlist(
     db: Session = Depends(get_db),
 ):
     playlist = _load_playlist(db, store, playlist_id)
+    sent = body.model_fields_set
     if body.name is not None:
-        playlist.name = (body.name or playlist.name)[:255]
-    if body.status in STATUS_CHOICES:
-        playlist.status = body.status
-    if body.schedule_type in SCHEDULE_TYPES:
-        playlist.schedule_type = body.schedule_type
-    if body.transition_effect in TRANSITIONS:
-        playlist.transition_effect = body.transition_effect
-    if body.is_loop is not None:
-        playlist.is_loop = body.is_loop
-    if body.start_date is not None:
-        playlist.start_date = _parse_date(body.start_date)
-    if body.end_date is not None:
-        playlist.end_date = _parse_date(body.end_date)
-    if body.start_time is not None:
-        playlist.start_time = _parse_time(body.start_time)
-    if body.end_time is not None:
-        playlist.end_time = _parse_time(body.end_time)
+        playlist.name = body.name.strip() or playlist.name
+    for field in ("status", "schedule_type", "transition_effect", "is_loop"):
+        if getattr(body, field) is not None:
+            setattr(playlist, field, getattr(body, field))
+    for field in ("start_date", "end_date", "start_time", "end_time"):
+        if field in sent:
+            setattr(playlist, field, getattr(body, field))  # None clears it
+    if playlist.start_date and playlist.end_date and playlist.end_date < playlist.start_date:
+        raise HTTPException(status_code=422, detail="end_date: The end date can't be before the start date")
     playlist.updated_at = datetime.now(timezone.utc)
     if body.assigned_screen_ids is not None:
-        ids = [uuid.UUID(x) for x in body.assigned_screen_ids]
         db.query(Screen).filter(Screen.store_id == store.id, Screen.assigned_playlist_id == playlist.id).update(
-            {Screen.assigned_playlist_id: None}
+            {Screen.assigned_playlist_id: None}, synchronize_session=False
         )
-        if ids:
-            db.query(Screen).filter(Screen.store_id == store.id, Screen.id.in_(ids)).update(
+        if body.assigned_screen_ids:
+            db.query(Screen).filter(Screen.store_id == store.id, Screen.id.in_(body.assigned_screen_ids)).update(
                 {Screen.assigned_playlist_id: playlist.id}, synchronize_session=False
             )
     db.commit()
@@ -208,12 +191,12 @@ def add_item(
     playlist = _load_playlist(db, store, playlist_id)
     media = (
         db.query(MediaAsset)
-        .filter(MediaAsset.id == uuid.UUID(body.media_id), MediaAsset.store_id == store.id)
+        .filter(MediaAsset.id == body.media_id, MediaAsset.store_id == store.id)
         .one_or_none()
     )
     if media is None:
         raise HTTPException(status_code=404, detail="Media not found")
-    position = len(playlist.items)
+    position = max((item.position for item in playlist.items), default=-1) + 1
     db.add(PlaylistItem(playlist_id=playlist.id, media_id=media.id, position=position))
     db.commit()
     return _load_payload(db, store, playlist_id, request)
@@ -232,7 +215,7 @@ def patch_item(
     item = db.query(PlaylistItem).filter(PlaylistItem.id == item_id, PlaylistItem.playlist_id == playlist_id).one_or_none()
     if item is None:
         raise HTTPException(status_code=404, detail="Item not found")
-    item.custom_duration = max(1, int(body.duration))
+    item.custom_duration = body.duration
     db.commit()
     return _load_payload(db, store, playlist_id, request)
 
@@ -270,10 +253,15 @@ def reorder(
 ):
     playlist = _load_playlist(db, store, playlist_id)
     items = {item.id: item for item in playlist.items}
-    for index, item_id in enumerate(body.item_ids):
-        item = items.get(item_id)
-        if item is None:
-            continue
+    ordered: list[PlaylistItem] = []
+    for item_id in body.item_ids:
+        item = items.pop(item_id, None)  # unknown ids and repeats are ignored
+        if item is not None:
+            ordered.append(item)
+    # Anything the client didn't mention keeps its place after the listed ones, so positions are always
+    # exactly 0..n-1 (a partial or stale list can no longer produce duplicate positions).
+    ordered.extend(sorted(items.values(), key=lambda row: (row.position, row.id)))
+    for index, item in enumerate(ordered):
         item.position = index
     db.commit()
     return _load_payload(db, store, playlist_id, request)

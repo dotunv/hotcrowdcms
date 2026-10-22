@@ -5,7 +5,8 @@ import hmac
 import secrets
 from datetime import datetime, timedelta, timezone
 
-from jose import JWTError, jwt
+import jwt
+from jwt import PyJWTError
 
 from app.config import settings
 
@@ -81,7 +82,7 @@ def parse_token(token: str, expected: str) -> tuple[int, str] | None:
         if not fingerprint or sub is None:  # tokens issued before fingerprints existed are not accepted
             return None
         return int(sub), str(fingerprint)
-    except (JWTError, TypeError, ValueError):
+    except (PyJWTError, TypeError, ValueError):
         return None
 
 

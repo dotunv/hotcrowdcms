@@ -2,7 +2,8 @@ import os
 from pathlib import Path
 
 TEST_DB = Path(__file__).resolve().parent / "test.sqlite3"
-os.environ["DATABASE_URL"] = f"sqlite+pysqlite:///{TEST_DB}"
+# TEST_DATABASE_URL=postgresql://... runs the suite against Postgres (CI does); default is a throwaway sqlite file.
+os.environ["DATABASE_URL"] = os.environ.get("TEST_DATABASE_URL") or f"sqlite+pysqlite:///{TEST_DB}"
 os.environ["SECRET_KEY"] = "test-secret-key"
 os.environ["PUBLIC_API_URL"] = "http://testserver"
 os.environ["DEBUG"] = "true"
@@ -24,6 +25,19 @@ os.environ["MEDIA_ROOT"] = str(Path(__file__).resolve().parent / "test_media")
 
 if TEST_DB.exists():
     TEST_DB.unlink()
+
+if os.environ.get("TEST_DATABASE_URL"):
+    # Start from an empty database so every run exercises the real schema creation.
+    from sqlalchemy import create_engine, text
+
+    _url = os.environ["TEST_DATABASE_URL"]
+    if _url.startswith("postgres://") or (_url.startswith("postgresql://") and "+psycopg" not in _url):
+        _url = "postgresql+psycopg://" + _url.split("://", 1)[1]
+    _engine = create_engine(_url)
+    with _engine.begin() as _conn:
+        _conn.execute(text("DROP SCHEMA public CASCADE"))
+        _conn.execute(text("CREATE SCHEMA public"))
+    _engine.dispose()
 
 
 import pytest  # noqa: E402
