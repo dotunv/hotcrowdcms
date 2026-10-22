@@ -1,5 +1,6 @@
 import hmac
 import json
+import time
 from hashlib import sha256
 
 import httpx
@@ -102,17 +103,31 @@ def portal(user: User = Depends(get_current_user), db: Session = Depends(get_db)
     return {"url": response.json().get("url")}
 
 
-def _valid_stripe_signature(payload: bytes, header: str) -> bool:
-    if not settings.stripe_webhook_secret or not header:
+WEBHOOK_TOLERANCE_SECONDS = 300
+
+
+def _valid_stripe_signature(payload: bytes, header: str, secret: str, now: float | None = None) -> bool:
+    """Verify a Stripe-Signature header: HMAC-SHA256 over "<t>.<payload>", with a replay window."""
+    if not secret or not header:
         return False
-    items = dict(part.split("=", 1) for part in header.split(",") if "=" in part)
-    timestamp = items.get("t")
-    signature = items.get("v1")
-    if not timestamp or not signature:
+    timestamp = None
+    signatures: list[str] = []
+    for part in header.split(","):
+        key, _, value = part.strip().partition("=")
+        if key == "t":
+            timestamp = value
+        elif key == "v1":
+            signatures.append(value)  # Stripe may send several v1 values (e.g. during secret rotation)
+    if not timestamp or not signatures:
         return False
-    signed = f"{timestamp}.".encode() + payload
-    expected = hmac.new(settings.stripe_webhook_secret.encode(), signed, sha256).hexdigest()
-    return hmac.compare_digest(expected, signature)
+    try:
+        age = abs((now if now is not None else time.time()) - int(timestamp))
+    except ValueError:
+        return False
+    if age > WEBHOOK_TOLERANCE_SECONDS:
+        return False
+    expected = hmac.new(secret.encode(), f"{timestamp}.".encode() + payload, sha256).hexdigest()
+    return any(hmac.compare_digest(expected, signature) for signature in signatures)
 
 
 @router.post("/webhook")
@@ -121,10 +136,19 @@ async def webhook(
     db: Session = Depends(get_db),
     stripe_signature: str | None = Header(default=None, alias="Stripe-Signature"),
 ):
+    # Never process an event we cannot authenticate: without a secret this endpoint would let anyone
+    # grant themselves a paid plan (or cancel someone else's) with a hand-made request.
+    if not settings.stripe_webhook_secret:
+        raise HTTPException(status_code=503, detail="Webhook is not configured")
     payload = await request.body()
-    if settings.stripe_webhook_secret and not _valid_stripe_signature(payload, stripe_signature or ""):
+    if not _valid_stripe_signature(payload, stripe_signature or "", settings.stripe_webhook_secret):
         raise HTTPException(status_code=400, detail="Invalid Stripe signature")
-    event = json.loads(payload or b"{}")
+    try:
+        event = json.loads(payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid payload") from exc
+    if not isinstance(event, dict):
+        raise HTTPException(status_code=400, detail="Invalid payload")
     kind = event.get("type")
     obj = event.get("data", {}).get("object", {})
     user_id = None
@@ -132,16 +156,18 @@ async def webhook(
         user_id = obj.get("client_reference_id") or (obj.get("metadata") or {}).get("user_id")
         customer = obj.get("customer") or ""
         subscription = obj.get("subscription") or ""
-        if user_id:
-            user = db.get(User, int(user_id))
-            if user:
-                account = get_or_create_account(db, user)
-                account.plan = "pro"
-                if customer:
-                    account.stripe_customer_id = str(customer)
-                if subscription:
-                    account.stripe_subscription_id = str(subscription)
-                db.commit()
+        try:
+            user = db.get(User, int(user_id)) if user_id else None
+        except (TypeError, ValueError):
+            user = None
+        if user:
+            account = get_or_create_account(db, user)
+            account.plan = "pro"
+            if customer:
+                account.stripe_customer_id = str(customer)
+            if subscription:
+                account.stripe_subscription_id = str(subscription)
+            db.commit()
     if kind in {"customer.subscription.deleted", "customer.subscription.canceled"}:
         customer = obj.get("customer")
         if customer:

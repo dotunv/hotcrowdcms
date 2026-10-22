@@ -13,6 +13,10 @@ The player calls `/api/player/...` on the **API origin**, not the Next.js origin
 ## Run locally
 
 1. Copy `.env.example` to `.env` and set `DATABASE_URL` (Neon) and `SECRET_KEY`.
+
+   The API defaults to `DEBUG=false` (secure cookies, strong `SECRET_KEY` and Postgres required). The example
+   file sets `DEBUG=true` for local work; never deploy with it on. See the comments in `.env.example` for what
+   it enables.
 2. API:
 
 ```bash

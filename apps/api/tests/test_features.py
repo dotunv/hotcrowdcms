@@ -47,15 +47,12 @@ def test_stores_billing_canvas_instagram(monkeypatch):
     assert preview.status_code == 200
     assert b"<svg" in preview.content
 
-    class FakeResponse:
-        status_code = 200
-        content = b"\x89PNG\r\n\x1a\n"
-        headers = {"content-type": "image/png"}
+    from app.safe_fetch import Fetched
 
-        def raise_for_status(self):
-            return None
-
-    monkeypatch.setattr("app.routers.instagram.httpx.get", lambda *args, **kwargs: FakeResponse())
+    monkeypatch.setattr(
+        "app.routers.instagram.fetch_public",
+        lambda url, **kwargs: Fetched(b"\x89PNG\r\n\x1a\n" + b"0" * 16, "image/png", url),
+    )
     imported = client.post("/api/v1/instagram/import", json={"url": "https://example.com/photo.png", "name": "IG shot"})
     assert imported.status_code == 200, imported.text
     assert imported.json()["source"] == "INSTAGRAM" or imported.json()["type"] == "image"

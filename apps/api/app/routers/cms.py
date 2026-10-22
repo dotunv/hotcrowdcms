@@ -6,7 +6,8 @@ from sqlalchemy.orm import Session, joinedload
 from app.db import get_db
 from app.deps import get_current_store, get_current_user
 from app.models import MediaAsset, Playlist, Screen, Store, User
-from app.storage import absolute_media_url, public_file_url, save_bytes
+from app.storage import absolute_media_url, delete_key, public_file_url, save_fileobj
+from app.uploads import MAX_LOGO_BYTES, validate_upload
 
 router = APIRouter(prefix="/api/v1", tags=["cms"])
 
@@ -135,22 +136,19 @@ def patch_store(
 
 
 @router.post("/store/logo")
-async def upload_logo(
+def upload_logo(
     request: Request,
     store: Store = Depends(get_current_store),
     db: Session = Depends(get_db),
     file: UploadFile = File(...),
 ):
-    allowed = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif"}
-    ext = allowed.get(file.content_type or "")
-    if not ext:
-        raise HTTPException(status_code=400, detail="Use a JPG, PNG, WebP, or GIF logo.")
-    data = await file.read()
-    if len(data) > 8 * 1024 * 1024:
-        raise HTTPException(status_code=400, detail="Logo must be under 8MB.")
-    key = f"stores/{store.id}/logo.{ext}"
-    save_bytes(key, data, file.content_type or "image/png")
+    sniffed = validate_upload(file, MAX_LOGO_BYTES, {"IMAGE"})
+    key = f"stores/{store.id}/logo.{sniffed.ext}"
+    save_fileobj(key, file.file, sniffed.mime)
+    previous = store.logo
     store.logo = key
     db.commit()
+    if previous and previous != key:
+        delete_key(previous)  # don't leave the old format behind
     db.refresh(store)
     return store_payload(store, request)
