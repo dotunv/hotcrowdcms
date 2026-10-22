@@ -1,22 +1,25 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from pydantic import BaseModel, Field
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
 from app.db import get_db
 from app.deps import get_current_store, get_current_user
 from app.models import PairingCode, Playlist, Screen, Store, User
 from app.plans import assert_can_pair_screen
+from app.ratelimit import enforce
+from app.routers.player import CLAIM_GRACE_MINUTES
 
 router = APIRouter(prefix="/api/v1/screens", tags=["screens"])
 
 
 class PairBody(BaseModel):
-    pairing_code: str
-    name: str
-    location: str = ""
+    pairing_code: str = Field(max_length=32)
+    name: str = Field(max_length=255)
+    location: str = Field(default="", max_length=255)
 
 
 class AssignBody(BaseModel):
@@ -33,6 +36,10 @@ def _screen_out(screen: Screen) -> dict:
         "playlist_name": screen.assigned_playlist.name if screen.assigned_playlist else None,
         "last_heartbeat": screen.last_heartbeat.isoformat() if screen.last_heartbeat else None,
     }
+
+
+def _screen_linked_to(db: Session, code: str) -> Screen | None:
+    return db.query(Screen).filter(Screen.pairing_code == code).one_or_none()
 
 
 @router.get("")
@@ -56,7 +63,14 @@ def list_screens(store: Store = Depends(get_current_store), db: Session = Depend
 
 
 @router.get("/validate-code")
-def validate_code(code: str, db: Session = Depends(get_db)):
+def validate_code(
+    request: Request,
+    code: str = Query(max_length=32),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    # Needs a login (it used to be an open oracle for guessing live pairing codes) and is throttled per user.
+    enforce(request, "validate-code", 30, 60, key=f"user:{user.id}")
     code = code.strip().upper().replace("-", "")
     if len(code) < 8:
         return {"valid": False, "message": "Please enter a code."}
@@ -68,7 +82,7 @@ def validate_code(code: str, db: Session = Depends(get_db)):
         expires = expires.replace(tzinfo=timezone.utc)
     if datetime.now(timezone.utc) > expires:
         return {"valid": False, "message": "This pairing code has expired."}
-    if db.query(Screen).filter(Screen.pairing_code == code).one_or_none():
+    if _screen_linked_to(db, code):
         return {"valid": False, "message": "This code is already linked."}
     return {"valid": True}
 
@@ -76,10 +90,12 @@ def validate_code(code: str, db: Session = Depends(get_db)):
 @router.post("/pair")
 def pair_screen(
     body: PairBody,
+    request: Request,
     store: Store = Depends(get_current_store),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    enforce(request, "pair-screen", 20, 60, key=f"user:{user.id}")
     name = body.name.strip()
     if not name:
         raise HTTPException(status_code=400, detail="Give this screen a name.")
@@ -93,8 +109,10 @@ def pair_screen(
         expires = expires.replace(tzinfo=timezone.utc)
     if datetime.now(timezone.utc) > expires:
         raise HTTPException(status_code=400, detail="This pairing code has expired.")
-    if db.query(Screen).filter(Screen.pairing_code == code).one_or_none():
+    if _screen_linked_to(db, code):
         raise HTTPException(status_code=400, detail="This code is already linked.")
+    # Give the device time to collect its token even if the code was claimed just before it expired.
+    pairing.expires_at = max(expires, datetime.now(timezone.utc) + timedelta(minutes=CLAIM_GRACE_MINUTES))
     screen = Screen(
         name=name,
         pairing_code=code,
@@ -102,7 +120,11 @@ def pair_screen(
         store_id=store.id,
     )
     db.add(screen)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:  # two people claimed the same code at once; the unique constraint picked a winner
+        db.rollback()
+        raise HTTPException(status_code=400, detail="This code is already linked.") from None
     db.refresh(screen)
     return _screen_out(screen)
 

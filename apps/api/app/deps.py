@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.config import settings
 from app.db import get_db
 from app.models import Store, User
-from app.security import parse_access_token
+from app.security import token_user_matches
 
 STORE_COOKIE = "hc_store"
 
@@ -15,12 +15,9 @@ def get_current_user(
 ) -> User:
     if not token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
-    user_id = parse_access_token(token)
-    if user_id is None:
+    user = token_user_matches(token, "access", lambda user_id: db.get(User, user_id))
+    if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-    user = db.get(User, user_id)
-    if user is None or not user.is_active:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Inactive user")
     return user
 
 
