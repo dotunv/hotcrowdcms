@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta, timezone
-from time import time
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
@@ -9,13 +8,14 @@ from app.db import get_db
 from app.media_urls import absolute_media_url
 from app.models import PairingCode, Playlist, PlaylistItem, Screen
 from app.playback import fallback_items, playlist_is_live
+from app.ratelimit import enforce
 from app.tokens import generate_device_token, generate_pairing_code, hash_device_token
 
 router = APIRouter(prefix="/api/player", tags=["player"])
 
-SETUP_RATE_LIMIT = 30
-SETUP_RATE_WINDOW = 60
-_RATE: dict[str, tuple[int, float]] = {}
+SETUP_LIMIT = (30, 60)  # pairing-code requests per client IP per minute
+STATUS_LIMIT = (120, 60)  # status polls per client IP per minute (a device polls every few seconds)
+CLAIM_GRACE_MINUTES = 15  # after a user claims a code, the device has this long to collect its token
 
 
 class PlaylistItemOut(BaseModel):
@@ -23,25 +23,6 @@ class PlaylistItemOut(BaseModel):
     type: str
     duration: int
     position: int
-
-
-def _client_ip(request: Request) -> str:
-    forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    return request.client.host if request.client else "unknown"
-
-
-def _rate_limited(request: Request, action: str) -> bool:
-    key = f"player:{action}:{_client_ip(request)}"
-    count, started = _RATE.get(key, (0, time()))
-    if time() - started > SETUP_RATE_WINDOW:
-        count, started = 0, time()
-    if count >= SETUP_RATE_LIMIT:
-        _RATE[key] = (count, started)
-        return True
-    _RATE[key] = (count + 1, started)
-    return False
 
 
 def _screen_from_bearer(request: Request, db: Session) -> Screen:
@@ -61,6 +42,12 @@ def _screen_from_bearer(request: Request, db: Session) -> Screen:
     )
     if screen is None:
         raise HTTPException(status_code=401, detail="Invalid token")
+    if screen.pairing_code:
+        # The device authenticated with its token, so pairing is complete: retire the code so nobody who
+        # learns it later can ask for a new token.
+        db.query(PairingCode).filter(PairingCode.code == screen.pairing_code).delete(synchronize_session=False)
+        screen.pairing_code = None
+        db.commit()
     return screen
 
 
@@ -108,9 +95,14 @@ def heartbeat(request: Request, db: Session = Depends(get_db)):
 
 @router.api_route("/setup", methods=["GET", "POST"])
 def setup_device(request: Request, db: Session = Depends(get_db)):
-    if _rate_limited(request, "setup"):
-        raise HTTPException(status_code=429, detail="Too many pairing requests")
-    expires_at = datetime.now(timezone.utc) + timedelta(minutes=15)
+    enforce(request, "player-setup", *SETUP_LIMIT)
+    now = datetime.now(timezone.utc)
+    # Housekeeping: unauthenticated callers create these rows, so don't let abandoned ones pile up.
+    claimed_codes = db.query(Screen.pairing_code).filter(Screen.pairing_code.isnot(None))
+    db.query(PairingCode).filter(
+        PairingCode.expires_at < now - timedelta(hours=1), ~PairingCode.code.in_(claimed_codes)
+    ).delete(synchronize_session=False)
+    expires_at = now + timedelta(minutes=15)
     for _ in range(12):
         code_str = generate_pairing_code()
         exists = db.query(PairingCode).filter(PairingCode.code == code_str).one_or_none()
@@ -123,8 +115,7 @@ def setup_device(request: Request, db: Session = Depends(get_db)):
 
 @router.get("/setup/status/{code}")
 def check_setup_status(code: str, request: Request, db: Session = Depends(get_db)):
-    if _rate_limited(request, "status"):
-        raise HTTPException(status_code=429, detail="Too many status checks")
+    enforce(request, "player-status", *STATUS_LIMIT)
     code = code.strip().upper()
     pairing = db.query(PairingCode).filter(PairingCode.code == code).one_or_none()
     if pairing is None:
@@ -133,16 +124,27 @@ def check_setup_status(code: str, request: Request, db: Session = Depends(get_db
     if expires.tzinfo is None:
         expires = expires.replace(tzinfo=timezone.utc)
     if datetime.now(timezone.utc) > expires:
+        # Only reachable for a code nobody claimed in time, or one claimed and then left uncollected past
+        # the grace period (pair_screen extends the deadline so a late claim isn't lost).
         raise HTTPException(status_code=410, detail="expired")
     screen = db.query(Screen).filter(Screen.pairing_code == code).one_or_none()
     if screen is None:
         return {"status": "waiting"}
-    if pairing.token_delivered:
-        return {"status": "claimed", "screen_id": str(screen.id), "name": screen.name}
+
+    # Claimed. Hand out a token, and keep handing out a fresh one on each poll until the device proves it
+    # holds one by authenticating (see _screen_from_bearer). That way a lost response is recoverable, and
+    # the compare-and-set below means two concurrent polls can't both walk away with a "valid" token.
     raw_token = generate_device_token()
-    screen.api_token_hash = hash_device_token(raw_token)
-    pairing.token_delivered = True
+    previous = screen.api_token_hash
+    condition = Screen.api_token_hash.is_(None) if previous is None else Screen.api_token_hash == previous
+    updated = (
+        db.query(Screen)
+        .filter(Screen.id == screen.id, condition)
+        .update({"api_token_hash": hash_device_token(raw_token)}, synchronize_session=False)
+    )
     db.commit()
+    if updated != 1:
+        return {"status": "waiting"}  # lost a race with another poll; the next poll will get a token
     return {
         "status": "claimed",
         "screen_id": str(screen.id),

@@ -19,7 +19,21 @@ for _name in (
     os.environ[_name] = ""
 os.environ["USE_S3"] = "false"
 os.environ["ALLOW_PRIVATE_FETCH"] = "false"
+os.environ["PASSWORD_HASH_ITERATIONS"] = "1000"  # real default is 1,000,000, which makes every register/login ~0.5s
 os.environ["MEDIA_ROOT"] = str(Path(__file__).resolve().parent / "test_media")
 
 if TEST_DB.exists():
     TEST_DB.unlink()
+
+
+import pytest  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def _fresh_rate_limits():
+    """Rate-limit state is process-wide; give every test a clean slate."""
+    from app.ratelimit import limiter
+
+    limiter.clear()
+    yield
+    limiter.clear()

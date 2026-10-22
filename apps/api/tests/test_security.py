@@ -44,6 +44,7 @@ def make_client(prefix="sec"):
 
 
 PROD = dict(
+    password_hash_iterations=1_000_000,  # the test environment lowers it for speed; production checks it
     debug=False,
     secret_key="s" * 48,
     database_url="postgresql://u:p@db.example.com/app",
@@ -75,6 +76,12 @@ def test_production_rejects_stripe_without_webhook_secret(monkeypatch):
     with pytest.raises(ValidationError, match="STRIPE_WEBHOOK_SECRET"):
         Settings(**PROD, stripe_secret_key="sk_live_x", _env_file=None)
     Settings(**PROD, stripe_secret_key="sk_live_x", stripe_webhook_secret="whsec_x", _env_file=None)
+
+
+def test_production_rejects_cheap_password_hashing(monkeypatch):
+    clean_env(monkeypatch)
+    with pytest.raises(ValidationError, match="PASSWORD_HASH_ITERATIONS"):
+        Settings(**{**PROD, "password_hash_iterations": 1000}, _env_file=None)
 
 
 def test_production_rejects_private_fetch(monkeypatch):

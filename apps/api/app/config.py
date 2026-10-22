@@ -37,6 +37,11 @@ class Settings(BaseSettings):
     stripe_webhook_secret: str = ""
     instagram_app_id: str = ""
     instagram_app_secret: str = ""
+    # How many reverse proxies sit in front of this API (load balancer, Next.js rewrite, ...). Used to find
+    # the real client IP in X-Forwarded-For for rate limiting: the entry that many hops from the right.
+    # Too low and every user shares the proxy's bucket; too high and clients can spoof their address.
+    trusted_proxy_count: int = 1
+    password_hash_iterations: int = 1_000_000  # PBKDF2 cost; only tests should ever lower this
     allow_private_fetch: bool = False  # dev only: let server-side fetches reach private/loopback addresses
     use_s3: bool = False
     r2_access_key_id: str = ""
@@ -80,6 +85,8 @@ class Settings(BaseSettings):
         host = self.public_api_url.lower()
         if "127.0.0.1" in host or "localhost" in host:
             raise ValueError("PUBLIC_API_URL must be the public API origin so players can fetch media")
+        if self.password_hash_iterations < 600_000:
+            raise ValueError("PASSWORD_HASH_ITERATIONS is too low for production (minimum 600000)")
         if self.stripe_secret_key and not self.stripe_webhook_secret:
             raise ValueError("STRIPE_SECRET_KEY is set but STRIPE_WEBHOOK_SECRET is not; webhooks cannot be verified")
         if self.allow_private_fetch:
