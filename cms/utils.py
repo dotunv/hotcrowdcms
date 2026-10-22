@@ -1,11 +1,12 @@
 """Small input-parsing and file helpers shared by the CMS views."""
 import re
 import uuid
+from datetime import datetime, time
 
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 from django.utils import timezone
-from django.utils.dateparse import parse_datetime
+from django.utils.dateparse import parse_date, parse_datetime
 from django.utils.text import get_valid_filename
 
 _url_validator = URLValidator(schemes=['http', 'https'])
@@ -32,13 +33,23 @@ def parse_uuid(value):
         return None
 
 
-def parse_aware_datetime(value):
-    """Parse an ISO datetime from a form field into an aware datetime (or None)."""
+def parse_aware_datetime(value, end_of_day=False):
+    """
+    Parse a form value into an aware datetime (or None).
+
+    Accepts a full ISO datetime or a plain date from <input type="date">. A plain date means
+    the start of that day, or the end of it when `end_of_day` is set (so an "ends on" date
+    stays live for that whole day).
+    """
     if not value:
         return None
-    parsed = parse_datetime(value)
-    if parsed is None:
-        return None
+    day = parse_date(value)  # a bare date; checked first because parse_datetime also accepts it as midnight
+    if day is not None:
+        parsed = datetime.combine(day, time.max if end_of_day else time.min)
+    else:
+        parsed = parse_datetime(value)
+        if parsed is None:
+            return None
     if timezone.is_naive(parsed):
         parsed = timezone.make_aware(parsed)
     return parsed

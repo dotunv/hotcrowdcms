@@ -294,20 +294,40 @@ class MiscViewTests(CMSTestCase):
         self.client_cms.post(reverse('account_logout'))
         self.assertEqual(self.client_cms.get(reverse('dashboard')).status_code, 302)
 
-    def test_support_ticket_validates_choices_and_requires_description(self):
-        self.client_cms.post(reverse('support'), {'topic': 'hack', 'urgency': 'extreme', 'description': 'help'})
-        ticket = SupportTicket.objects.get()
-        self.assertEqual((ticket.topic, ticket.urgency), ('other', 'low'))
-        self.client_cms.post(reverse('support'), {'description': '   '})
-        self.assertEqual(SupportTicket.objects.count(), 1)
+    def test_support_ticket_rejects_bad_choices_and_empty_description(self):
+        response = self.client_cms.post(
+            reverse('support'), {'topic': 'hack', 'urgency': 'extreme', 'description': 'help'}, follow=True)
+        self.assertContains(response, 'Select a valid choice')
+        response = self.client_cms.post(
+            reverse('support'), {'topic': 'billing', 'urgency': 'low', 'description': '   '}, follow=True)
+        self.assertContains(response, 'Please describe your issue.')
+        self.assertEqual(SupportTicket.objects.count(), 0)
 
-    def test_configuration_validates_timezone_and_logo(self):
+    def test_support_ticket_is_created_for_the_user(self):
+        self.client_cms.post(reverse('support'), {'topic': 'billing', 'urgency': 'high', 'description': ' Card failed '})
+        ticket = SupportTicket.objects.get()
+        self.assertEqual((ticket.user, ticket.topic, ticket.urgency, ticket.description),
+                         (self.user, 'billing', 'high', 'Card failed'))
+
+    def test_configuration_saves_valid_values(self):
         self.client_cms.post(reverse('configuration'), {
-            'business_name': 'Shop', 'timezone': 'Mars/Base', 'logo_url': 'javascript:x',
+            'business_name': 'Shop', 'timezone': 'Europe/London', 'logo_url': 'https://example.com/l.png',
+            'dark_mode': 'on',
         })
         store = self.user.store_profile
+        self.assertEqual((store.business_name, store.timezone, store.logo_url, store.dark_mode, store.auto_lock),
+                         ('Shop', 'Europe/London', 'https://example.com/l.png', True, False))
+
+    def test_configuration_rejects_bad_timezone_and_logo_without_saving_anything(self):
+        response = self.client_cms.post(reverse('configuration'), {
+            'business_name': 'Shop', 'timezone': 'Mars/Base', 'logo_url': 'javascript:x',
+        }, follow=True)
+        self.assertContains(response, 'Select a valid choice')
+        store = self.user.store_profile
+        store.refresh_from_db()
         self.assertEqual(store.timezone, 'UTC')
         self.assertFalse(store.logo_url)
+        self.assertNotEqual(store.business_name, 'Shop')
 
     def test_dashboard_counts_online_by_heartbeat(self):
         Screen.objects.create(name="On", owner=self.user, last_heartbeat=timezone.now())
@@ -370,7 +390,7 @@ class ShellTests(CMSTestCase):
 
     def test_shell_pages_render_django_messages_once(self):
         """Pages using the sidebar shell used to drop messages entirely (or show them twice)."""
-        response = self.client_cms.post(reverse('support'), {'description': 'help'}, follow=True)
+        response = self.client_cms.post(reverse('support'), {'topic': 'other', 'urgency': 'low', 'description': 'help'}, follow=True)
         self.assertEqual(response.content.decode().count('Support ticket submitted successfully'), 1)
         response = self.client_cms.post(reverse('create_playlist'), {'name': 'X'}, follow=True)
         self.client_cms.post(reverse('assign_playlist_screens'), {'playlist_id': str(Playlist.objects.get().id)})
@@ -420,3 +440,25 @@ class ContentManagerTests(CMSTestCase):
         self.assertEqual([i['name'] for i in self.items(status='PUBLISHED')], ["Window layout"])
         self.assertEqual([i['name'] for i in self.items(sort='name')], ["Happy hour", "Window layout"])
         self.assertEqual(self.items(status='BOGUS').__len__(), 2)  # unknown filter is ignored
+
+
+class ScheduleDateTests(CMSTestCase):
+    def test_date_inputs_are_saved_and_end_date_covers_the_whole_day(self):
+        content = StoreContent.objects.create(title="C", owner=self.user)
+        self.client_cms.post(reverse('save_content', args=[content.id]), {
+            'start_date': '2026-10-01', 'end_date': '2026-10-30',
+        })
+        content.refresh_from_db()
+        self.assertEqual(content.start_date.date().isoformat(), '2026-10-01')
+        self.assertEqual((content.start_date.hour, content.start_date.minute), (0, 0))
+        self.assertEqual(content.end_date.date().isoformat(), '2026-10-30')
+        self.assertEqual((content.end_date.hour, content.end_date.minute), (23, 59))
+
+    def test_full_datetimes_still_work_and_blank_clears(self):
+        content = StoreContent.objects.create(title="C", owner=self.user)
+        self.client_cms.post(reverse('save_content', args=[content.id]), {'start_date': '2026-10-01T09:30'})
+        content.refresh_from_db()
+        self.assertEqual((content.start_date.hour, content.start_date.minute), (9, 30))
+        self.client_cms.post(reverse('save_content', args=[content.id]), {'start_date': ''})
+        content.refresh_from_db()
+        self.assertIsNone(content.start_date)

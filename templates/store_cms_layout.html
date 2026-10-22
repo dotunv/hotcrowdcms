@@ -137,13 +137,14 @@
 
                 <div
                     class="flex items-center gap-1 bg-gray-50 dark:bg-gray-800 rounded-lg border border-border-light dark:border-border-dark px-1">
-                    <button @click="zoom = Math.max(10, zoom - 10)"
+                    <button type="button" @click="zoom = Math.max(10, zoom - 10)" aria-label="Zoom out"
                         class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700">
                         <span class="material-symbols-outlined text-gray-500 text-sm">remove</span>
                     </button>
-                    <span class="w-10 text-center text-xs font-semibold text-gray-700 dark:text-gray-300"
-                        x-text="zoom + '%'">45%</span>
-                    <button @click="zoom = Math.min(200, zoom + 10)"
+                    <button type="button" @click="fitZoom()" title="Fit to screen" :aria-label="'Fit to screen (zoom ' + zoom + '%)'"
+                        class="w-12 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+                        x-text="zoom + '%'">45%</button>
+                    <button type="button" @click="zoom = Math.min(200, zoom + 10)" aria-label="Zoom in"
                         class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700">
                         <span class="material-symbols-outlined text-gray-500 text-sm">add</span>
                     </button>
@@ -273,7 +274,11 @@
                 <div class="flex-1 overflow-auto p-12 flex items-center justify-center canvas-grid relative custom-scrollbar"
                     id="canvas-container" @click.self="selectedElement = null">
 
-                    <div class="bg-white dark:bg-surface-dark shadow-sm relative transition-all duration-300 origin-center group ring-1 ring-border-light dark:ring-border-dark"
+                    <!-- Wrapper takes the *scaled* size so the scroll area, centering and flex layout see the real footprint;
+                         the 1920x1080 canvas inside it is scaled from its top-left corner. -->
+                    <div class="relative flex-shrink-0 m-auto transition-all duration-300"
+                        :style="{ width: (canvasWidth * zoom / 100) + 'px', height: (canvasHeight * zoom / 100) + 'px' }">
+                    <div data-canvas-scalable class="bg-white dark:bg-surface-dark shadow-sm absolute top-0 left-0 transition-all duration-300 origin-top-left group ring-1 ring-border-light dark:ring-border-dark"
                         :style="{ 
                             width: canvasWidth + 'px', 
                             height: canvasHeight + 'px', 
@@ -481,6 +486,7 @@
                             </div>
                         </div>
 
+                    </div>
                     </div>
                 </div>
             </div>

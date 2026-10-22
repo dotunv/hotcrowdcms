@@ -54,9 +54,20 @@ function storeCMS(config) {
         setViewport(mode) {
             if (this.viewports[mode]) {
                 this.currentViewport = mode;
-                // Auto-fit zoom?
-                // this.zoom = 45; 
+                this.$nextTick(() => this.fitZoom());
             }
+        },
+
+        // Scale the canvas so it fits the visible work area (minus the container's p-12 padding).
+        fitZoom() {
+            const area = document.getElementById('canvas-container');
+            if (!area || !area.clientWidth) return;
+            const pad = 96;
+            const fit = Math.min(
+                (area.clientWidth - pad) / this.canvasWidth,
+                (area.clientHeight - pad) / this.canvasHeight
+            );
+            this.zoom = Math.max(10, Math.min(100, Math.floor(fit * 100)));
         },
 
         // Layers Helpers
@@ -80,7 +91,8 @@ function storeCMS(config) {
         activeTab: 'properties',
 
         init() {
-            const savedData = config.savedData || {};
+            this.$nextTick(() => this.fitZoom());
+            let savedData = config.savedData || {};
 
             // Handle legacy data (array of elements) vs new format (object with elements & background)
             if (typeof savedData === 'string') {
@@ -574,7 +586,7 @@ function storeCMS(config) {
         },
 
         async exportSnapshot() {
-            const canvasContainer = document.querySelector('#canvas-container > div'); // The scalable div
+            const canvasContainer = document.querySelector('#canvas-container [data-canvas-scalable]'); // The scalable div
             if (!canvasContainer) return;
 
             const btn = event.currentTarget;

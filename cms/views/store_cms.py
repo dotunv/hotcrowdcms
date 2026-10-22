@@ -184,7 +184,7 @@ def save_content(request, content_id):
     # Scheduling
     content.duration = parse_int(request.POST.get('duration'), content.duration, 1, 3600)
     content.start_date = parse_aware_datetime(request.POST.get('start_date'))
-    content.end_date = parse_aware_datetime(request.POST.get('end_date'))
+    content.end_date = parse_aware_datetime(request.POST.get('end_date'), end_of_day=True)
 
     target = request.POST.get('target_screen')
     if target:
