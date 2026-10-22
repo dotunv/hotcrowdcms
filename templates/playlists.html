@@ -7,44 +7,7 @@
 {% block extra_head %}
 <!-- Dependencies for the specific playlist design elements -->
 <!-- Used to apply the specific color palette and fonts from the design -->
-<script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet" />
-<script>
-    tailwind.config = {
-        darkMode: "class",
-        theme: {
-            extend: {
-                colors: {
-                    primary: "#057A43",
-                    secondary: "#045e33",
-                    accent: "#b2f2bb",
-                    "background-light": "#F9F9F7",
-                    "background-dark": "#18181b",
-                    "surface-light": "#FFFFFF",
-                    "surface-dark": "#27272a",
-                    "text-light": "#1f2937",
-                    "text-dark": "#f3f4f6",
-                    "muted-light": "#6b7280",
-                    "muted-dark": "#9ca3af",
-                    "border-light": "#e5e7eb",
-                    "border-dark": "#3f3f46"
-                },
-                fontFamily: {
-                    display: ["'Plus Jakarta Sans'", "sans-serif"],
-                    body: ["'Plus Jakarta Sans'", "sans-serif"],
-                },
-                borderRadius: {
-                    DEFAULT: "0.75rem",
-                    "xl": "1rem",
-                    "2xl": "1.5rem"
-                },
-                boxShadow: {
-                    'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
-                }
-            },
-        },
-    };
-</script>
 <style>
     body {
         font-family: 'Plus Jakarta Sans', sans-serif;
@@ -82,7 +45,7 @@
 
 {% block body %}
 <c-layouts.sidebar>
-    <div class="max-w-7xl mx-auto p-8 h-full overflow-y-auto" x-data="{}">
+    <div class="max-w-7xl mx-auto p-4 sm:p-8 h-full overflow-y-auto" x-data="{}">
         <!-- Header -->
         <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
             <div>

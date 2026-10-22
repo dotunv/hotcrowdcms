@@ -1,0 +1,58 @@
+{% comment %}
+Single place for user feedback. Renders Django messages once and also listens for
+`window.dispatchEvent(new CustomEvent('toast', { detail: { message, type } }))` (types: success | error | info).
+Included by the app shell, so every page gets it without per-page markup.
+{% endcomment %}
+<div x-data="toastRegion()" @toast.window="add($event.detail)"
+    class="fixed top-4 right-4 z-50 w-96 max-w-[calc(100vw-2rem)] space-y-2" aria-live="polite">
+    {% for message in messages %}
+    <div x-data="{ show: true }" x-init="setTimeout(() => show = false, {% if message.level_tag == 'error' %}10000{% else %}6000{% endif %})"
+        x-show="show" x-transition role="{% if message.level_tag == 'error' %}alert{% else %}status{% endif %}"
+        class="flex items-start gap-3 px-4 py-3 rounded-xl border shadow-card bg-white dark:bg-surface-dark
+        {% if message.level_tag == 'success' %}border-green-200 dark:border-green-800{% elif message.level_tag == 'error' %}border-red-200 dark:border-red-800{% else %}border-blue-200 dark:border-blue-800{% endif %}">
+        <span class="material-symbols-outlined mt-0.5 {% if message.level_tag == 'success' %}text-green-600 dark:text-green-400{% elif message.level_tag == 'error' %}text-red-600 dark:text-red-400{% else %}text-blue-600 dark:text-blue-400{% endif %}" aria-hidden="true">{% if message.level_tag == 'success' %}check_circle{% elif message.level_tag == 'error' %}error{% else %}info{% endif %}</span>
+        <p class="flex-1 text-sm font-medium text-gray-800 dark:text-gray-100 whitespace-pre-line">{{ message }}</p>
+        <button type="button" @click="show = false" aria-label="Dismiss" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+            <span class="material-symbols-outlined text-lg" aria-hidden="true">close</span>
+        </button>
+    </div>
+    {% endfor %}
+
+    <template x-for="toast in toasts" :key="toast.id">
+        <div x-transition :role="toast.type === 'error' ? 'alert' : 'status'"
+            class="flex items-start gap-3 px-4 py-3 rounded-xl border shadow-card bg-white dark:bg-surface-dark"
+            :class="{
+                'border-green-200 dark:border-green-800': toast.type === 'success',
+                'border-red-200 dark:border-red-800': toast.type === 'error',
+                'border-blue-200 dark:border-blue-800': toast.type === 'info'
+            }">
+            <span class="material-symbols-outlined mt-0.5" aria-hidden="true"
+                :class="{
+                    'text-green-600 dark:text-green-400': toast.type === 'success',
+                    'text-red-600 dark:text-red-400': toast.type === 'error',
+                    'text-blue-600 dark:text-blue-400': toast.type === 'info'
+                }"
+                x-text="toast.type === 'success' ? 'check_circle' : toast.type === 'error' ? 'error' : 'info'"></span>
+            <p class="flex-1 text-sm font-medium text-gray-800 dark:text-gray-100 whitespace-pre-line" x-text="toast.message"></p>
+            <button type="button" @click="remove(toast.id)" aria-label="Dismiss" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                <span class="material-symbols-outlined text-lg" aria-hidden="true">close</span>
+            </button>
+        </div>
+    </template>
+</div>
+<script>
+    // Registered once; safe if the component is included on a page more than once.
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('toastRegion', () => ({
+            toasts: [],
+            add({ message, type = 'info' }) {
+                const id = Date.now() + Math.random();
+                this.toasts.push({ id, message, type });
+                setTimeout(() => this.remove(id), type === 'error' ? 10000 : 6000);
+            },
+            remove(id) {
+                this.toasts = this.toasts.filter(t => t.id !== id);
+            }
+        }));
+    });
+</script>

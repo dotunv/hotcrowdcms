@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+/* The standalone Tailwind CLI bundles these first-party plugins. */
+@plugin "@tailwindcss/forms";
+@plugin "@tailwindcss/typography";
+
+/* Tailwind v4 defaults `dark:` to the OS setting; the app toggles a `.dark` class on <html>. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /**
   * A catch-all path to Django template files, JavaScript, and Python files
   * that contain Tailwind CSS classes and will be scanned by Tailwind to generate the final CSS file.

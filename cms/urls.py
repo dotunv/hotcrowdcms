@@ -1,4 +1,5 @@
 from django.urls import path
+
 from . import views
 
 urlpatterns = [
@@ -13,7 +14,7 @@ urlpatterns = [
     path('add-media/<uuid:media_id>/', views.add_to_playlist, name='add_to_playlist'),
     path('remove-item/<int:item_id>/', views.remove_from_playlist, name='remove_from_playlist'),
     path('update-item/<int:item_id>/', views.update_playlist_item, name='update_playlist_item'),
-    path('api/reorder/', views.reorder_playlist, name='reorder_playlist'),
+    path('playlist/reorder/', views.reorder_playlist, name='reorder_playlist'),
     # Media Library
     path('media/', views.media_library, name='media_library'),
     path('media/upload/', views.upload_media, name='upload_media'),

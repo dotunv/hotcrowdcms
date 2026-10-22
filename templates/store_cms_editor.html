@@ -1,37 +1,12 @@
 {% extends "base.html" %}
 {% load static %}
 {% load humanize %}
+{% load cms_extras %}
 
 {% block title %}HotCrowd - Content Editor{% endblock %}
 
 {% block extra_head %}
-<script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet" />
-<script>
-    tailwind.config = {
-        darkMode: "class",
-        theme: {
-            extend: {
-                colors: {
-                    primary: "#057A43",
-                    secondary: "#045e33",
-                    "background-light": "#F9F9F7",
-                    "background-dark": "#18181b",
-                    "surface-light": "#FFFFFF",
-                    "surface-dark": "#27272a",
-                    "muted-light": "#6b7280",
-                    "muted-dark": "#9ca3af",
-                    "border-light": "#e5e7eb",
-                    "border-dark": "#3f3f46"
-                },
-                fontFamily: {
-                    display: ["'Plus Jakarta Sans'", "sans-serif"],
-                    body: ["'Plus Jakarta Sans'", "sans-serif"],
-                },
-            },
-        },
-    };
-</script>
 <style>
     body {
         font-family: 'Plus Jakarta Sans', sans-serif;
@@ -185,7 +160,7 @@
                         <div class="p-6 min-h-[400px]" contenteditable="true" @input="contentHtml = $el.innerHTML"
                             class="prose prose-lg max-w-none focus:outline-none dark:prose-invert">
                             {% if content.content_html %}
-                            {{ content.content_html|safe }}
+                            {{ content.content_html|clean_html }}
                             {% else %}
                             <h2 class="text-primary text-center text-3xl font-bold" style="font-style: italic;">Summer
                                 Weekend Specials!</h2>

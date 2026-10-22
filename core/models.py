@@ -1,8 +1,14 @@
+import hashlib
+import secrets
+import uuid
+import zoneinfo
+
+from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.contrib.auth.models import User
 from django.utils import timezone
-import uuid
+
+DEFAULT_CONTENT_DURATION = 15  # seconds, for items without any duration set
 
 class Store(models.Model):
     """
@@ -82,18 +88,41 @@ class MediaAsset(models.Model):
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='media_assets')
     name = models.CharField(max_length=255, blank=True, null=True, help_text="Optional name for the media")
     file_url = models.URLField(max_length=1024, help_text="Direct URL to the file or Instagram media")
+    storage_path = models.CharField(
+        max_length=1024, blank=True, default='',
+        help_text="Path in default storage for files we host; used to delete the file with the asset",
+    )
     media_type = models.CharField(max_length=10, choices=MEDIA_TYPES)
     source = models.CharField(max_length=10, choices=SOURCES)
 
     # Instagram specific
-    instagram_id = models.CharField(max_length=255, blank=True, null=True, unique=True, help_text="Instagram Media ID to prevent duplicates")
+    instagram_id = models.CharField(max_length=255, blank=True, null=True, help_text="Instagram Media ID to prevent duplicates (per owner)")
 
     # Metadata
     duration = models.IntegerField(default=10, help_text="Duration in seconds. Default 10s for images.")
     created_at = models.DateTimeField(auto_now_add=True)
-    
+
+    class Meta:
+        indexes = [models.Index(fields=['owner', '-created_at'])]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['owner', 'instagram_id'],
+                name='mediaasset_unique_instagram_id_per_owner',
+            )
+        ]
+
     def __str__(self):
         return f"{self.media_type} ({self.source}) - {self.created_at.strftime('%Y-%m-%d')}"
+
+    def delete_stored_file(self):
+        """Remove the hosted file (if we host it) from storage."""
+        if self.storage_path:
+            from django.core.files.storage import default_storage
+            try:
+                default_storage.delete(self.storage_path)
+            except Exception:  # storage errors must not block DB cleanup
+                import logging
+                logging.getLogger(__name__).exception("Failed to delete %s", self.storage_path)
 
 class Playlist(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -139,6 +168,42 @@ class Playlist(models.Model):
     def __str__(self):
         return self.name
 
+    @property
+    def total_duration(self):
+        """Total running time in seconds. Uses prefetched items when available."""
+        return sum(item.effective_duration for item in self.items.all())
+
+    def is_scheduled_now(self, now=None, tz_name='UTC'):
+        """
+        Whether the playlist should be playing at `now`.
+        Archived playlists never play; ALWAYS playlists always do;
+        SCHEDULED playlists play inside their date/time window (evaluated in the store's timezone).
+        """
+        if self.status == 'ARCHIVED':
+            return False
+        if self.schedule_type != 'SCHEDULED':
+            return True
+        try:
+            tz = zoneinfo.ZoneInfo(tz_name)
+        except (zoneinfo.ZoneInfoNotFoundError, ValueError):
+            tz = zoneinfo.ZoneInfo('UTC')
+        local = (now or timezone.now()).astimezone(tz)
+        if self.start_date and local.date() < self.start_date:
+            return False
+        if self.end_date and local.date() > self.end_date:
+            return False
+        if self.start_time and self.end_time:
+            t = local.time()
+            if self.start_time <= self.end_time:
+                return self.start_time <= t <= self.end_time
+            return t >= self.start_time or t <= self.end_time  # window crosses midnight
+        if self.start_time and local.time() < self.start_time:
+            return False
+        if self.end_time and local.time() > self.end_time:
+            return False
+        return True
+
+
 class PlaylistItem(models.Model):
     """
     Through-model linking Playlist to MediaAsset with an order.
@@ -150,6 +215,16 @@ class PlaylistItem(models.Model):
     
     # Override constraints
     custom_duration = models.IntegerField(blank=True, null=True, help_text="Override media default duration")
+
+    @property
+    def effective_duration(self):
+        if self.custom_duration:
+            return self.custom_duration
+        if self.media is not None:
+            return self.media.duration
+        if self.store_content is not None:
+            return self.store_content.duration
+        return DEFAULT_CONTENT_DURATION
 
     def clean(self):
         if self.media is None and self.store_content is None:
@@ -191,19 +266,42 @@ class Screen(models.Model):
     last_heartbeat = models.DateTimeField(blank=True, null=True)
     
     # API Authentication
-    api_token = models.CharField(max_length=64, unique=True, null=True, blank=True, help_text="Token for player API authentication")
+    api_token = models.CharField(max_length=64, unique=True, null=True, blank=True, help_text="SHA-256 hash of the player API token (the raw token is never stored)")
     
     # Content
     assigned_playlist = models.ForeignKey(Playlist, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_screens')
     
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        ordering = ['-created_at']
+
+    ONLINE_TIMEOUT_SECONDS = 60
+
+    @classmethod
+    def online_cutoff(cls):
+        return timezone.now() - timezone.timedelta(seconds=cls.ONLINE_TIMEOUT_SECONDS)
+
     @property
     def is_online(self):
         if not self.last_heartbeat:
             return False
-        # Consider offline if no heartbeat in last 60 seconds
-        return (timezone.now() - self.last_heartbeat).total_seconds() < 60
+        # Consider offline if no heartbeat in the last ONLINE_TIMEOUT_SECONDS
+        return (timezone.now() - self.last_heartbeat).total_seconds() < self.ONLINE_TIMEOUT_SECONDS
+
+    @staticmethod
+    def hash_token(raw_token):
+        return hashlib.sha256(raw_token.encode()).hexdigest()
+
+    def issue_api_token(self):
+        """
+        Create a new API token, store only its hash, and return the raw token.
+        The raw token is shown to the device once and cannot be recovered afterwards.
+        """
+        raw = secrets.token_hex(32)
+        self.api_token = self.hash_token(raw)
+        self.save(update_fields=['api_token'])
+        return raw
 
     def __str__(self):
         return self.name
@@ -292,8 +390,18 @@ class StoreContent(models.Model):
     class Meta:
         ordering = ['-updated_at']
         verbose_name_plural = 'Store contents'
-    
-    
+
+    def is_live_for(self, screen, now=None):
+        """Published, inside its date window and targeted at this screen (or all screens)."""
+        now = now or timezone.now()
+        if self.status != 'PUBLISHED':
+            return False
+        if self.start_date and now < self.start_date:
+            return False
+        if self.end_date and now > self.end_date:
+            return False
+        return self.target_screen_id is None or self.target_screen_id == screen.id
+
     def __str__(self):
         return self.title
 

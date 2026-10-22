@@ -1,14 +1,12 @@
 [project]
 name = "hotcrowdcms"
 version = "0.1.0"
-description = "Add your description here"
+description = "HotCrowd CMS: digital signage content management for retail displays"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "cookiecutter>=2.6.0",
     "django>=6.0",
     "django-allauth[socialaccount]>=65.13.1",
-    "django-browser-reload>=1.21.0",
     "django-cotton>=2.6.0",
     "django-htmx>=1.27.0",
     "django-ninja>=1.5.1",
@@ -17,8 +15,22 @@ dependencies = [
     "instagrapi>=2.2.1",
     "psycopg[binary]>=3.2.0",
     "python-dotenv>=1.2.1",
-    "uvicorn>=0.40.0",
     "whitenoise>=6.11.0",
     "django-storages[boto3]>=1.14.2",
     "django-cors-headers>=4.9.0",
+    "requests>=2.32.0",
 ]
+
+[dependency-groups]
+dev = [
+    "django-browser-reload>=1.21.0",
+    "ruff>=0.8.0",
+]
+
+[tool.ruff]
+line-length = 120
+extend-exclude = ["migrations", "node_modules"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]
+ignore = ["E501"]

@@ -1,5 +1,6 @@
 from core.models import Store
 
+
 def store_context(request):
     """
     Context processor to make the 'store' object available in all templates

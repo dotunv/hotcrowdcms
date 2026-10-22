@@ -1,3 +1,4 @@
+{% load cms_extras %}
 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4">
     {% for content in contents %}
     <div class="aspect-video bg-white rounded-lg border border-slate-200 shadow-sm cursor-pointer hover:ring-2 hover:ring-primary relative group transition-all overflow-hidden flex flex-col"
@@ -6,7 +7,7 @@
         <!-- Preview (Mini rendering of content) -->
         <div class="flex-1 bg-slate-50 p-2 overflow-hidden relative">
             <div class="scale-[0.5] origin-top-left w-[200%] h-[200%] pointer-events-none select-none">
-                {{ content.content_html|safe }}
+                {{ content.content_html|clean_html }}
             </div>
             <div class="absolute inset-0 bg-transparent"></div> <!-- Interaction shield -->
         </div>

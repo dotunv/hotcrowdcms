@@ -1,3 +1,8 @@
+
+// User feedback goes through the app shell's toast region (templates/cotton/ui/toasts.html).
+function notify(message, type = 'info') {
+    window.dispatchEvent(new CustomEvent('toast', { detail: { message, type } }));
+}
 function storeCMS(config) {
     return {
         // --- State ---
@@ -510,7 +515,7 @@ function storeCMS(config) {
                         element.content = data.url;
                         this.recordState();
                     } else {
-                        alert('Upload failed: ' + (data.message || 'Unknown error'));
+                        notify('Upload failed: ' + (data.message || 'Unknown error'), 'error');
                     }
                 });
         },
@@ -552,13 +557,13 @@ function storeCMS(config) {
                             setTimeout(() => btn.innerHTML = originalText, 1000);
                         }
                     } else {
-                        alert('Error saving layout');
+                        notify('Error saving layout', 'error');
                         if (btn) btn.innerHTML = originalText;
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('Error saving layout');
+                    notify('Error saving layout', 'error');
                     if (btn) btn.innerHTML = originalText;
                 });
         },
@@ -608,14 +613,14 @@ function storeCMS(config) {
                         .then(res => res.json())
                         .then(data => {
                             if (data.status === 'success') {
-                                alert('Snapshot saved to Media Library!');
+                                notify('Snapshot saved to Media Library', 'success');
                             } else {
-                                alert('Failed to save snapshot: ' + data.message);
+                                notify('Failed to save snapshot: ' + data.message, 'error');
                             }
                         })
                         .catch(err => {
                             console.error(err);
-                            alert('Error saving snapshot.');
+                            notify('Error saving snapshot.', 'error');
                         })
                         .finally(() => {
                             btn.innerHTML = originalText;
@@ -625,7 +630,7 @@ function storeCMS(config) {
 
             } catch (err) {
                 console.error('Snapshot failed', err);
-                alert('Could not create snapshot.');
+                notify('Could not create snapshot.', 'error');
                 btn.innerHTML = originalText;
                 btn.disabled = false;
             }

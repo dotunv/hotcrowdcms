@@ -1,24 +1,34 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Server Error — HotCrowd</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Self-contained on purpose: error pages must not depend on the CSS build, static files or a CDN. -->
+    <style>
+        :root { color-scheme: light dark; --bg: #f8fafc; --fg: #1e293b; --muted: #64748b; --brand: #057a43; --brand-hover: #045e33; }
+        @media (prefers-color-scheme: dark) { :root { --bg: #18181b; --fg: #f3f4f6; --muted: #9ca3af; --brand: #22c55e; --brand-hover: #16a34a; } }
+        * { box-sizing: border-box; }
+        body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+               background: var(--bg); color: var(--fg); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+        main { text-align: center; padding: 1.5rem; max-width: 32rem; }
+        .code { margin: 0; font-size: 3rem; font-weight: 700; color: #ef4444; }
+        h1 { margin: 1rem 0 0; font-size: 1.875rem; font-weight: 600; }
+        p.text { margin: .75rem 0 0; color: var(--muted); line-height: 1.6; }
+        a.button { display: inline-block; margin-top: 2rem; padding: .625rem 1.25rem; border-radius: .5rem; background: var(--brand);
+                   color: #fff; font-size: .875rem; font-weight: 600; text-decoration: none; }
+        a.button:hover, a.button:focus-visible { background: var(--brand-hover); }
+        button.secondary { margin: 2rem 0 0 .75rem; padding: .625rem 1.25rem; border-radius: .5rem; border: 1px solid var(--muted);
+                          background: transparent; color: var(--fg); font-size: .875rem; font-weight: 600; cursor: pointer; }
+    </style>
 </head>
-<body class="h-full bg-slate-50 flex items-center justify-center font-sans">
-    <div class="text-center px-6">
-        <p class="text-5xl font-bold text-red-500">500</p>
-        <h1 class="mt-4 text-3xl font-semibold text-slate-800">Something went wrong</h1>
-        <p class="mt-3 text-slate-500">An unexpected error occurred on our end. Please try again in a moment.</p>
-        <div class="mt-8 flex items-center justify-center gap-4">
-            <a href="/dashboard/" class="inline-flex items-center gap-2 rounded-lg bg-green-500 px-5 py-2.5 text-sm font-semibold text-white shadow hover:bg-green-600 transition-colors">
-                Go to Dashboard
-            </a>
-            <button onclick="location.reload()" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-colors">
-                Try again
-            </button>
-        </div>
-    </div>
+<body>
+    <main>
+        <p class="code">500</p>
+        <h1>Something went wrong</h1>
+        <p class="text">We hit an unexpected error. It has been logged and we're looking into it. Please try again in a moment.</p>
+        <a class="button" href="/dashboard/">Go to Dashboard</a>
+        <button type="button" class="secondary" onclick="location.reload()">Try again</button>
+    </main>
 </body>
 </html>

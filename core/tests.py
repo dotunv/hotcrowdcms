@@ -1,14 +1,21 @@
 """
 Core Model Tests.
 """
-from django.test import TestCase
-from django.contrib.auth.models import User
-from django.utils import timezone
 from datetime import timedelta
 
+from django.contrib.auth.models import User
+from django.db import IntegrityError
+from django.test import TestCase
+from django.utils import timezone
+
 from core.models import (
-    Store, MediaAsset, Playlist, PlaylistItem,
-    Screen, PairingCode, StoreLayout, StoreContent, SupportTicket
+    MediaAsset,
+    PairingCode,
+    Playlist,
+    PlaylistItem,
+    Screen,
+    Store,
+    StoreContent,
 )
 
 
@@ -51,12 +58,12 @@ class ScreenModelTest(TestCase):
 
     def test_screen_api_token_is_unique(self):
         """Each screen should have a unique API token."""
-        screen1 = Screen.objects.create(
+        Screen.objects.create(
             name="Screen 1",
             owner=self.user,
             api_token="token123"
         )
-        with self.assertRaises(Exception):
+        with self.assertRaises(IntegrityError):
             Screen.objects.create(
                 name="Screen 2",
                 owner=self.user,
@@ -161,7 +168,7 @@ class MediaAssetModelTest(TestCase):
             source="INSTAGRAM",
             instagram_id="ig_12345"
         )
-        with self.assertRaises(Exception):
+        with self.assertRaises(IntegrityError):
             MediaAsset.objects.create(
                 owner=self.user,
                 file_url="http://example.com/2.jpg",
@@ -169,6 +176,69 @@ class MediaAssetModelTest(TestCase):
                 source="INSTAGRAM",
                 instagram_id="ig_12345"  # Duplicate
             )
+
+    def test_instagram_id_may_repeat_across_owners(self):
+        """Two accounts can each sync the same Instagram post."""
+        other = User.objects.create_user(username='other', password='pw')
+        for owner in (self.user, other):
+            MediaAsset.objects.create(
+                owner=owner, file_url="http://example.com/x.jpg", media_type="IMAGE",
+                source="INSTAGRAM", instagram_id="ig_shared",
+            )
+        self.assertEqual(MediaAsset.objects.filter(instagram_id="ig_shared").count(), 2)
+
+
+class ScreenTokenTest(TestCase):
+    def test_issue_api_token_stores_only_hash(self):
+        user = User.objects.create_user(username='u', password='pw')
+        screen = Screen.objects.create(name="S", owner=user)
+        raw = screen.issue_api_token()
+        screen.refresh_from_db()
+        self.assertEqual(len(raw), 64)
+        self.assertEqual(screen.api_token, Screen.hash_token(raw))
+        self.assertNotEqual(screen.api_token, raw)
+
+
+class PlaylistScheduleTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='u', password='pw')
+
+    def test_always_on_playlist_plays(self):
+        self.assertTrue(Playlist.objects.create(name="P", owner=self.user).is_scheduled_now())
+
+    def test_archived_never_plays(self):
+        p = Playlist.objects.create(name="P", owner=self.user, status='ARCHIVED')
+        self.assertFalse(p.is_scheduled_now())
+
+    def test_date_window(self):
+        today = timezone.now().date()
+        p = Playlist.objects.create(
+            name="P", owner=self.user, schedule_type='SCHEDULED',
+            start_date=today - timedelta(days=1), end_date=today + timedelta(days=1),
+        )
+        self.assertTrue(p.is_scheduled_now())
+        p.end_date = today - timedelta(days=1)
+        self.assertFalse(p.is_scheduled_now())
+
+    def test_time_window_crossing_midnight(self):
+        from datetime import datetime, time
+        from datetime import timezone as dt_tz
+        p = Playlist.objects.create(
+            name="P", owner=self.user, schedule_type='SCHEDULED',
+            start_time=time(22, 0), end_time=time(6, 0),
+        )
+        self.assertTrue(p.is_scheduled_now(datetime(2026, 1, 1, 23, 30, tzinfo=dt_tz.utc)))
+        self.assertTrue(p.is_scheduled_now(datetime(2026, 1, 1, 5, 0, tzinfo=dt_tz.utc)))
+        self.assertFalse(p.is_scheduled_now(datetime(2026, 1, 1, 12, 0, tzinfo=dt_tz.utc)))
+
+    def test_item_and_playlist_durations(self):
+        media = MediaAsset.objects.create(
+            owner=self.user, file_url="http://e.com/a.jpg", media_type="IMAGE", source="UPLOAD", duration=7)
+        content = StoreContent.objects.create(title="C", owner=self.user, duration=20)
+        p = Playlist.objects.create(name="P", owner=self.user)
+        PlaylistItem.objects.create(playlist=p, media=media, position=0)
+        PlaylistItem.objects.create(playlist=p, store_content=content, position=1, custom_duration=3)
+        self.assertEqual(p.total_duration, 10)
 
 
 class StoreModelTest(TestCase):

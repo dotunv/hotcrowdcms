@@ -2,13 +2,12 @@
 Instagram Integration Service.
 Syncs media from Instagram hashtags and downloads files locally.
 """
-import os
 import logging
+import os
+
 import requests
-from urllib.parse import urlparse
-from django.conf import settings
-from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
 from django.utils import timezone
 
 from core.models import MediaAsset
@@ -54,20 +53,27 @@ class InstagramService:
             logger.error(f"Instagram login failed: {e}")
             return False
     
-    def download_media(self, url: str, user, media_type: str = 'IMAGE') -> str | None:
+    MAX_DOWNLOAD_BYTES = 200 * 1024 * 1024
+
+    def download_media(self, url: str, user, media_type: str = 'IMAGE') -> tuple[str, str] | None:
         """
         Download media from URL and save to storage.
-        Returns the local file URL or None if download fails.
+        Returns (file_url, storage_path) or None if download fails.
         """
+        if not url.startswith(('http://', 'https://')):
+            logger.warning("Refusing to download non-http(s) URL")
+            return None
         try:
             response = requests.get(url, timeout=30)
             response.raise_for_status()
+            if len(response.content) > self.MAX_DOWNLOAD_BYTES:
+                logger.warning("Instagram media too large, skipping")
+                return None
             
             # Determine file extension
             content_type = response.headers.get('Content-Type', '')
             if 'video' in content_type:
                 ext = '.mp4'
-                media_type = 'VIDEO'
             elif 'jpeg' in content_type or 'jpg' in content_type:
                 ext = '.jpg'
             elif 'png' in content_type:
@@ -84,8 +90,8 @@ class InstagramService:
             file_url = default_storage.url(path)
             
             logger.info(f"Downloaded Instagram media to {path}")
-            return file_url
-            
+            return file_url, path
+
         except Exception as e:
             logger.error(f"Failed to download media from {url}: {e}")
             return None
@@ -111,7 +117,7 @@ class InstagramService:
             synced_count = 0
             for media in medias:
                 # Check if already exists
-                if MediaAsset.objects.filter(instagram_id=str(media.pk)).exists():
+                if MediaAsset.objects.filter(owner=user, instagram_id=str(media.pk)).exists():
                     continue
                 
                 # Determine type and URL
@@ -134,10 +140,11 @@ class InstagramService:
                     continue
                 
                 # Download to local storage
-                local_url = self.download_media(source_url, user, m_type)
-                if not local_url:
+                downloaded = self.download_media(source_url, user, m_type)
+                if not downloaded:
                     logger.warning(f"Skipping media {media.pk} - download failed")
                     continue
+                local_url, local_path = downloaded
                 
                 # Create asset with local URL
                 MediaAsset.objects.create(
@@ -146,6 +153,7 @@ class InstagramService:
                     source='INSTAGRAM',
                     instagram_id=str(media.pk),
                     file_url=local_url,
+                    storage_path=local_path,
                     duration=15 if m_type == 'VIDEO' else 10
                 )
                 synced_count += 1

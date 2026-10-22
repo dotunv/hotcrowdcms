@@ -11,7 +11,9 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 import os
+import sys
 from pathlib import Path
+from urllib.parse import unquote, urlparse
 
 from dotenv import load_dotenv
 
@@ -24,13 +26,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
-# SECURITY: Read DEBUG first so we can use it for other settings
-DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
+# SECURITY: Read DEBUG first so we can use it for other settings.
+# Defaults to False so a missing env var never exposes a debug server.
+DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
-# SECURITY: SECRET_KEY must be set in production
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-xv8i0kx$b2^3x9dm(g#mr7cpo=jv%coaomkd^7g7om(%e6ieiv')
-if not DEBUG and SECRET_KEY.startswith('django-insecure'):
-    raise ValueError("Production requires a secure SECRET_KEY environment variable")
+# SECURITY: SECRET_KEY must be set explicitly. A throwaway key is only
+# generated in DEBUG mode so local development works without configuration.
+SECRET_KEY = os.environ.get('SECRET_KEY', '')
+if not SECRET_KEY:
+    if DEBUG:
+        SECRET_KEY = 'django-insecure-dev-only-' + 'x' * 40
+    else:
+        raise ValueError("SECRET_KEY environment variable must be set when DEBUG is False")
 
 # SECURITY: ALLOWED_HOSTS must be set in production
 ALLOWED_HOSTS = [h.strip() for h in os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',') if h.strip()]
@@ -118,8 +125,8 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 # Allauth settings (new format)
-ACCOUNT_LOGIN_ON_GET = True
-ACCOUNT_LOGOUT_ON_GET = True
+# Logout must be a POST so a third-party page can't log users out with an <img> tag.
+ACCOUNT_LOGOUT_ON_GET = False
 ACCOUNT_LOGIN_METHODS = {'username', 'email'}
 ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
 ACCOUNT_EMAIL_VERIFICATION = os.environ.get('ACCOUNT_EMAIL_VERIFICATION', 'optional' if DEBUG else 'mandatory')
@@ -166,8 +173,41 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
+def _database_from_env():
+    """
+    Resolve the database from the environment.
+
+    DB_ENGINE=sqlite  -> local SQLite file (used for tests / CI without Postgres)
+    DATABASE_URL      -> postgres://user:pass@host:port/name (e.g. Neon)
+    otherwise         -> discrete DB_* variables
+    """
+    if os.environ.get('DB_ENGINE', '').lower() == 'sqlite':
+        return {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': os.environ.get('DB_NAME', str(BASE_DIR / 'db.sqlite3')),
+        }
+
+    url = os.environ.get('DATABASE_URL')
+    if url:
+        parsed = urlparse(url)
+        config = {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': parsed.path.lstrip('/'),
+            'USER': unquote(parsed.username or ''),
+            'PASSWORD': unquote(parsed.password or ''),
+            'HOST': parsed.hostname or '',
+            'PORT': str(parsed.port or 5432),
+        }
+        options = {}
+        for pair in filter(None, parsed.query.split('&')):
+            key, _, value = pair.partition('=')
+            if key in ('sslmode', 'channel_binding', 'connect_timeout'):
+                options[key] = value
+        if options:
+            config['OPTIONS'] = options
+        return config
+
+    return {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': os.environ.get('DB_NAME', 'hotcrowdcms'),
         'USER': os.environ.get('DB_USER', 'postgres'),
@@ -175,7 +215,9 @@ DATABASES = {
         'HOST': os.environ.get('DB_HOST', 'localhost'),
         'PORT': os.environ.get('DB_PORT', '5432'),
     }
-}
+
+
+DATABASES = {'default': _database_from_env()}
 
 
 # Password validation
@@ -218,7 +260,8 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 
 # CORS Configuration
 CORS_ALLOWED_ORIGINS = [origin.strip() for origin in os.environ.get('CORS_ALLOWED_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173').split(',') if origin.strip()]
-CORS_ALLOW_CREDENTIALS = True
+# The player API uses bearer tokens, not cookies, so credentialed CORS is not needed.
+CORS_ALLOW_CREDENTIALS = False
 
 # Storage Configuration (Django 5.0+)
 STORAGES = {
@@ -249,6 +292,9 @@ if USE_S3:
     AWS_S3_FILE_OVERWRITE = False
     AWS_DEFAULT_ACL = None
     AWS_S3_VERIFY = True
+    # Stored media URLs are saved in the database, so they must be permanent.
+    # Signed (expiring) query-string URLs would silently break after an hour.
+    AWS_QUERYSTRING_AUTH = False
     AWS_S3_CUSTOM_DOMAIN = os.getenv('R2_CUSTOM_DOMAIN', None)
 
     # Media files configuration for R2
@@ -266,8 +312,15 @@ else:
     MEDIA_ROOT = BASE_DIR / 'media'
 
 # File Upload Settings
-FILE_UPLOAD_MAX_MEMORY_SIZE = 209715200  # 200MB
-DATA_UPLOAD_MAX_MEMORY_SIZE = 209715200  # 200MB
+# Uploads above 5MB are streamed to a temp file instead of being held in memory.
+# DATA_UPLOAD_MAX_MEMORY_SIZE does not apply to file uploads, only to form data.
+FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
+MAX_UPLOAD_SIZE = 200 * 1024 * 1024  # enforced in the upload view
+
+# Product settings
+PLAN_SCREEN_LIMIT = int(os.environ.get('PLAN_SCREEN_LIMIT', '5'))
+SUPPORT_EMAIL = os.environ.get('SUPPORT_EMAIL', '')  # tickets are emailed here when set
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/6.0/ref/settings/#default-auto-field
@@ -309,13 +362,23 @@ else:
 
 # Production Security Settings
 if not DEBUG:
-    SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
     SECURE_HSTS_SECONDS = 31536000  # 1 year
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+    CSRF_TRUSTED_ORIGINS = [o.strip() for o in os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',') if o.strip()]
+
+    if not USE_S3:
+        import warnings
+        warnings.warn(
+            "USE_S3 is False while DEBUG is False: uploads are written to the local disk, "
+            "which is lost on container redeploys and is not served by Django. "
+            "Configure object storage (USE_S3=True) for production.",
+            RuntimeWarning,
+            stacklevel=1,
+        )
 
     # Trust the X-Forwarded-Proto header set by the platform's reverse proxy.
     # This tells Django the original request was HTTPS so it won't redirect.
@@ -350,3 +413,12 @@ if DEBUG:
     INSTALLED_APPS += ['django_browser_reload']
     MIDDLEWARE += ['django_browser_reload.middleware.BrowserReloadMiddleware']
 
+
+# django-ninja: number of reverse proxies in front of the app (for per-IP throttling)
+NINJA_NUM_PROXIES = int(os.environ.get('NUM_PROXIES', '1'))
+
+# Speed up the test suite: PBKDF2 is deliberately slow and every test creates users.
+if 'test' in sys.argv:
+    PASSWORD_HASHERS = ['django.contrib.auth.hashers.MD5PasswordHasher']
+    # Tests run with DEBUG=False and no collectstatic, so skip the manifest storage.
+    STORAGES['staticfiles'] = {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'}

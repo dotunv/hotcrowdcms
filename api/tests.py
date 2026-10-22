@@ -1,240 +1,218 @@
 """
 API Tests for Player endpoints.
 """
-from django.test import TestCase, Client
-from django.contrib.auth.models import User
-from django.utils import timezone
 from datetime import timedelta
-import json
 
-from core.models import Screen, Playlist, PlaylistItem, MediaAsset, PairingCode
+from django.contrib.auth.models import User
+from django.core.cache import cache
+from django.test import Client, TestCase
+from django.utils import timezone
+
+from core.models import MediaAsset, PairingCode, Playlist, PlaylistItem, Screen, Store, StoreContent
 
 
 class PlayerAPITestCase(TestCase):
     """Base test case for Player API tests."""
 
     def setUp(self):
+        cache.clear()  # throttle counters live in the cache
         self.client = Client()
-        self.user = User.objects.create_user(
-            username='testuser',
-            email='test@example.com',
-            password='testpass123'
-        )
+        self.user = User.objects.create_user(username='testuser', email='test@example.com', password='testpass123')
+
+    def make_screen(self, **kwargs):
+        """Create a screen and return (screen, raw_token)."""
+        screen = Screen.objects.create(name="Test Screen", owner=self.user, **kwargs)
+        return screen, screen.issue_api_token()
+
+    def auth(self, token):
+        return {'HTTP_AUTHORIZATION': f'Bearer {token}'}
 
 
 class SetupEndpointTest(PlayerAPITestCase):
-    """Tests for /api/player/setup endpoint."""
-
     def test_setup_returns_pairing_code(self):
-        """POST to setup should return a 6-character pairing code."""
         response = self.client.post('/api/player/setup')
         self.assertEqual(response.status_code, 200)
-        
         data = response.json()
-        self.assertIn('code', data)
         self.assertEqual(len(data['code']), 6)
-        self.assertIn('expires_in', data)
         self.assertEqual(data['expires_in'], 900)
 
     def test_setup_creates_pairing_code_in_db(self):
-        """Setup should create a PairingCode record."""
-        initial_count = PairingCode.objects.count()
         self.client.post('/api/player/setup')
-        self.assertEqual(PairingCode.objects.count(), initial_count + 1)
+        self.assertEqual(PairingCode.objects.count(), 1)
+
+    def test_setup_purges_expired_codes(self):
+        PairingCode.objects.create(code="OLD001", expires_at=timezone.now() - timedelta(minutes=1))
+        self.client.post('/api/player/setup')
+        self.assertFalse(PairingCode.objects.filter(code="OLD001").exists())
+
+    def test_setup_is_throttled(self):
+        statuses = [self.client.post('/api/player/setup').status_code for _ in range(25)]
+        self.assertIn(429, statuses)
+        self.assertEqual(statuses[0], 200)
 
 
 class SetupStatusEndpointTest(PlayerAPITestCase):
-    """Tests for /api/player/setup/status/{code} endpoint."""
-
     def test_status_waiting_for_unclaimed_code(self):
-        """Status should be 'waiting' for valid unclaimed code."""
-        code = PairingCode.objects.create(
-            code="TEST01",
-            expires_at=timezone.now() + timedelta(minutes=15)
-        )
-        
-        response = self.client.get(f'/api/player/setup/status/{code.code}')
+        PairingCode.objects.create(code="TEST01", expires_at=timezone.now() + timedelta(minutes=15))
+        response = self.client.get('/api/player/setup/status/TEST01')
         self.assertEqual(response.status_code, 200)
-        
-        data = response.json()
-        self.assertEqual(data['status'], 'waiting')
+        self.assertEqual(response.json()['status'], 'waiting')
 
-    def test_status_claimed_with_api_token(self):
-        """Status should be 'claimed' with api_token when screen exists."""
-        code = PairingCode.objects.create(
-            code="CLAIM1",
-            expires_at=timezone.now() + timedelta(minutes=15)
-        )
-        screen = Screen.objects.create(
-            name="Test Screen",
-            owner=self.user,
-            pairing_code="CLAIM1"
-        )
-        
-        response = self.client.get(f'/api/player/setup/status/{code.code}')
+    def test_status_claimed_returns_token_once_and_stores_only_hash(self):
+        PairingCode.objects.create(code="CLAIM1", expires_at=timezone.now() + timedelta(minutes=15))
+        screen = Screen.objects.create(name="Test Screen", owner=self.user, pairing_code="CLAIM1")
+
+        response = self.client.get('/api/player/setup/status/CLAIM1')
         self.assertEqual(response.status_code, 200)
-        
         data = response.json()
         self.assertEqual(data['status'], 'claimed')
         self.assertEqual(data['screen_id'], str(screen.id))
-        self.assertIn('api_token', data)
-        self.assertIsNotNone(data['api_token'])
+
+        screen.refresh_from_db()
+        self.assertNotEqual(screen.api_token, data['api_token'])  # only the hash is stored
+        self.assertEqual(screen.api_token, Screen.hash_token(data['api_token']))
+        self.assertIsNone(screen.pairing_code)
+
+        # The code is consumed: the token cannot be fetched a second time.
+        self.assertFalse(PairingCode.objects.filter(code="CLAIM1").exists())
+        self.assertEqual(self.client.get('/api/player/setup/status/CLAIM1').status_code, 404)
+
+    def test_issued_token_authenticates(self):
+        PairingCode.objects.create(code="CLAIM2", expires_at=timezone.now() + timedelta(minutes=15))
+        Screen.objects.create(name="S", owner=self.user, pairing_code="CLAIM2")
+        token = self.client.get('/api/player/setup/status/CLAIM2').json()['api_token']
+        response = self.client.post('/api/player/heartbeat', **self.auth(token))
+        self.assertEqual(response.status_code, 200)
 
     def test_status_invalid_for_nonexistent_code(self):
-        """Status should be 'invalid' for non-existent code."""
         response = self.client.get('/api/player/setup/status/NOCODE')
         self.assertEqual(response.status_code, 404)
-        
-        data = response.json()
-        self.assertEqual(data['status'], 'invalid')
+        self.assertEqual(response.json()['status'], 'invalid')
 
     def test_status_expired_for_old_code(self):
-        """Status should be 'expired' for expired code."""
-        code = PairingCode.objects.create(
-            code="OLD001",
-            expires_at=timezone.now() - timedelta(minutes=1)
-        )
-        
-        response = self.client.get(f'/api/player/setup/status/{code.code}')
+        PairingCode.objects.create(code="OLD001", expires_at=timezone.now() - timedelta(minutes=1))
+        response = self.client.get('/api/player/setup/status/OLD001')
         self.assertEqual(response.status_code, 410)
-        
-        data = response.json()
-        self.assertEqual(data['status'], 'expired')
+        self.assertEqual(response.json()['status'], 'expired')
 
 
-class AuthenticatedPlaylistEndpointTest(PlayerAPITestCase):
-    """Tests for authenticated /api/player/playlist endpoint."""
-
+class PlaylistEndpointTest(PlayerAPITestCase):
     def setUp(self):
         super().setUp()
-        self.screen = Screen.objects.create(
-            name="Test Screen",
-            owner=self.user,
-            api_token="test_token_12345678901234567890123456789012345678901234567890"
-        )
-        self.playlist = Playlist.objects.create(
-            name="Test Playlist",
-            owner=self.user
-        )
+        self.screen, self.token = self.make_screen()
+        self.playlist = Playlist.objects.create(name="Test Playlist", owner=self.user)
         self.media = MediaAsset.objects.create(
-            owner=self.user,
-            file_url="http://example.com/video.mp4",
-            media_type="VIDEO",
-            source="UPLOAD",
-            duration=30
+            owner=self.user, file_url="http://example.com/video.mp4",
+            media_type="VIDEO", source="UPLOAD", duration=30,
         )
 
-    def test_playlist_requires_auth(self):
-        """Playlist endpoint should require authentication."""
-        response = self.client.get('/api/player/playlist')
-        self.assertEqual(response.status_code, 401)
-
-    def test_playlist_with_valid_token(self):
-        """Playlist should work with valid bearer token."""
+    def assign(self):
         self.screen.assigned_playlist = self.playlist
         self.screen.save()
-        
-        PlaylistItem.objects.create(
-            playlist=self.playlist,
-            media=self.media,
-            position=0
-        )
-        
-        response = self.client.get(
-            '/api/player/playlist',
-            HTTP_AUTHORIZATION=f'Bearer {self.screen.api_token}'
-        )
-        self.assertEqual(response.status_code, 200)
-        
-        data = response.json()
-        self.assertEqual(len(data), 1)
-        self.assertEqual(data[0]['url'], self.media.file_url)
-        self.assertEqual(data[0]['type'], 'VIDEO')
-        self.assertEqual(data[0]['duration'], 30)
 
-    def test_empty_playlist(self):
-        """Should return empty list when no playlist assigned."""
-        response = self.client.get(
-            '/api/player/playlist',
-            HTTP_AUTHORIZATION=f'Bearer {self.screen.api_token}'
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), [])
+    def get(self):
+        return self.client.get('/api/player/playlist', **self.auth(self.token))
 
+    def test_requires_auth(self):
+        self.assertEqual(self.client.get('/api/player/playlist').status_code, 401)
 
-class AuthenticatedHeartbeatEndpointTest(PlayerAPITestCase):
-    """Tests for authenticated /api/player/heartbeat endpoint."""
-
-    def setUp(self):
-        super().setUp()
-        self.screen = Screen.objects.create(
-            name="Test Screen",
-            owner=self.user,
-            api_token="heartbeat_token_123456789012345678901234567890123456789"
-        )
-
-    def test_heartbeat_requires_auth(self):
-        """Heartbeat endpoint should require authentication."""
-        response = self.client.post('/api/player/heartbeat')
+    def test_invalid_token_rejected(self):
+        response = self.client.get('/api/player/playlist', **self.auth('nope'))
         self.assertEqual(response.status_code, 401)
 
-    def test_heartbeat_updates_timestamp(self):
-        """Heartbeat should update screen's last_heartbeat."""
-        old_time = timezone.now() - timedelta(hours=1)
-        self.screen.last_heartbeat = old_time
-        self.screen.save()
-        
-        response = self.client.post(
-            '/api/player/heartbeat',
-            HTTP_AUTHORIZATION=f'Bearer {self.screen.api_token}'
-        )
-        self.assertEqual(response.status_code, 200)
-        
+    def test_raw_stored_value_is_not_a_valid_token(self):
+        """Presenting the stored hash must not authenticate (it would be hashed again)."""
         self.screen.refresh_from_db()
-        self.assertGreater(self.screen.last_heartbeat, old_time)
-        self.assertEqual(self.screen.status, 'ONLINE')
+        response = self.client.get('/api/player/playlist', **self.auth(self.screen.api_token))
+        self.assertEqual(response.status_code, 401)
 
-    def test_heartbeat_returns_ok_status(self):
-        """Heartbeat should return ok status."""
-        response = self.client.post(
-            '/api/player/heartbeat',
-            HTTP_AUTHORIZATION=f'Bearer {self.screen.api_token}'
+    def test_empty_without_assigned_playlist(self):
+        self.assertEqual(self.get().json(), [])
+
+    def test_returns_media_items(self):
+        self.assign()
+        PlaylistItem.objects.create(playlist=self.playlist, media=self.media, position=0)
+        data = self.get().json()
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]['url'], "http://example.com/video.mp4")
+        self.assertEqual(data[0]['type'], "video")
+        self.assertEqual(data[0]['duration'], 30)
+
+    def test_custom_duration_overrides_media_duration(self):
+        self.assign()
+        PlaylistItem.objects.create(playlist=self.playlist, media=self.media, position=0, custom_duration=5)
+        self.assertEqual(self.get().json()[0]['duration'], 5)
+
+    def test_archived_playlist_is_not_served(self):
+        self.assign()
+        PlaylistItem.objects.create(playlist=self.playlist, media=self.media, position=0)
+        self.playlist.status = 'ARCHIVED'
+        self.playlist.save()
+        self.assertEqual(self.get().json(), [])
+
+    def test_scheduled_playlist_outside_window_is_not_served(self):
+        self.assign()
+        PlaylistItem.objects.create(playlist=self.playlist, media=self.media, position=0)
+        self.playlist.schedule_type = 'SCHEDULED'
+        self.playlist.end_date = (timezone.now() - timedelta(days=2)).date()
+        self.playlist.save()
+        self.assertEqual(self.get().json(), [])
+
+    def test_published_cms_content_is_served_as_sanitized_html(self):
+        self.assign()
+        content = StoreContent.objects.create(
+            title="Sale", owner=self.user, status='PUBLISHED', duration=12,
+            content_html='<p>50% off</p><script>alert(1)</script>',
         )
-        data = response.json()
-        self.assertEqual(data['status'], 'ok')
-        self.assertIn('timestamp', data)
+        PlaylistItem.objects.create(playlist=self.playlist, store_content=content, position=0)
+        data = self.get().json()
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]['type'], 'html')
+        self.assertEqual(data[0]['duration'], 12)
+        self.assertIn('50% off', data[0]['html'])
+        self.assertNotIn('script', data[0]['html'])
+
+    def test_draft_and_foreign_targeted_cms_content_is_skipped(self):
+        self.assign()
+        other_screen = Screen.objects.create(name="Other", owner=self.user)
+        draft = StoreContent.objects.create(title="D", owner=self.user, status='DRAFT')
+        targeted = StoreContent.objects.create(title="T", owner=self.user, status='PUBLISHED', target_screen=other_screen)
+        expired = StoreContent.objects.create(
+            title="E", owner=self.user, status='PUBLISHED', end_date=timezone.now() - timedelta(hours=1))
+        for i, c in enumerate((draft, targeted, expired)):
+            PlaylistItem.objects.create(playlist=self.playlist, store_content=c, position=i)
+        self.assertEqual(self.get().json(), [])
 
 
-class LegacyPlaylistEndpointTest(PlayerAPITestCase):
-    """Tests for deprecated /api/player/playlist/{screen_id} endpoint."""
-
-    def test_legacy_endpoint_still_works(self):
-        """Legacy endpoint should still work for backwards compatibility."""
-        screen = Screen.objects.create(
-            name="Legacy Screen",
-            owner=self.user
-        )
-        playlist = Playlist.objects.create(
-            name="Test Playlist",
-            owner=self.user
-        )
+class PlayerConfigEndpointTest(PlayerAPITestCase):
+    def test_config_reflects_store_and_playlist_settings(self):
+        screen, token = self.make_screen()
+        Store.objects.create(user=self.user, default_volume=40, mute_by_default=True, timezone='Europe/London')
+        playlist = Playlist.objects.create(name="P", owner=self.user, transition_effect='SLIDE', is_loop=False)
         screen.assigned_playlist = playlist
         screen.save()
-        
-        media = MediaAsset.objects.create(
-            owner=self.user,
-            file_url="http://example.com/image.jpg",
-            media_type="IMAGE",
-            source="UPLOAD"
-        )
-        PlaylistItem.objects.create(
-            playlist=playlist,
-            media=media,
-            position=0
-        )
-        
-        response = self.client.get(f'/api/player/playlist/{screen.id}')
+
+        data = self.client.get('/api/player/config', **self.auth(token)).json()
+        self.assertTrue(data['playlist_active'])
+        self.assertEqual(data['transition_effect'], 'slide')
+        self.assertFalse(data['is_loop'])
+        self.assertEqual(data['default_volume'], 40)
+        self.assertTrue(data['mute_by_default'])
+        self.assertEqual(data['timezone'], 'Europe/London')
+
+    def test_config_requires_auth(self):
+        self.assertEqual(self.client.get('/api/player/config').status_code, 401)
+
+
+class HeartbeatEndpointTest(PlayerAPITestCase):
+    def test_requires_auth(self):
+        self.assertEqual(self.client.post('/api/player/heartbeat').status_code, 401)
+
+    def test_updates_timestamp_and_status(self):
+        screen, token = self.make_screen()
+        response = self.client.post('/api/player/heartbeat', **self.auth(token))
         self.assertEqual(response.status_code, 200)
-        
-        data = response.json()
-        self.assertEqual(len(data), 1)
+        self.assertEqual(response.json()['status'], 'ok')
+        screen.refresh_from_db()
+        self.assertEqual(screen.status, 'ONLINE')
+        self.assertTrue(screen.is_online)

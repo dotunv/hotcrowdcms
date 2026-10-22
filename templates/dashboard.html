@@ -3,7 +3,7 @@
 
 {% block body %}
 <c-layouts.sidebar>
-    <div class="space-y-8 p-8 h-full overflow-y-auto">
+    <div class="space-y-8 p-4 sm:p-8 h-full overflow-y-auto">
         <!-- Header -->
         <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
@@ -18,15 +18,6 @@
             </div>
 
             <div class="flex items-center gap-3">
-                <div
-                    class="flex bg-white dark:bg-surface-dark rounded-lg p-1 border border-border-light dark:border-border-dark shadow-sm">
-                    <button hx-get="{% url 'dashboard' %}?range=7D" hx-target="#dashboard-stats" hx-swap="outerHTML"
-                        class="px-3 py-1 text-xs font-bold transition-colors rounded {% if current_range == '7D' or not current_range %}text-gray-900 bg-gray-100{% else %}text-gray-500 hover:text-gray-900{% endif %}">7D</button>
-                    <button hx-get="{% url 'dashboard' %}?range=30D" hx-target="#dashboard-stats" hx-swap="outerHTML"
-                        class="px-3 py-1 text-xs font-medium transition-colors rounded {% if current_range == '30D' %}text-gray-900 bg-gray-100 font-bold{% else %}text-gray-500 hover:text-gray-900{% endif %}">30D</button>
-                    <button hx-get="{% url 'dashboard' %}?range=All" hx-target="#dashboard-stats" hx-swap="outerHTML"
-                        class="px-3 py-1 text-xs font-medium transition-colors rounded {% if current_range == 'All' %}text-gray-900 bg-gray-100 font-bold{% else %}text-gray-500 hover:text-gray-900{% endif %}">All</button>
-                </div>
                 <a href="{% url 'playlist_builder' %}"
                     class="inline-flex items-center px-4 py-2 bg-primary text-white text-sm font-bold rounded-xl hover:bg-secondary transition-all shadow-sm hover:shadow-md">
                     <span class="material-symbols-outlined text-lg mr-2">add</span>
@@ -78,7 +69,7 @@
                 </a>
 
                 <!-- Add Screen -->
-                <a href="{% url 'setup_screen' %}"
+                <a href="{% url 'screens' %}"
                     class="flex flex-col items-center justify-center p-4 rounded-xl border border-border-light dark:border-border-dark hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors group">
                     <div
                         class="w-10 h-10 rounded-full bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">

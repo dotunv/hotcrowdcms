@@ -2,37 +2,36 @@
 API Authentication for Player endpoints.
 Token-based authentication for screen devices.
 """
-import secrets
 from ninja.security import HttpBearer
+
 from core.models import Screen
-
-
-def generate_api_token() -> str:
-    """Generate a secure 64-character API token."""
-    return secrets.token_hex(32)
 
 
 class ScreenTokenAuth(HttpBearer):
     """
     Bearer token authentication for player API endpoints.
-    
+
     Usage:
         Include in request header:
         Authorization: Bearer <screen_api_token>
+
+    Only a SHA-256 hash of each token is stored, so the presented token is
+    hashed before lookup.
     """
-    
+
     def authenticate(self, request, token: str):
         """
         Validate the token and return the associated screen.
         Returns None if authentication fails.
         """
-        try:
-            screen = Screen.objects.get(api_token=token)
-            # Attach screen to request for use in views
-            request.screen = screen
-            return screen
-        except Screen.DoesNotExist:
+        screen = Screen.objects.select_related('owner', 'assigned_playlist').filter(
+            api_token=Screen.hash_token(token)
+        ).first()
+        if screen is None:
             return None
+        # Attach screen to request for use in views
+        request.screen = screen
+        return screen
 
 
 # Create a singleton instance for use in API routes

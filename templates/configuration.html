@@ -516,7 +516,7 @@
                                 <div class="p-6 sm:p-8 space-y-4">
                                     <!-- Instagram -->
                                     <div
-                                        class="p-5 rounded-2xl border transition-all {% if store.instagram_connected %}bg-green-50/50 border-green-200 dark:bg-green-900/10 dark:border-green-800{% else %}bg-gray-50 border-gray-100 dark:bg-gray-800 dark:border-gray-700{% endif %} flex items-center justify-between">
+                                        class="p-5 rounded-2xl border transition-all {% if instagram_configured %}bg-green-50/50 border-green-200 dark:bg-green-900/10 dark:border-green-800{% else %}bg-gray-50 border-gray-100 dark:bg-gray-800 dark:border-gray-700{% endif %} flex items-center justify-between">
                                         <div class="flex items-center gap-5">
                                             <div
                                                 class="w-12 h-12 bg-white dark:bg-gray-700 rounded-2xl flex items-center justify-center shadow-sm text-pink-600 border border-gray-100 dark:border-gray-600">
@@ -525,18 +525,15 @@
                                             <div>
                                                 <div class="flex items-center gap-2">
                                                     <h4 class="font-bold text-gray-900 dark:text-white">Instagram</h4>
-                                                    {% if store.instagram_connected %}
+                                                    {% if instagram_configured %}
                                                     <span
                                                         class="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-green-200 text-green-800 dark:bg-green-800 dark:text-green-100">Connected</span>
                                                     {% endif %}
                                                 </div>
- <p class="text-xs text-muted-light mt-0.5">Syncing @{{ store.business_name|slugify }} posts daily.</p>
+ <p class="text-xs text-muted-light mt-0.5">{% if instagram_configured %}Hashtag sync is enabled for this workspace.{% else %}Not configured. Ask your administrator to set the Instagram credentials.{% endif %}</p>
                                             </div>
                                         </div>
-                                        <button type="submit" name="toggle_instagram"
-                                            class="px-4 py-2 rounded-xl font-bold text-xs transition-all {% if store.instagram_connected %}bg-white dark:bg-gray-800 border border-red-200 text-red-500 hover:bg-red-50{% else %}bg-primary text-white hover:bg-secondary shadow-md shadow-primary/20{% endif %}">
-                                            {% if store.instagram_connected %}Disconnect{% else %}Connect Account{% endif %}
-                                        </button>
+                                        
                                     </div>
 
                                     <!-- Mock Facebook -->
