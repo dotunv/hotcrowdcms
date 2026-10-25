@@ -12,6 +12,7 @@ from app.config import settings
 from app.db import get_db
 from app.deps import get_current_store, get_current_user
 from app.models import MediaAsset, Store, User
+from app.ratelimit import enforce
 from app.plans import get_or_create_account, plan_limits
 from app.safe_fetch import FetchError, fetch_public
 from app.storage import absolute_media_url, delete_key, save_bytes
@@ -133,9 +134,12 @@ def _save_remote_media(store: Store, url: str, name: str, instagram_id: str | No
 def import_url(
     body: ImportBody,
     request: Request,
+    user: User = Depends(get_current_user),
     store: Store = Depends(get_current_store),
     db: Session = Depends(get_db),
 ):
+    # Each call makes the server download up to MAX_IMPORT_BYTES, so cap how fast one account can ask.
+    enforce(request, "instagram-import", 30, 600, key=f"user:{user.id}")
     url = body.url.strip()
     if not url.startswith(("http://", "https://")) or len(url) > 2048:
         raise HTTPException(status_code=400, detail="Provide an https media URL.")

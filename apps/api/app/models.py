@@ -31,6 +31,18 @@ class User(Base):
     account: Mapped[Account | None] = relationship(back_populates="user")
 
 
+class AuthSession(Base):
+    """One login. Tokens carry its id and stop working when it is revoked (logout) or has expired."""
+
+    __tablename__ = "auth_session"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("auth_user.id", ondelete="CASCADE"), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
 class Store(Base):
     __tablename__ = "core_store"
 

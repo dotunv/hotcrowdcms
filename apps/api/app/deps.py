@@ -5,6 +5,7 @@ from app.config import settings
 from app.db import get_db
 from app.models import Store, User
 from app.security import token_user_matches
+from app.sessions import session_is_live
 
 STORE_COOKIE = "hc_store"
 
@@ -15,7 +16,9 @@ def get_current_user(
 ) -> User:
     if not token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
-    user = token_user_matches(token, "access", lambda user_id: db.get(User, user_id))
+    user = token_user_matches(
+        token, "access", lambda user_id: db.get(User, user_id), lambda sid, user_id: session_is_live(db, sid, user_id)
+    )
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
     return user

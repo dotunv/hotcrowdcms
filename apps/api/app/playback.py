@@ -19,9 +19,11 @@ def store_now(store: Store, now: datetime | None = None) -> datetime:
 
 
 def playlist_is_live(playlist: Playlist | None, store: Store, now: datetime | None = None) -> bool:
-    if playlist is None or playlist.status != "ACTIVE":
+    if playlist is None or playlist.status not in ("ACTIVE", "SCHEDULED"):
         return False
-    if playlist.schedule_type != "SCHEDULED":
+    # Status SCHEDULED means "play only inside the window", whatever schedule_type says; with no window set
+    # it plays all the time, exactly like ACTIVE.
+    if playlist.status != "SCHEDULED" and playlist.schedule_type != "SCHEDULED":
         return True
     local = store_now(store, now)
     today = local.date()
