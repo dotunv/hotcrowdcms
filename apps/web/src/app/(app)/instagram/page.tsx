@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { api } from "@/lib/api";
 import { useToast } from "@/components/toast";
+import { Page, Section, ui } from "@/components/ui";
 
 export default function InstagramPage() {
   const toast = useToast();
@@ -43,44 +44,56 @@ export default function InstagramPage() {
 
   const data = status.data;
   return (
-    <div className="mx-auto max-w-2xl space-y-6 p-8">
-      <div>
-        <h1 className="text-2xl font-bold">Instagram</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Import a public media URL, or connect a Graph API token and sync recent posts on Pro. This uses Instagram&apos;s official API, not a password login.
-        </p>
-      </div>
-      <section className="space-y-3 rounded-2xl border bg-white p-6 dark:bg-surface-dark">
-        <h2 className="font-bold">Import a file URL</h2>
-        <input className="w-full rounded-xl border px-3 py-2" placeholder="https://..." value={url} onChange={(e) => setUrl(e.target.value)} />
-        <button type="button" className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white" onClick={() => importUrl.mutate()}>
-          Add to library
-        </button>
-        {importUrl.isError ? <p className="text-sm text-red-600">{(importUrl.error as Error).message}</p> : null}
-      </section>
-      <section className="space-y-3 rounded-2xl border bg-white p-6 dark:bg-surface-dark">
-        <h2 className="font-bold">Graph API</h2>
-        <p className="text-sm text-gray-500">{data?.connected ? "Connected." : "Paste a long-lived Instagram Graph token."}</p>
-        {!data?.connected ? (
-          <>
-            <input className="w-full rounded-xl border px-3 py-2" placeholder="Access token" value={token} onChange={(e) => setToken(e.target.value)} />
-            <button type="button" className="rounded-xl border px-4 py-2 text-sm font-bold" onClick={() => connect.mutate()}>
-              Save token
-            </button>
-          </>
-        ) : (
-          <div className="flex gap-2">
-            <button type="button" className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white" onClick={() => sync.mutate()}>
-              Sync recent posts
-            </button>
-            <button type="button" className="rounded-xl border px-4 py-2 text-sm" onClick={() => disconnect.mutate()}>
-              Disconnect
+    <Page
+      eyebrow="Import"
+      title="Instagram"
+      narrow
+      subtitle="Import a public media URL, or connect a Graph API token and sync recent posts on Pro. This uses Instagram's official API, not a password login."
+    >
+      <Section title="Import a file URL">
+        <div className="flex flex-col gap-4 pt-5">
+          <input className={ui.input} placeholder="https://..." value={url} onChange={(e) => setUrl(e.target.value)} />
+          <div>
+            <button type="button" className={ui.btnPrimary} onClick={() => importUrl.mutate()}>
+              Add to library
             </button>
           </div>
-        )}
-        {sync.isError ? <p className="text-sm text-red-600">{(sync.error as Error).message}</p> : null}
-        {data && !data.sync_allowed ? <p className="text-sm text-gray-500">Sync requires Pro. URL import works on Starter.</p> : null}
-      </section>
-    </div>
+          {importUrl.isError ? <p className={ui.error}>{(importUrl.error as Error).message}</p> : null}
+        </div>
+      </Section>
+      <Section
+        title="Graph API"
+        link={
+          <span className={`text-xs font-bold uppercase tracking-[0.1em] ${data?.connected ? "text-primary dark:text-[#B2F2BB]" : ui.muted}`}>
+            {data?.connected ? "Connected" : "Not connected"}
+          </span>
+        }
+      >
+        <div className="flex flex-col gap-4 pt-5">
+          <p className={`text-[15px] font-medium ${ui.muted}`}>{data?.connected ? "Connected." : "Paste a long-lived Instagram Graph token."}</p>
+          {!data?.connected ? (
+            <>
+              <input className={ui.input} placeholder="Access token" value={token} onChange={(e) => setToken(e.target.value)} />
+              <div>
+                <button type="button" className={ui.btnGhost} onClick={() => connect.mutate()}>
+                  Save token
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="flex gap-3">
+              <button type="button" className={ui.btnPrimary} onClick={() => sync.mutate()}>
+                Sync recent posts
+              </button>
+              <button type="button" className={ui.btnGhost} onClick={() => disconnect.mutate()}>
+                Disconnect
+              </button>
+            </div>
+          )}
+          {sync.isError ? <p className={ui.error}>{(sync.error as Error).message}</p> : null}
+          {data && !data.sync_allowed ? <p className={`text-sm font-medium ${ui.muted}`}>Sync requires Pro. URL import works on Starter.</p> : null}
+        </div>
+      </Section>
+    </Page>
   );
 }

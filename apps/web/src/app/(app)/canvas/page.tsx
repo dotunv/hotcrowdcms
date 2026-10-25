@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
+import { EmptyNote, Page, StatusBadge, ui } from "@/components/ui";
 
 export default function CanvasListPage() {
   const router = useRouter();
@@ -14,34 +15,39 @@ export default function CanvasListPage() {
   });
 
   return (
-    <div className="h-full overflow-y-auto p-8 space-y-6">
-      <div className="flex items-end justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Canvas</h1>
-          <p className="mt-1 text-gray-500">Design a 1920×1080 board, publish it, then drop it into a playlist.</p>
-        </div>
-        <button type="button" onClick={() => create.mutate()} className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white">
+    <Page
+      eyebrow="Design"
+      title="Canvas"
+      subtitle="Design a 1920×1080 board, publish it, then drop it into a playlist."
+      actions={
+        <button type="button" onClick={() => create.mutate()} className={ui.btnPrimary}>
           New layout
         </button>
-      </div>
-      <div className="grid gap-4">
+      }
+    >
+      <section>
+        <div className={ui.sectionHead}>
+          <h2 className={ui.sectionTitle}>Layouts</h2>
+        </div>
         {(list.data?.results ?? []).map((layout) => (
-          <div key={layout.id} className="flex items-center justify-between rounded-2xl border bg-white p-5 dark:bg-surface-dark">
-            <div>
-              <Link href={`/canvas/${layout.id}`} className="text-lg font-bold hover:text-primary">
-                {layout.name}
-              </Link>
-              <p className="text-sm text-gray-500">{layout.status.toLowerCase()}</p>
-            </div>
-            <Link href={`/canvas/${layout.id}`} className="rounded-xl border px-3 py-2 text-sm font-bold">
+          <div key={layout.id} className={`flex items-center gap-5 py-4 ${ui.row}`}>
+            <Link href={`/canvas/${layout.id}`} className="min-w-0 flex-1 truncate text-[17px] font-extrabold tracking-[-0.02em] hover:text-primary dark:hover:text-[#B2F2BB]">
+              {layout.name}
+            </Link>
+            <span className="flex w-24 shrink-0 justify-end">
+              <StatusBadge status={layout.status} />
+            </span>
+            <Link href={`/canvas/${layout.id}`} className={ui.btnSmall}>
               Edit
             </Link>
           </div>
         ))}
         {(list.data?.results ?? []).length === 0 ? (
-          <div className="rounded-2xl border border-dashed p-12 text-center text-sm text-gray-500">No layouts yet.</div>
+          <div className="pt-6">
+            <EmptyNote>No layouts yet.</EmptyNote>
+          </div>
         ) : null}
-      </div>
-    </div>
+      </section>
+    </Page>
   );
 }

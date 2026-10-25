@@ -5,6 +5,7 @@ import { useState } from "react";
 import { DeleteDialog } from "@/components/delete-dialog";
 import { api } from "@/lib/api";
 import { useToast } from "@/components/toast";
+import { EmptyNote, Page, StatStrip, ui } from "@/components/ui";
 
 export default function ScreensPage() {
   const toast = useToast();
@@ -57,102 +58,102 @@ export default function ScreensPage() {
   const data = screens.data;
 
   return (
-    <div className="p-8 h-full overflow-y-auto space-y-6">
-      <div className="flex justify-between items-end">
-        <div>
-          <h1 className="text-3xl font-bold">Screens</h1>
-          <p className="text-gray-500 mt-1">Status updates every 10 seconds from device heartbeats.</p>
-        </div>
-        <button type="button" onClick={() => setOpen(true)} className="px-4 py-2 bg-primary text-white text-sm font-bold rounded-xl">
+    <Page
+      eyebrow="Devices"
+      title="Screens"
+      subtitle="Status updates every 10 seconds from device heartbeats."
+      actions={
+        <button type="button" onClick={() => setOpen(true)} className={ui.btnPrimary}>
           Connect screen
         </button>
-      </div>
-      <div className="grid grid-cols-3 gap-4">
-        <Stat label="Devices" value={data?.total ?? 0} />
-        <Stat label="Online" value={data?.online ?? 0} />
-        <Stat label="Offline" value={data?.offline ?? 0} />
-      </div>
-      <div className="bg-white dark:bg-surface-dark rounded-2xl border overflow-hidden">
-        <table className="w-full text-left">
-          <thead>
-            <tr className="text-xs font-bold text-gray-500 uppercase bg-gray-50 dark:bg-gray-800/50">
-              <th className="px-6 py-4">Status</th>
-              <th className="px-6 py-4">Screen</th>
-              <th className="px-6 py-4">Location</th>
-              <th className="px-6 py-4">Playlist</th>
-              <th className="px-6 py-4" />
-            </tr>
-          </thead>
-          <tbody>
-            {(data?.results ?? []).map((screen) => (
-              <tr key={screen.id} className="border-t border-border-light dark:border-border-dark">
-                <td className="px-6 py-4 text-sm">
-                  <span className="inline-flex items-center gap-2">
-                    <span className={`h-2 w-2 rounded-full ${screen.online ? "bg-green-500" : "bg-gray-300"}`} />
-                    {screen.online ? "Online" : "Offline"}
-                  </span>
-                </td>
-                <td className="px-6 py-4 font-bold text-sm">{screen.name}</td>
-                <td className="px-6 py-4 text-sm">{screen.location || "—"}</td>
-                <td className="px-6 py-4">
-                  <select
-                    className="text-sm rounded-lg border px-2 py-1 bg-gray-50 dark:bg-gray-800"
-                    value={screen.playlist_id ?? ""}
-                    onChange={(event) => assign.mutate({ id: screen.id, playlist_id: event.target.value || null })}
-                  >
-                    <option value="">No playlist</option>
-                    {(data?.playlists ?? []).map((playlist) => (
-                      <option key={playlist.id} value={playlist.id}>
-                        {playlist.name}
-                      </option>
-                    ))}
-                  </select>
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <button type="button" className="text-gray-400 hover:text-red-600" onClick={() => setPendingDelete(screen)}>
-                    <span className="material-symbols-outlined">delete</span>
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {(data?.results ?? []).length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
-                  No screens yet. Open the player and enter the pairing code.
-                </td>
-              </tr>
-            ) : null}
-          </tbody>
-        </table>
-      </div>
+      }
+    >
+      <StatStrip
+        items={[
+          ["devices", data?.total ?? 0],
+          ["online", data?.online ?? 0],
+          ["offline", data?.offline ?? 0],
+        ]}
+      />
+      <section>
+        <div className={`flex items-center gap-4 pb-3.5 ${ui.sectionHead}`}>
+          <span className="w-24 shrink-0 text-xs font-semibold uppercase tracking-[0.14em]">Status</span>
+          <span className="flex-1 text-xs font-semibold uppercase tracking-[0.14em]">Screen</span>
+          <span className="w-56 shrink-0 text-xs font-semibold uppercase tracking-[0.14em]">Playlist</span>
+          <span className="w-8 shrink-0" />
+        </div>
+        {(data?.results ?? []).map((screen) => (
+          <div key={screen.id} className={`flex items-center gap-4 py-4 ${ui.row}`}>
+            <span className="flex w-24 shrink-0 items-center gap-2.5 text-[13px] font-bold">
+              <span className={`h-2.5 w-2.5 rounded-full ${screen.online ? "bg-primary dark:bg-[#B2F2BB]" : "bg-[#C4C8C0] dark:bg-[#6B746C]"}`} />
+              <span className={screen.online ? "text-primary dark:text-[#B2F2BB]" : "text-[#C2410C] dark:text-[#FB923C]"}>
+                {screen.online ? "Online" : "Offline"}
+              </span>
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[15px] font-bold">{screen.name}</p>
+              <p className={`truncate text-[13px] font-medium ${ui.muted}`}>{screen.location || "No location"}</p>
+            </div>
+            <select
+              className={`${ui.input} w-56 shrink-0 py-2 dark:[&>option]:bg-[#111513]`}
+              value={screen.playlist_id ?? ""}
+              onChange={(event) => assign.mutate({ id: screen.id, playlist_id: event.target.value || null })}
+            >
+              <option value="">No playlist</option>
+              {(data?.playlists ?? []).map((playlist) => (
+                <option key={playlist.id} value={playlist.id}>
+                  {playlist.name}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className={`flex w-8 shrink-0 justify-end ${ui.muted} hover:text-[#C2410C]`}
+              title="Remove screen"
+              onClick={() => setPendingDelete(screen)}
+            >
+              <span className="material-symbols-outlined text-xl">delete</span>
+            </button>
+          </div>
+        ))}
+        {(data?.results ?? []).length === 0 ? (
+          <div className="pt-6">
+            <EmptyNote>No screens yet. Open the player and enter the pairing code.</EmptyNote>
+          </div>
+        ) : null}
+      </section>
 
       {open ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-          <div className="absolute inset-0 bg-gray-900/50" onClick={() => setOpen(false)} />
+          <div className={ui.overlay} onClick={() => setOpen(false)} />
           <form
-            className="relative bg-white dark:bg-surface-dark w-full max-w-md rounded-2xl p-6 space-y-4"
+            className={`${ui.modal} max-w-md space-y-5`}
             onSubmit={(event) => {
               event.preventDefault();
               setError("");
               pair.mutate();
             }}
           >
-            <h3 className="text-xl font-bold">Connect a screen</h3>
+            <div>
+              <p className={ui.eyebrow}>Step 1</p>
+              <h3 className="mt-2 text-[28px] font-extrabold leading-8 tracking-[-0.03em]">Connect a screen</h3>
+              <p className={`mt-2 text-sm font-medium ${ui.muted}`}>Enter the code shown on your TV after you open the player.</p>
+            </div>
             <input
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
               maxLength={8}
               placeholder="ABCD2345"
-              className="w-full text-center text-3xl font-mono tracking-[0.3em] py-3 border rounded-xl uppercase"
+              className="w-full rounded-2xl bg-[#0E1A14] py-5 text-center font-mono text-4xl font-extrabold uppercase tracking-[0.3em] text-white placeholder:text-[#3A443C] focus:outline-none dark:bg-[#111513]"
             />
-            {error ? <p className="text-red-500 text-sm">{error}</p> : null}
-            <input value={name} onChange={(e) => setName(e.target.value)} required placeholder="Front window" className="w-full px-4 py-2.5 rounded-xl border" />
-            <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Location (optional)" className="w-full px-4 py-2.5 rounded-xl border" />
+            {error ? <p className={ui.error}>{error}</p> : null}
+            <input value={name} onChange={(e) => setName(e.target.value)} required placeholder="Front window" className={ui.input} />
+            <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Location (optional)" className={ui.input} />
             <div className="flex gap-3">
-              <button type="button" onClick={() => setOpen(false)} className="flex-1 border rounded-xl font-bold py-2">
+              <button type="button" onClick={() => setOpen(false)} className={`${ui.btnGhost} flex-1`}>
                 Cancel
               </button>
-              <button type="submit" disabled={pair.isPending || code.length < 8 || !name.trim()} className="flex-1 bg-primary text-white rounded-xl font-bold py-2 disabled:opacity-50">
+              <button type="submit" disabled={pair.isPending || code.length < 8 || !name.trim()} className={`${ui.btnPrimary} flex-1`}>
                 {pair.isPending ? "Connecting…" : "Connect"}
               </button>
             </div>
@@ -169,15 +170,6 @@ export default function ScreensPage() {
         onClose={() => setPendingDelete(null)}
         onConfirm={() => pendingDelete && remove.mutate(pendingDelete.id)}
       />
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="bg-white dark:bg-surface-dark rounded-2xl p-6 border">
-      <p className="text-sm text-gray-500">{label}</p>
-      <p className="text-3xl font-bold mt-1">{value}</p>
-    </div>
+    </Page>
   );
 }

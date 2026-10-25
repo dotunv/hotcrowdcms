@@ -6,6 +6,7 @@ import { DeleteDialog } from "@/components/delete-dialog";
 import { api } from "@/lib/api";
 import type { MediaItem } from "@/lib/types";
 import { useToast } from "@/components/toast";
+import { EmptyNote, Page, ui } from "@/components/ui";
 
 export default function LibraryPage() {
   const toast = useToast();
@@ -29,17 +30,26 @@ export default function LibraryPage() {
     },
   });
 
+  const items = media.data?.results ?? [];
+  const fallbacks = [
+    "bg-[#B2F2BB]",
+    "bg-[#0E1A14] dark:bg-[#1F2622]",
+    "bg-[#FFD84D]",
+    "bg-[#F3F4F1] dark:bg-[#2A322C]",
+    "bg-[#045E33] dark:bg-[#057A43]",
+  ];
+
   return (
-    <div className="p-8 h-full overflow-y-auto space-y-6">
-      <div className="flex justify-between items-end">
-        <div>
-          <h1 className="text-3xl font-bold">Library</h1>
-          <p className="text-gray-500 mt-1">Images and videos that can play on a screen.</p>
-        </div>
-        <button type="button" onClick={() => setUploadOpen(true)} className="px-4 py-2 bg-primary text-white text-sm font-bold rounded-xl">
+    <Page
+      eyebrow="Content"
+      title="Library"
+      subtitle="Images and videos that can play on a screen."
+      actions={
+        <button type="button" onClick={() => setUploadOpen(true)} className={ui.btnPrimary}>
           Upload
         </button>
-      </div>
+      }
+    >
       <div className="flex gap-2">
         {[
           ["", "All"],
@@ -50,35 +60,43 @@ export default function LibraryPage() {
             key={value}
             type="button"
             onClick={() => setType(value)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-bold ${type === value ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900" : "text-gray-500"}`}
+            className={`rounded-lg px-3.5 py-1.5 text-sm font-bold ${
+              type === value
+                ? "bg-[#0E1A14] text-white dark:bg-[#B2F2BB] dark:text-[#0E1A14]"
+                : `${ui.muted} hover:text-[#0E1A14] dark:hover:text-[#F2F5F0]`
+            }`}
           >
             {label}
           </button>
         ))}
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-        {(media.data?.results ?? []).map((item) => (
-          <div key={item.id} className="bg-white dark:bg-surface-dark rounded-xl overflow-hidden border">
-            <div className="aspect-square bg-gray-100 dark:bg-gray-800">
+      <div className="grid grid-cols-2 gap-5 md:grid-cols-4 lg:grid-cols-5">
+        {items.map((item, index) => (
+          <div key={item.id} className="flex flex-col gap-2.5">
+            <div className={`aspect-square overflow-hidden rounded-[14px] ${fallbacks[index % fallbacks.length]}`}>
               {item.type === "image" && item.url ? (
-                <img src={item.url} alt="" className="w-full h-full object-cover" />
+                <img src={item.url} alt="" className="h-full w-full object-cover" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-gray-400">VID</div>
+                <div className="flex h-full w-full items-end p-3">
+                  <span className="rounded-md bg-[#0E1A14] px-2 py-[3px] text-[10px] font-bold tracking-[0.12em] text-[#B2F2BB] dark:bg-[#B2F2BB] dark:text-[#0E1A14]">
+                    VIDEO
+                  </span>
+                </div>
               )}
             </div>
-            <div className="p-3 flex justify-between gap-2">
+            <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <p className="text-sm font-semibold truncate">{item.name}</p>
-                <p className="text-xs text-gray-500">{item.duration}s</p>
+                <p className="truncate text-[13px] font-bold">{item.name}</p>
+                <p className={`text-xs font-medium ${ui.muted}`}>{item.duration}s</p>
               </div>
-              <button type="button" className="text-gray-400 hover:text-red-600" onClick={() => setPending(item)}>
+              <button type="button" className={`${ui.muted} hover:text-[#C2410C]`} title="Delete" onClick={() => setPending(item)}>
                 <span className="material-symbols-outlined text-lg">delete</span>
               </button>
             </div>
           </div>
         ))}
       </div>
-      {(media.data?.results ?? []).length === 0 ? <p className="text-center text-gray-500 py-16">Nothing in the library</p> : null}
+      {items.length === 0 ? <EmptyNote>Nothing in the library yet.</EmptyNote> : null}
       {uploadOpen ? <UploadModal onClose={() => setUploadOpen(false)} /> : null}
       <DeleteDialog
         open={Boolean(pending)}
@@ -89,7 +107,7 @@ export default function LibraryPage() {
         onClose={() => setPending(null)}
         onConfirm={() => pending && remove.mutate(pending.id)}
       />
-    </div>
+    </Page>
   );
 }
 
@@ -128,35 +146,50 @@ function UploadModal({ onClose }: { onClose: () => void }) {
     }
   };
 
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative bg-white dark:bg-surface-dark w-full max-w-lg rounded-2xl p-8 space-y-4">
-        <h3 className="text-xl font-bold">Upload new media</h3>
+      <div className={ui.overlay} onClick={onClose} />
+      <div className={`${ui.modal} max-w-lg space-y-5`}>
+        <div>
+          <p className={ui.eyebrow}>Library</p>
+          <h3 className="mt-2 text-[28px] font-extrabold leading-8 tracking-[-0.03em]">Upload new media</h3>
+        </div>
         <div className="flex gap-2">
-          <button type="button" onClick={() => setMode("file")} className={`flex-1 py-2 rounded-lg text-sm font-medium ${mode === "file" ? "bg-gray-100 dark:bg-gray-800" : ""}`}>
-            File
-          </button>
-          <button type="button" onClick={() => setMode("url")} className={`flex-1 py-2 rounded-lg text-sm font-medium ${mode === "url" ? "bg-gray-100 dark:bg-gray-800" : ""}`}>
-            URL
-          </button>
+          {(["file", "url"] as const).map((value) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setMode(value)}
+              className={`flex-1 rounded-lg py-2 text-sm font-bold ${
+                mode === value ? "bg-[#0E1A14] text-white dark:bg-[#B2F2BB] dark:text-[#0E1A14]" : `border border-[#D5D8D2] dark:border-[#3A443C] ${ui.muted}`
+              }`}
+            >
+              {value === "file" ? "File" : "URL"}
+            </button>
+          ))}
         </div>
         {mode === "file" ? (
-          <input type="file" accept="image/*,video/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+          <input
+            type="file"
+            accept="image/*,video/*"
+            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            className="w-full rounded-xl border-2 border-dashed border-[#C4C8C0] p-6 text-sm font-semibold file:mr-4 file:rounded-lg file:border-0 file:bg-[#0E1A14] file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-white dark:border-[#3A443C] dark:file:bg-[#B2F2BB] dark:file:text-[#0E1A14]"
+          />
         ) : (
-          <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://" className="w-full px-3 py-2 rounded-xl border" />
+          <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://" className={ui.input} />
         )}
-        {error ? <p className="text-sm text-red-600">{error}</p> : null}
+        {error ? <p className={ui.error}>{error}</p> : null}
         {submitting ? (
-          <div className="h-2 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
-            <div className="h-full bg-primary transition-all" style={{ width: `${progress}%` }} />
+          <div className="h-1 overflow-hidden rounded-full bg-[#E8EAE6] dark:bg-[#2A322C]">
+            <div className="h-full bg-primary transition-all dark:bg-[#B2F2BB]" style={{ width: `${progress}%` }} />
           </div>
         ) : null}
         <div className="flex justify-end gap-3">
-          <button type="button" onClick={onClose} className="px-4 py-2 border rounded-xl">
+          <button type="button" onClick={onClose} className={ui.btnGhost}>
             Cancel
           </button>
-          <button type="button" disabled={submitting} onClick={() => void submit()} className="px-6 py-2 bg-primary text-white rounded-xl font-bold disabled:opacity-50">
+          <button type="button" disabled={submitting} onClick={() => void submit()} className={ui.btnPrimary}>
             {submitting ? (progress ? `Uploading ${progress}%` : "Uploading…") : "Upload"}
           </button>
         </div>
