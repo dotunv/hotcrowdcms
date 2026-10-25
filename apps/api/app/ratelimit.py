@@ -1,17 +1,22 @@
 """
-In-process sliding-window rate limiting with bounded memory, plus real-client-IP detection.
+Sliding-window rate limiting, plus real-client-IP detection.
 
-State lives in this process: with N workers the effective limit is up to N times higher. That is still
-enough to stop online password guessing and code scanning; a shared store (Redis) is the next step if
-you scale out.
+By default the counts live in this process, so with N workers or instances the effective limit is up to N
+times higher. Set REDIS_URL to share them: every instance then counts into the same windows. If Redis is
+unreachable the limiter falls back to the in-process counts rather than failing requests (or letting
+everything through), and tries Redis again shortly after.
 """
+import logging
 import threading
 import time
+import uuid
 from collections import deque
 
 from fastapi import HTTPException, Request
 
 from app.config import settings
+
+log = logging.getLogger("hotcrowd.ratelimit")
 
 
 def client_ip(request: Request) -> str:
@@ -88,7 +93,99 @@ class RateLimiter:
             self._events.pop(key, None)
 
 
-limiter = RateLimiter()
+_PRUNE = """
+local t = redis.call('TIME')
+local now = t[1] * 1000 + math.floor(t[2] / 1000)
+redis.call('ZREMRANGEBYSCORE', KEYS[1], 0, now - tonumber(ARGV[1]) * 1000)
+"""
+_ALLOW = _PRUNE + """
+if redis.call('ZCARD', KEYS[1]) >= tonumber(ARGV[2]) then return 0 end
+redis.call('ZADD', KEYS[1], now, ARGV[3])
+redis.call('PEXPIRE', KEYS[1], tonumber(ARGV[1]) * 1000)
+return 1
+"""
+_BLOCKED = _PRUNE + """
+if redis.call('ZCARD', KEYS[1]) >= tonumber(ARGV[2]) then return 1 end
+return 0
+"""
+_RECORD = _PRUNE + """
+redis.call('ZADD', KEYS[1], now, ARGV[3])
+redis.call('PEXPIRE', KEYS[1], tonumber(ARGV[1]) * 1000)
+return 1
+"""
+
+
+class RedisRateLimiter:
+    """The same interface as RateLimiter, with the windows kept in Redis (sorted sets, one Lua call each)."""
+
+    PREFIX = "hc:rl:"
+    RETRY_AFTER = 10.0  # seconds to leave a failing Redis alone before trying it again
+
+    def __init__(self, url: str, fallback: RateLimiter | None = None):
+        import redis
+
+        self._client = redis.Redis.from_url(url, socket_timeout=0.25, socket_connect_timeout=0.25)
+        self._allow = self._client.register_script(_ALLOW)
+        self._blocked = self._client.register_script(_BLOCKED)
+        self._record = self._client.register_script(_RECORD)
+        self._fallback = fallback or RateLimiter()
+        self._down_until = 0.0
+
+    def _call(self, shared, local):
+        if time.monotonic() < self._down_until:
+            return local()
+        try:
+            result = shared()
+        except Exception as exc:  # noqa: BLE001 - any Redis problem means "use the local counts for now"
+            self._down_until = time.monotonic() + self.RETRY_AFTER
+            log.warning("Rate-limit store unavailable (%s); using in-process counts", exc.__class__.__name__)
+            return local()
+        return result
+
+    def allow(self, key: str, limit: int, window: float) -> bool:
+        return bool(
+            self._call(
+                lambda: self._allow(keys=[self.PREFIX + key], args=[window, limit, uuid.uuid4().hex]),
+                lambda: self._fallback.allow(key, limit, window),
+            )
+        )
+
+    def blocked(self, key: str, limit: int, window: float) -> bool:
+        return bool(
+            self._call(
+                lambda: self._blocked(keys=[self.PREFIX + key], args=[window, limit]),
+                lambda: self._fallback.blocked(key, limit, window),
+            )
+        )
+
+    def record(self, key: str, window: float) -> None:
+        self._call(
+            lambda: self._record(keys=[self.PREFIX + key], args=[window, 0, uuid.uuid4().hex]),
+            lambda: self._fallback.record(key, window),
+        )
+
+    def reset(self, key: str) -> None:
+        self._fallback.reset(key)
+        self._call(lambda: self._client.delete(self.PREFIX + key), lambda: None)
+
+    def clear(self) -> None:
+        """Forget everything (tests)."""
+        self._fallback.clear()
+        try:
+            keys = list(self._client.scan_iter(match=self.PREFIX + "*", count=500))
+            if keys:
+                self._client.delete(*keys)
+        except Exception:  # noqa: BLE001
+            pass
+
+
+def build_limiter() -> RateLimiter | RedisRateLimiter:
+    if settings.redis_url:
+        return RedisRateLimiter(settings.redis_url)
+    return RateLimiter()
+
+
+limiter = build_limiter()
 
 
 def enforce(request: Request, action: str, limit: int, window: float, *, key: str | None = None) -> None:

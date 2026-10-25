@@ -51,6 +51,7 @@ class Settings(BaseSettings):
     # the real client IP in X-Forwarded-For for rate limiting: the entry that many hops from the right.
     # Too low and every user shares the proxy's bucket; too high and clients can spoof their address.
     trusted_proxy_count: int = 1
+    redis_url: str = ""  # shared rate-limit store; empty keeps counts in each process
     password_hash_iterations: int = 1_000_000  # PBKDF2 cost; only tests should ever lower this
     allow_private_fetch: bool = False  # dev only: let server-side fetches reach private/loopback addresses
     use_s3: bool = False

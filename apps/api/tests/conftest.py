@@ -15,9 +15,10 @@ for _name in (
     "STRIPE_SECRET_KEY", "STRIPE_PRICE_PRO", "STRIPE_WEBHOOK_SECRET",
     "INSTAGRAM_APP_ID", "INSTAGRAM_APP_SECRET",
     "USE_S3", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_BUCKET_NAME", "R2_ENDPOINT_URL", "R2_CUSTOM_DOMAIN",
-    "ALLOW_PRIVATE_FETCH",
+    "ALLOW_PRIVATE_FETCH", "REDIS_URL",
 ):
     os.environ[_name] = ""
+os.environ["REDIS_URL"] = os.environ.get("TEST_REDIS_URL", "")  # with it set, the whole suite runs on the shared limiter
 os.environ["USE_S3"] = "false"
 os.environ["ALLOW_PRIVATE_FETCH"] = "false"
 os.environ["PASSWORD_HASH_ITERATIONS"] = "1000"  # real default is 1,000,000, which makes every register/login ~0.5s
