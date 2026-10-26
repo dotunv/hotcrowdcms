@@ -75,9 +75,9 @@ export function CanvasEditor({ layoutId }: { layoutId: string }) {
 
   return (
     <div className="flex h-full flex-col">
-      <header className="flex h-16 items-center justify-between border-b bg-white px-4 dark:bg-surface-dark">
+      <header className="flex h-16 items-center justify-between border-b border-[#E8EAE6] bg-white px-4 dark:bg-[#171C19]">
         <div className="flex items-center gap-3">
-          <Link href="/canvas" className="text-sm text-gray-500">
+          <Link href="/canvas" className="text-sm text-[#6B7280] dark:text-[#9BA59C]">
             Canvas
           </Link>
           <input value={name} onChange={(e) => setName(e.target.value)} className="bg-transparent font-semibold outline-none" />
@@ -86,20 +86,20 @@ export function CanvasEditor({ layoutId }: { layoutId: string }) {
           <button type="button" onClick={() => save.mutate()} className="rounded-lg px-3 py-1.5 text-sm">
             Save
           </button>
-          <button type="button" onClick={() => publish.mutate()} className="rounded-lg bg-primary px-4 py-1.5 text-sm font-bold text-white">
+          <button type="button" onClick={() => publish.mutate()} className="rounded-lg bg-primary px-4 py-1.5 text-sm font-bold text-white dark:bg-[#B2F2BB] dark:text-[#0E1A14]">
             Publish to library
           </button>
         </div>
       </header>
       <div className="flex min-h-0 flex-1">
-        <aside className="w-56 space-y-2 border-r bg-white p-3 dark:bg-surface-dark">
-          <button type="button" className="w-full rounded-xl border px-3 py-2 text-sm" onClick={() => add("text")}>
+        <aside className="w-56 space-y-2 border-r border-[#E8EAE6] bg-white p-3 dark:bg-[#171C19]">
+          <button type="button" className="w-full rounded-xl border border-[#D5D8D2] px-3 py-2 text-sm dark:border-[#3A443C]" onClick={() => add("text")}>
             Add text
           </button>
-          <button type="button" className="w-full rounded-xl border px-3 py-2 text-sm" onClick={() => add("rect")}>
+          <button type="button" className="w-full rounded-xl border border-[#D5D8D2] px-3 py-2 text-sm dark:border-[#3A443C]" onClick={() => add("rect")}>
             Add block
           </button>
-          <p className="pt-2 text-xs font-bold uppercase text-gray-400">Library image</p>
+          <p className="pt-2 text-xs font-bold uppercase text-[#9AA09A] dark:text-[#6B746C]">Library image</p>
           <div className="max-h-64 space-y-2 overflow-y-auto">
             {(media.data?.results ?? [])
               .filter((item) => item.type === "image")
@@ -107,7 +107,7 @@ export function CanvasEditor({ layoutId }: { layoutId: string }) {
                 <button
                   key={item.id}
                   type="button"
-                  className="block w-full truncate rounded-lg border px-2 py-1 text-left text-xs"
+                  className="block w-full truncate rounded-lg border border-[#D5D8D2] px-2 py-1 text-left text-xs dark:border-[#3A443C]"
                   onClick={() => {
                     const el: El = {
                       id: uid(),
@@ -127,7 +127,7 @@ export function CanvasEditor({ layoutId }: { layoutId: string }) {
               ))}
           </div>
         </aside>
-        <section className="flex flex-1 items-center justify-center overflow-auto bg-gray-200 p-6 dark:bg-black">
+        <section className="flex flex-1 items-center justify-center overflow-auto bg-[#E8EAE6] p-6 dark:bg-[#0A0D0B]">
           <div
             className="relative shadow-2xl"
             style={{
@@ -177,7 +177,7 @@ export function CanvasEditor({ layoutId }: { layoutId: string }) {
             ))}
           </div>
         </section>
-        <aside className="w-72 space-y-3 overflow-y-auto border-l bg-white p-4 text-sm dark:bg-surface-dark">
+        <aside className="w-72 space-y-3 overflow-y-auto border-l border-[#E8EAE6] bg-white p-4 text-sm dark:bg-[#171C19]">
           <label className="block">
             Background
             <input
@@ -192,7 +192,7 @@ export function CanvasEditor({ layoutId }: { layoutId: string }) {
               {current.type === "text" ? (
                 <>
                   <textarea
-                    className="w-full rounded-xl border p-2"
+                    className="w-full rounded-xl border border-[#D5D8D2] bg-transparent p-2 dark:border-[#3A443C]"
                     value={current.text}
                     onChange={(e) => update(current.id, { text: e.target.value })}
                   />
@@ -200,7 +200,7 @@ export function CanvasEditor({ layoutId }: { layoutId: string }) {
                     Size
                     <input
                       type="number"
-                      className="ml-2 w-20 rounded border px-1"
+                      className="ml-2 w-20 rounded border border-[#D5D8D2] bg-transparent px-1 dark:border-[#3A443C]"
                       value={current.fontSize}
                       onChange={(e) => update(current.id, { fontSize: Number(e.target.value) })}
                     />
@@ -215,7 +215,7 @@ export function CanvasEditor({ layoutId }: { layoutId: string }) {
               ) : null}
               <button
                 type="button"
-                className="text-red-600"
+                className="text-[#C2410C] dark:text-[#FB923C]"
                 onClick={() => {
                   setData({ ...data, elements: elements.filter((el) => el.id !== current.id) });
                   setSelected(null);
@@ -225,7 +225,7 @@ export function CanvasEditor({ layoutId }: { layoutId: string }) {
               </button>
             </>
           ) : (
-            <p className="text-gray-500">Select an element to edit it.</p>
+            <p className="text-[#6B7280] dark:text-[#9BA59C]">Select an element to edit it.</p>
           )}
         </aside>
       </div>

@@ -1,5 +1,7 @@
 "use client";
 
+import { ui } from "@/components/ui";
+
 export function DeleteDialog({
   open,
   title,
@@ -20,23 +22,23 @@ export function DeleteDialog({
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-      <div className="absolute inset-0 bg-gray-900/50" onClick={onClose} />
-      <div className="relative bg-white dark:bg-surface-dark w-full max-w-md rounded-2xl p-6 border border-border-light dark:border-border-dark">
-        <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 rounded-full bg-red-50 dark:bg-red-900/20">
-          <span className="material-symbols-outlined text-red-600">delete</span>
-        </div>
-        <h3 className="text-lg font-bold text-gray-900 dark:text-white text-center">{title}</h3>
-        {name ? <p className="text-sm font-semibold text-center mt-2 text-gray-900 dark:text-white">{name}</p> : null}
-        <p className="text-sm text-gray-500 text-center mt-2">{hint}</p>
-        <div className="flex gap-3 mt-6">
-          <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 text-sm font-bold border rounded-xl">
+      <div className={ui.overlay} onClick={onClose} />
+      <div className={`${ui.modal} max-w-md`}>
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#C2410C] dark:text-[#FB923C]">Can&apos;t be undone</p>
+        <h3 className="mt-2 text-[28px] font-extrabold leading-8 tracking-[-0.03em]">{title}</h3>
+        {name ? (
+          <p className="mt-4 inline-block -rotate-1 rounded-lg bg-[#FFD84D] px-3 py-1 text-sm font-extrabold text-[#0E1A14]">{name}</p>
+        ) : null}
+        <p className={`mt-4 text-[15px] font-medium leading-[22px] ${ui.muted}`}>{hint}</p>
+        <div className="mt-8 flex gap-3">
+          <button type="button" onClick={onClose} className={`${ui.btnGhost} flex-1`}>
             Cancel
           </button>
           <button
             type="button"
             disabled={pending}
             onClick={onConfirm}
-            className="flex-1 px-4 py-2.5 text-sm font-bold text-white bg-red-600 rounded-xl disabled:opacity-50"
+            className="flex-1 rounded-xl bg-[#C2410C] px-5 py-3 text-sm font-bold text-white disabled:opacity-50 dark:bg-[#FB923C] dark:text-[#0E1A14]"
           >
             Delete
           </button>

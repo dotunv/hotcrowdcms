@@ -65,8 +65,11 @@ Set `DEBUG=False` on the API. Startup refuses a weak `SECRET_KEY`, sqlite `DATAB
 | `USE_S3=True` plus `R2_*` | Cloudflare R2 for uploads (same keys Django used) |
 | `STRIPE_SECRET_KEY` / `STRIPE_PRICE_PRO` | Pro checkout. In DEBUG without Stripe, Upgrade sets Pro locally |
 | `INSTAGRAM_APP_ID` | Optional OAuth app id; Graph token paste works without it |
+| `REDIS_URL` (optional) | Shared rate-limit store. Without it limits are counted per process; set it when running more than one API instance. If Redis is down the API falls back to per-process counts |
 
-Auth is an httpOnly access cookie (`hc_access`, 15 minutes) plus a refresh cookie (`hc_refresh`, 14 days). The CMS retries `/api/v1/auth/refresh` on 401. Logout clears both.
+Auth is an httpOnly access cookie (`hc_access`, 15 minutes) plus a refresh cookie (`hc_refresh`, 14 days). The CMS retries `/api/v1/auth/refresh` on 401. Logout revokes the server-side session (so copied cookies stop working) and clears both cookies.
+
+The web app sets its Content-Security-Policy per request in `apps/web/src/middleware.ts`, with a fresh nonce for scripts (no `'unsafe-inline'` for scripts; styles still allow it because React inline style attributes can't carry a nonce).
 
 Run the API image (or `uvicorn`) and host `apps/web` on Vercel or in Compose. Point the existing player at the API host. Assigned playlists only play when they are published (`ACTIVE`) and inside any scheduled window; otherwise the store fallback (logo, custom URL, or black) is returned as `{url, type, duration, position}`.
 

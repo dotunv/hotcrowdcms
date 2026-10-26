@@ -46,19 +46,19 @@ function SortableItem({
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`flex items-center gap-3 rounded-xl border border-border-light bg-white p-3 shadow-sm dark:border-border-dark dark:bg-surface-dark ${isDragging ? "z-10 opacity-80 shadow-lg" : ""}`}
+      className={`flex items-center gap-3 rounded-xl border border-[#E8EAE6] bg-white p-3 shadow-sm dark:border-[#2A322C] dark:bg-[#171C19] ${isDragging ? "z-10 opacity-80 shadow-lg" : ""}`}
     >
-      <button type="button" className="cursor-grab touch-none px-1 text-gray-400" aria-label="Drag to reorder" {...attributes} {...listeners}>
+      <button type="button" className="cursor-grab touch-none px-1 text-[#9AA09A] dark:text-[#6B746C]" aria-label="Drag to reorder" {...attributes} {...listeners}>
         ⋮⋮
       </button>
       {item.type === "image" && item.url ? (
         <img src={item.url} alt="" className="h-16 w-16 rounded-lg object-cover" />
       ) : (
-        <div className="h-16 w-16 rounded-lg bg-gray-100" />
+        <div className="h-16 w-16 rounded-lg bg-[#F3F4F1] dark:bg-[#1F2622]" />
       )}
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold">{item.name}</p>
-        <label className="text-xs text-gray-500">
+        <label className="text-xs text-[#6B7280] dark:text-[#9BA59C]">
           Duration
           <input
             type="number"
@@ -70,10 +70,10 @@ function SortableItem({
           s
         </label>
       </div>
-      <button type="button" onClick={onPreview} className="text-sm text-primary">
+      <button type="button" onClick={onPreview} className="text-sm font-bold text-primary dark:text-[#B2F2BB]">
         Play
       </button>
-      <button type="button" onClick={onRemove} className="text-sm text-red-600">
+      <button type="button" onClick={onRemove} className="text-sm text-[#C2410C] dark:text-[#FB923C]">
         Remove
       </button>
     </div>
@@ -209,20 +209,20 @@ export function PlaylistBuilder({ playlistId }: { playlistId: string }) {
   const publishLabel = useMemo(() => (playlist?.status === "ACTIVE" ? "Published" : "Publish"), [playlist]);
 
   if (playlistQuery.isLoading) {
-    return <div className="h-full bg-background-light dark:bg-background-dark" />;
+    return <div className="h-full bg-white dark:bg-[#111513]" />;
   }
   if (!playlist) {
-    return <p className="p-8 text-sm text-gray-500">Playlist not found.</p>;
+    return <p className="p-8 text-sm text-[#6B7280] dark:text-[#9BA59C]">Playlist not found.</p>;
   }
 
   return (
     <div className="flex h-full flex-col">
-      <header className="flex h-16 flex-shrink-0 items-center justify-between border-b border-border-light bg-white px-4 dark:border-border-dark dark:bg-surface-dark">
+      <header className="flex h-16 flex-shrink-0 items-center justify-between border-b border-[#E8EAE6] bg-white px-4 dark:border-[#2A322C] dark:bg-[#171C19]">
         <div className="flex min-w-0 items-center gap-3">
-          <Link href="/playlists" className="text-sm text-gray-500 hover:text-primary">
+          <Link href="/playlists" className="text-sm text-[#6B7280] dark:text-[#9BA59C] hover:text-primary dark:hover:text-[#B2F2BB]">
             Playlists
           </Link>
-          <span className="text-gray-400">/</span>
+          <span className="text-[#9AA09A] dark:text-[#6B746C]">/</span>
           <input
             value={playlist.name}
             onChange={(event) => {
@@ -241,7 +241,7 @@ export function PlaylistBuilder({ playlistId }: { playlistId: string }) {
           {dirty ? <span className="h-2.5 w-2.5 rounded-full bg-amber-500" title="Unsaved changes" /> : null}
         </div>
         <div className="flex items-center gap-2">
-          <p className="hidden text-xs text-gray-500 md:block">
+          <p className="hidden text-xs text-[#6B7280] dark:text-[#9BA59C] md:block">
             Loop {formatLoop(playlist.total_duration)} · ⌘S to save
           </p>
           <button type="button" onClick={() => setPreviewIndex(0)} disabled={items.length === 0} className="px-3 py-1.5 text-sm">
@@ -250,7 +250,7 @@ export function PlaylistBuilder({ playlistId }: { playlistId: string }) {
           <button
             type="button"
             onClick={() => saveSettings.mutate({ name: playlist.name, status: "DRAFT" satisfies PlaylistStatus })}
-            className="rounded-lg px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-800"
+            className="rounded-lg px-3 py-1.5 text-sm hover:bg-[#F3F4F1] dark:bg-[#1F2622] dark:hover:bg-[#1F2622]"
           >
             Save draft
           </button>
@@ -270,7 +270,7 @@ export function PlaylistBuilder({ playlistId }: { playlistId: string }) {
                 end_time: playlist.end_time,
               })
             }
-            className="rounded-lg bg-primary px-4 py-1.5 text-sm font-bold text-white"
+            className="rounded-lg bg-primary px-4 py-1.5 text-sm font-bold text-white dark:bg-[#B2F2BB] dark:text-[#0E1A14]"
             title="Screens only play published playlists"
           >
             {publishLabel}
@@ -281,13 +281,13 @@ export function PlaylistBuilder({ playlistId }: { playlistId: string }) {
       {error ? <div className="bg-red-50 px-4 py-2 text-sm text-red-700">{error}</div> : null}
 
       <div className="flex min-h-0 flex-1">
-        <aside className="flex w-72 flex-col border-r border-border-light bg-white dark:border-border-dark dark:bg-surface-dark">
+        <aside className="flex w-72 flex-col border-r border-[#E8EAE6] bg-white dark:border-[#2A322C] dark:bg-[#171C19]">
           <div className="p-3">
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search library"
-              className="w-full rounded-xl border border-border-light bg-gray-50 px-3 py-2 text-sm dark:border-border-dark dark:bg-gray-800"
+              className="w-full rounded-xl border border-[#E8EAE6] bg-[#F3F4F1] px-3 py-2 text-sm dark:border-[#2A322C] dark:bg-[#1F2622]"
             />
           </div>
           <div className="flex-1 space-y-2 overflow-y-auto p-3">
@@ -296,18 +296,18 @@ export function PlaylistBuilder({ playlistId }: { playlistId: string }) {
                 key={media.id}
                 type="button"
                 onClick={() => add.mutate(media.id)}
-                className="flex w-full items-center gap-2 rounded-xl border border-border-light p-2 text-left hover:border-primary/50"
+                className="flex w-full items-center gap-2 rounded-xl border border-[#E8EAE6] p-2 text-left hover:border-primary/50"
               >
                 {media.type === "image" && media.url ? (
                   <img src={media.url} alt="" className="h-12 w-12 rounded-lg object-cover" />
                 ) : (
-                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gray-100 text-xs">VID</div>
+                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#F3F4F1] dark:bg-[#1F2622] text-xs">VID</div>
                 )}
                 <span className="truncate text-sm font-medium">{media.name}</span>
               </button>
             ))}
             {(mediaQuery.data?.results ?? []).length === 0 ? (
-              <p className="p-2 text-sm text-gray-500">Add files in Library, then click to insert them here.</p>
+              <p className="p-2 text-sm text-[#6B7280] dark:text-[#9BA59C]">Add files in Library, then click to insert them here.</p>
             ) : null}
           </div>
         </aside>
@@ -333,13 +333,13 @@ export function PlaylistBuilder({ playlistId }: { playlistId: string }) {
             </SortableContext>
           </DndContext>
           {items.length === 0 ? (
-            <div className="flex h-full min-h-[240px] items-center justify-center rounded-2xl border border-dashed text-sm text-gray-500">
+            <div className="flex h-full min-h-[240px] items-center justify-center rounded-2xl border border-dashed text-sm text-[#6B7280] dark:text-[#9BA59C]">
               Click media on the left to build the loop. Drag to reorder.
             </div>
           ) : null}
         </section>
 
-        <aside className="w-80 space-y-4 overflow-y-auto border-l border-border-light bg-white p-4 dark:border-border-dark dark:bg-surface-dark">
+        <aside className="w-80 space-y-4 overflow-y-auto border-l border-[#E8EAE6] bg-white p-4 dark:border-[#2A322C] dark:bg-[#171C19]">
           <h2 className="font-bold">Playback</h2>
           <label className="flex items-center gap-2 text-sm">
             <input
@@ -449,11 +449,11 @@ export function PlaylistBuilder({ playlistId }: { playlistId: string }) {
                   }}
                 />
                 <span>{screen.name}</span>
-                <span className={screen.online ? "text-green-600" : "text-gray-400"}>{screen.online ? "online" : "offline"}</span>
+                <span className={screen.online ? "text-primary dark:text-[#B2F2BB]" : "text-[#9AA09A] dark:text-[#6B746C]"}>{screen.online ? "online" : "offline"}</span>
               </label>
             ))}
             {(screensQuery.data?.results ?? []).length === 0 ? (
-              <p className="text-sm text-gray-500">Connect a screen first.</p>
+              <p className="text-sm text-[#6B7280] dark:text-[#9BA59C]">Connect a screen first.</p>
             ) : null}
           </div>
         </aside>

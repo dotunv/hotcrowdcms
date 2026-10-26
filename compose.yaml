@@ -8,10 +8,16 @@ services:
     environment:
       DEBUG: "true"
       PUBLIC_API_URL: http://127.0.0.1:8000
+      REDIS_URL: redis://redis:6379/0
     ports:
       - "8000:8000"
     volumes:
       - media_data:/data/media
+    depends_on:
+      - redis
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]  # counters only: nothing worth persisting
   web:
     build:
       context: .

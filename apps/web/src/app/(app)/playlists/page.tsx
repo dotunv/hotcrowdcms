@@ -7,6 +7,7 @@ import { useState } from "react";
 import { DeleteDialog } from "@/components/delete-dialog";
 import { api } from "@/lib/api";
 import { useToast } from "@/components/toast";
+import { EmptyNote, Page, StatusBadge, ui } from "@/components/ui";
 
 export default function PlaylistsPage() {
   const toast = useToast();
@@ -28,43 +29,47 @@ export default function PlaylistsPage() {
   });
 
   return (
-    <div className="p-8 h-full overflow-y-auto">
-      <div className="flex justify-between items-end mb-8">
-        <div>
-          <h1 className="text-3xl font-bold">Playlists</h1>
-          <p className="text-gray-500 mt-1">Build a loop, publish it, assign it to screens.</p>
-        </div>
-        <button type="button" onClick={() => create.mutate()} className="px-4 py-2 bg-primary text-white text-sm font-bold rounded-xl">
+    <Page
+      eyebrow="Content"
+      title="Playlists"
+      subtitle="Build a loop, publish it, assign it to screens."
+      actions={
+        <button type="button" onClick={() => create.mutate()} className={ui.btnPrimary}>
           New playlist
         </button>
-      </div>
-      <div className="grid gap-4">
+      }
+    >
+      <section>
+        <div className={ui.sectionHead}>
+          <h2 className={ui.sectionTitle}>All playlists</h2>
+        </div>
         {(list.data?.results ?? []).map((playlist) => (
-          <div key={playlist.id} className="bg-white dark:bg-surface-dark rounded-2xl border p-5 flex justify-between items-center">
-            <div>
-              <Link href={`/playlists/${playlist.id}`} className="text-lg font-bold hover:text-primary">
-                {playlist.name}
-              </Link>
-              <p className="text-sm text-gray-500 mt-1">
-                {playlist.item_count} items · {playlist.status.toLowerCase()}
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <Link href={`/playlists/${playlist.id}`} className="px-3 py-2 text-sm font-bold border rounded-xl">
+          <div key={playlist.id} className={`flex items-center gap-5 py-4 ${ui.row}`}>
+            <Link href={`/playlists/${playlist.id}`} className="min-w-0 flex-1 truncate text-[17px] font-extrabold tracking-[-0.02em] hover:text-primary dark:hover:text-[#B2F2BB]">
+              {playlist.name}
+            </Link>
+            <span className={`w-24 shrink-0 text-[13px] font-semibold ${ui.muted}`}>
+              {playlist.item_count} {playlist.item_count === 1 ? "item" : "items"}
+            </span>
+            <span className="flex w-24 shrink-0 justify-end">
+              <StatusBadge status={playlist.status} />
+            </span>
+            <div className="flex w-32 shrink-0 items-center justify-end gap-4">
+              <Link href={`/playlists/${playlist.id}`} className={ui.btnSmall}>
                 Edit
               </Link>
-              <button type="button" className="px-3 py-2 text-sm text-red-600" onClick={() => setPending(playlist)}>
+              <button type="button" className={ui.btnDanger} onClick={() => setPending(playlist)}>
                 Delete
               </button>
             </div>
           </div>
         ))}
         {(list.data?.results ?? []).length === 0 ? (
-          <div className="rounded-2xl border border-dashed p-12 text-center text-sm text-gray-500">
-            No playlists yet. Create one and drop library files into the loop.
+          <div className="pt-6">
+            <EmptyNote>No playlists yet. Create one and drop library files into the loop.</EmptyNote>
           </div>
         ) : null}
-      </div>
+      </section>
       <DeleteDialog
         open={Boolean(pending)}
         title="Delete this playlist"
@@ -74,6 +79,6 @@ export default function PlaylistsPage() {
         onClose={() => setPending(null)}
         onConfirm={() => pending && remove.mutate(pending.id)}
       />
-    </div>
+    </Page>
   );
 }
